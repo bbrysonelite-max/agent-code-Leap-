@@ -42,6 +42,7 @@ export class Client {
     public readonly client: client.ServiceClient
     public readonly db_performance: db_performance.ServiceClient
     public readonly email: email.ServiceClient
+    public readonly forecasting: forecasting.ServiceClient
     public readonly gdpr: gdpr.ServiceClient
     public readonly hubspot: hubspot.ServiceClient
     public readonly prospect: prospect.ServiceClient
@@ -72,6 +73,7 @@ export class Client {
         this.client = new client.ServiceClient(base)
         this.db_performance = new db_performance.ServiceClient(base)
         this.email = new email.ServiceClient(base)
+        this.forecasting = new forecasting.ServiceClient(base)
         this.gdpr = new gdpr.ServiceClient(base)
         this.hubspot = new hubspot.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
@@ -1198,6 +1200,340 @@ export namespace email {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/email/track-response`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_email_response_tracking_trackResponse>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    compareCohorts as api_forecasting_cohort_analyzer_compareCohorts,
+    createCohortAnalysis as api_forecasting_cohort_analyzer_createCohortAnalysis,
+    getCohortAnalyses as api_forecasting_cohort_analyzer_getCohortAnalyses,
+    getCohortTrends as api_forecasting_cohort_analyzer_getCohortTrends,
+    predictCohortPerformance as api_forecasting_cohort_analyzer_predictCohortPerformance
+} from "~backend/forecasting/cohort_analyzer";
+import {
+    batchPredictConversion as api_forecasting_conversion_predictor_batchPredictConversion,
+    getConversionModelPerformance as api_forecasting_conversion_predictor_getConversionModelPerformance,
+    getConversionPredictions as api_forecasting_conversion_predictor_getConversionPredictions,
+    predictConversion as api_forecasting_conversion_predictor_predictConversion,
+    trainConversionModel as api_forecasting_conversion_predictor_trainConversionModel
+} from "~backend/forecasting/conversion_predictor";
+import {
+    checkModelHealth as api_forecasting_model_trainer_checkModelHealth,
+    configureAutoRetrain as api_forecasting_model_trainer_configureAutoRetrain,
+    evaluateModel as api_forecasting_model_trainer_evaluateModel,
+    getActiveModels as api_forecasting_model_trainer_getActiveModels,
+    getModelPerformance as api_forecasting_model_trainer_getModelPerformance,
+    retrainModel as api_forecasting_model_trainer_retrainModel,
+    trainModel as api_forecasting_model_trainer_trainModel
+} from "~backend/forecasting/model_trainer";
+import {
+    bulkPredictPerformance as api_forecasting_performance_predictor_bulkPredictPerformance,
+    getPerformanceAnalytics as api_forecasting_performance_predictor_getPerformanceAnalytics,
+    getPerformancePredictions as api_forecasting_performance_predictor_getPerformancePredictions,
+    predictPerformance as api_forecasting_performance_predictor_predictPerformance
+} from "~backend/forecasting/performance_predictor";
+import {
+    compareForecasts as api_forecasting_revenue_forecaster_compareForecasts,
+    generateRevenueForecast as api_forecasting_revenue_forecaster_generateRevenueForecast,
+    getRevenueAnalytics as api_forecasting_revenue_forecaster_getRevenueAnalytics,
+    getRevenueForecasts as api_forecasting_revenue_forecaster_getRevenueForecasts
+} from "~backend/forecasting/revenue_forecaster";
+import {
+    getFeatures as api_forecasting_test_endpoints_getFeatures,
+    testConnection as api_forecasting_test_endpoints_testConnection
+} from "~backend/forecasting/test_endpoints";
+import {
+    bulkPredictTiming as api_forecasting_timing_predictor_bulkPredictTiming,
+    getTimingAnalytics as api_forecasting_timing_predictor_getTimingAnalytics,
+    predictOptimalTiming as api_forecasting_timing_predictor_predictOptimalTiming,
+    updateEngagementFeedback as api_forecasting_timing_predictor_updateEngagementFeedback
+} from "~backend/forecasting/timing_predictor";
+import {
+    analyzeTrend as api_forecasting_trend_analyzer_analyzeTrend,
+    compareMetricTrends as api_forecasting_trend_analyzer_compareMetricTrends,
+    detectAnomalies as api_forecasting_trend_analyzer_detectAnomalies,
+    detectPatterns as api_forecasting_trend_analyzer_detectPatterns,
+    getTrendInsights as api_forecasting_trend_analyzer_getTrendInsights
+} from "~backend/forecasting/trend_analyzer";
+
+export namespace forecasting {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.analyzeTrend = this.analyzeTrend.bind(this)
+            this.batchPredictConversion = this.batchPredictConversion.bind(this)
+            this.bulkPredictPerformance = this.bulkPredictPerformance.bind(this)
+            this.bulkPredictTiming = this.bulkPredictTiming.bind(this)
+            this.checkModelHealth = this.checkModelHealth.bind(this)
+            this.compareCohorts = this.compareCohorts.bind(this)
+            this.compareForecasts = this.compareForecasts.bind(this)
+            this.compareMetricTrends = this.compareMetricTrends.bind(this)
+            this.configureAutoRetrain = this.configureAutoRetrain.bind(this)
+            this.createCohortAnalysis = this.createCohortAnalysis.bind(this)
+            this.detectAnomalies = this.detectAnomalies.bind(this)
+            this.detectPatterns = this.detectPatterns.bind(this)
+            this.evaluateModel = this.evaluateModel.bind(this)
+            this.generateRevenueForecast = this.generateRevenueForecast.bind(this)
+            this.getActiveModels = this.getActiveModels.bind(this)
+            this.getCohortAnalyses = this.getCohortAnalyses.bind(this)
+            this.getCohortTrends = this.getCohortTrends.bind(this)
+            this.getConversionModelPerformance = this.getConversionModelPerformance.bind(this)
+            this.getConversionPredictions = this.getConversionPredictions.bind(this)
+            this.getFeatures = this.getFeatures.bind(this)
+            this.getModelPerformance = this.getModelPerformance.bind(this)
+            this.getPerformanceAnalytics = this.getPerformanceAnalytics.bind(this)
+            this.getPerformancePredictions = this.getPerformancePredictions.bind(this)
+            this.getRevenueAnalytics = this.getRevenueAnalytics.bind(this)
+            this.getRevenueForecasts = this.getRevenueForecasts.bind(this)
+            this.getTimingAnalytics = this.getTimingAnalytics.bind(this)
+            this.getTrendInsights = this.getTrendInsights.bind(this)
+            this.predictCohortPerformance = this.predictCohortPerformance.bind(this)
+            this.predictConversion = this.predictConversion.bind(this)
+            this.predictOptimalTiming = this.predictOptimalTiming.bind(this)
+            this.predictPerformance = this.predictPerformance.bind(this)
+            this.retrainModel = this.retrainModel.bind(this)
+            this.testConnection = this.testConnection.bind(this)
+            this.trainConversionModel = this.trainConversionModel.bind(this)
+            this.trainModel = this.trainModel.bind(this)
+            this.updateEngagementFeedback = this.updateEngagementFeedback.bind(this)
+        }
+
+        public async analyzeTrend(params: RequestType<typeof api_forecasting_trend_analyzer_analyzeTrend>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_analyzeTrend>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/analyze`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_analyzeTrend>
+        }
+
+        public async batchPredictConversion(params: RequestType<typeof api_forecasting_conversion_predictor_batchPredictConversion>): Promise<ResponseType<typeof api_forecasting_conversion_predictor_batchPredictConversion>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/batch-predict`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_batchPredictConversion>
+        }
+
+        public async bulkPredictPerformance(params: RequestType<typeof api_forecasting_performance_predictor_bulkPredictPerformance>): Promise<ResponseType<typeof api_forecasting_performance_predictor_bulkPredictPerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/bulk-predict`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_bulkPredictPerformance>
+        }
+
+        public async bulkPredictTiming(params: RequestType<typeof api_forecasting_timing_predictor_bulkPredictTiming>): Promise<ResponseType<typeof api_forecasting_timing_predictor_bulkPredictTiming>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/bulk-predict`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_bulkPredictTiming>
+        }
+
+        public async checkModelHealth(): Promise<ResponseType<typeof api_forecasting_model_trainer_checkModelHealth>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/health`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_checkModelHealth>
+        }
+
+        public async compareCohorts(params: RequestType<typeof api_forecasting_cohort_analyzer_compareCohorts>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_compareCohorts>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/compare`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_compareCohorts>
+        }
+
+        public async compareForecasts(params: RequestType<typeof api_forecasting_revenue_forecaster_compareForecasts>): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_compareForecasts>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/compare`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_compareForecasts>
+        }
+
+        public async compareMetricTrends(params: RequestType<typeof api_forecasting_trend_analyzer_compareMetricTrends>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_compareMetricTrends>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/compare`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_compareMetricTrends>
+        }
+
+        public async configureAutoRetrain(params: RequestType<typeof api_forecasting_model_trainer_configureAutoRetrain>): Promise<ResponseType<typeof api_forecasting_model_trainer_configureAutoRetrain>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/auto-retrain/config`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_configureAutoRetrain>
+        }
+
+        public async createCohortAnalysis(params: RequestType<typeof api_forecasting_cohort_analyzer_createCohortAnalysis>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_createCohortAnalysis>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/create`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_createCohortAnalysis>
+        }
+
+        public async detectAnomalies(params: RequestType<typeof api_forecasting_trend_analyzer_detectAnomalies>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_detectAnomalies>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/anomalies`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_detectAnomalies>
+        }
+
+        public async detectPatterns(params: RequestType<typeof api_forecasting_trend_analyzer_detectPatterns>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_detectPatterns>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/patterns`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_detectPatterns>
+        }
+
+        public async evaluateModel(params: RequestType<typeof api_forecasting_model_trainer_evaluateModel>): Promise<ResponseType<typeof api_forecasting_model_trainer_evaluateModel>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/evaluate`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_evaluateModel>
+        }
+
+        public async generateRevenueForecast(params: RequestType<typeof api_forecasting_revenue_forecaster_generateRevenueForecast>): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_generateRevenueForecast>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/forecast`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_generateRevenueForecast>
+        }
+
+        public async getActiveModels(): Promise<ResponseType<typeof api_forecasting_model_trainer_getActiveModels>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/active`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_getActiveModels>
+        }
+
+        public async getCohortAnalyses(): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_getCohortAnalyses>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/analyses`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_getCohortAnalyses>
+        }
+
+        public async getCohortTrends(params: RequestType<typeof api_forecasting_cohort_analyzer_getCohortTrends>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_getCohortTrends>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/trends`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_getCohortTrends>
+        }
+
+        public async getConversionModelPerformance(): Promise<ResponseType<typeof api_forecasting_conversion_predictor_getConversionModelPerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/model-performance`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_getConversionModelPerformance>
+        }
+
+        public async getConversionPredictions(): Promise<ResponseType<typeof api_forecasting_conversion_predictor_getConversionPredictions>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/predictions`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_getConversionPredictions>
+        }
+
+        public async getFeatures(): Promise<ResponseType<typeof api_forecasting_test_endpoints_getFeatures>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/features`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_test_endpoints_getFeatures>
+        }
+
+        public async getModelPerformance(params: { modelId: string }): Promise<ResponseType<typeof api_forecasting_model_trainer_getModelPerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/${encodeURIComponent(params.modelId)}/performance`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_getModelPerformance>
+        }
+
+        public async getPerformanceAnalytics(params: RequestType<typeof api_forecasting_performance_predictor_getPerformanceAnalytics>): Promise<ResponseType<typeof api_forecasting_performance_predictor_getPerformanceAnalytics>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/analytics`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_getPerformanceAnalytics>
+        }
+
+        public async getPerformancePredictions(params: RequestType<typeof api_forecasting_performance_predictor_getPerformancePredictions>): Promise<ResponseType<typeof api_forecasting_performance_predictor_getPerformancePredictions>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                entityId:   params.entityId,
+                entityType: params.entityType === undefined ? undefined : String(params.entityType),
+                limit:      params.limit === undefined ? undefined : String(params.limit),
+                metric:     params.metric,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/predictions`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_getPerformancePredictions>
+        }
+
+        public async getRevenueAnalytics(params: RequestType<typeof api_forecasting_revenue_forecaster_getRevenueAnalytics>): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueAnalytics>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/analytics`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueAnalytics>
+        }
+
+        public async getRevenueForecasts(): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueForecasts>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/forecasts`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueForecasts>
+        }
+
+        public async getTimingAnalytics(): Promise<ResponseType<typeof api_forecasting_timing_predictor_getTimingAnalytics>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/analytics`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_getTimingAnalytics>
+        }
+
+        public async getTrendInsights(params: RequestType<typeof api_forecasting_trend_analyzer_getTrendInsights>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_getTrendInsights>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                entityType: params.entityType === undefined ? undefined : String(params.entityType),
+                limit:      params.limit === undefined ? undefined : String(params.limit),
+                period:     params.period === undefined ? undefined : String(params.period),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/insights`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_getTrendInsights>
+        }
+
+        public async predictCohortPerformance(params: RequestType<typeof api_forecasting_cohort_analyzer_predictCohortPerformance>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_predictCohortPerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/predict`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_predictCohortPerformance>
+        }
+
+        public async predictConversion(params: RequestType<typeof api_forecasting_conversion_predictor_predictConversion>): Promise<ResponseType<typeof api_forecasting_conversion_predictor_predictConversion>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/predict`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_predictConversion>
+        }
+
+        public async predictOptimalTiming(params: RequestType<typeof api_forecasting_timing_predictor_predictOptimalTiming>): Promise<ResponseType<typeof api_forecasting_timing_predictor_predictOptimalTiming>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/predict`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_predictOptimalTiming>
+        }
+
+        public async predictPerformance(params: RequestType<typeof api_forecasting_performance_predictor_predictPerformance>): Promise<ResponseType<typeof api_forecasting_performance_predictor_predictPerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/predict`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_predictPerformance>
+        }
+
+        public async retrainModel(params: RequestType<typeof api_forecasting_model_trainer_retrainModel>): Promise<ResponseType<typeof api_forecasting_model_trainer_retrainModel>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/retrain`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_retrainModel>
+        }
+
+        public async testConnection(): Promise<ResponseType<typeof api_forecasting_test_endpoints_testConnection>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/test`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_test_endpoints_testConnection>
+        }
+
+        public async trainConversionModel(params: RequestType<typeof api_forecasting_conversion_predictor_trainConversionModel>): Promise<ResponseType<typeof api_forecasting_conversion_predictor_trainConversionModel>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/train`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_trainConversionModel>
+        }
+
+        public async trainModel(params: RequestType<typeof api_forecasting_model_trainer_trainModel>): Promise<ResponseType<typeof api_forecasting_model_trainer_trainModel>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/train`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_trainModel>
+        }
+
+        public async updateEngagementFeedback(params: RequestType<typeof api_forecasting_timing_predictor_updateEngagementFeedback>): Promise<ResponseType<typeof api_forecasting_timing_predictor_updateEngagementFeedback>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/feedback`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_updateEngagementFeedback>
         }
     }
 }
