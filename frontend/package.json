@@ -45,6 +45,6 @@
     "vite": "^6.3.6"
   },
   "optionalDependencies": {
-    "rollup": "^4.50.2"
+    "rollup": "^4.51.0"
   }
 }
