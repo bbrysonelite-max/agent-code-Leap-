@@ -45,7 +45,7 @@ export class RateLimitAnalytics {
   async generateDailyAnalytics(date?: string): Promise<RateLimitMetrics[]> {
     const targetDate = date || new Date().toISOString().split('T')[0];
     
-    const result = await db.query`
+    const result = await db.queryAll`
       WITH daily_stats AS (
         SELECT 
           rul.endpoint,
@@ -82,7 +82,7 @@ export class RateLimitAnalytics {
 
     // Store analytics in database
     for (const metric of result) {
-      await db.query`
+      await db.queryAll`
         INSERT INTO rate_limit_analytics (
           date, endpoint, method, tier, total_requests, blocked_requests,
           unique_users, avg_requests_per_user, peak_requests_per_minute
@@ -121,7 +121,7 @@ export class RateLimitAnalytics {
       whereClause += ` AND tier = ${tier}`;
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         date, endpoint, method, tier,
         total_requests as "totalRequests",
@@ -146,7 +146,7 @@ export class RateLimitAnalytics {
   async getRealTimeUsage(timeWindowMinutes: number = 5): Promise<any[]> {
     const windowStart = new Date(Date.now() - (timeWindowMinutes * 60 * 1000));
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         endpoint,
         method,
@@ -172,7 +172,7 @@ export class RateLimitAnalytics {
       whereClause = `WHERE user_id = ${userId}`;
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         user_id as "userId",
         tier,
@@ -225,7 +225,7 @@ export class RateLimitAnalytics {
   }
 
   private async getActiveAlerts(): Promise<UsageAlert[]> {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         id, name, endpoint, method, tier, threshold_type as "thresholdType",
         threshold_value as "thresholdValue", time_window_minutes as "timeWindowMinutes",
@@ -266,7 +266,7 @@ export class RateLimitAnalytics {
       whereClause += ` AND method = ${alert.method}`;
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         SUM(request_count) as total_requests,
         COUNT(DISTINCT identifier) as unique_users
@@ -277,7 +277,7 @@ export class RateLimitAnalytics {
     const totalRequests = result[0]?.total_requests || 0;
     
     // Get theoretical maximum based on rate limits
-    const ruleResult = await db.query`
+    const ruleResult = await db.queryAll`
       SELECT AVG(max_requests) as avg_limit
       FROM rate_limit_rules
       WHERE enabled = true
@@ -303,7 +303,7 @@ export class RateLimitAnalytics {
       whereClause += ` AND method = ${alert.method}`;
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT SUM(blocked_count) as total_blocked
       FROM rate_limit_usage
       ${whereClause}
@@ -318,7 +318,7 @@ export class RateLimitAnalytics {
       whereClause = `WHERE tier = ${alert.tier}`;
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         AVG(GREATEST(
           current_daily_usage::numeric / daily_quota::numeric,
@@ -359,7 +359,7 @@ export class RateLimitAnalytics {
   }
 
   private async getAlertById(alertId: number): Promise<UsageAlert | null> {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         id, name, endpoint, method, tier, threshold_type as "thresholdType",
         threshold_value as "thresholdValue", time_window_minutes as "timeWindowMinutes",
@@ -402,7 +402,7 @@ export class RateLimitAnalytics {
 
   // Get top violators (users/IPs with most violations)
   async getTopViolators(limit: number = 10): Promise<any[]> {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         identifier,
         COUNT(DISTINCT endpoint) as endpoints_violated,
@@ -479,7 +479,7 @@ export class RateLimitAnalytics {
   }
 
   private async getOverallBlockingRate(): Promise<number> {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         SUM(blocked_count) as total_blocked,
         SUM(request_count) as total_requests
@@ -494,7 +494,7 @@ export class RateLimitAnalytics {
   }
 
   private async getAverageQuotaUtilization(): Promise<number> {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT AVG(
         GREATEST(
           current_daily_usage::numeric / daily_quota::numeric,
@@ -508,7 +508,7 @@ export class RateLimitAnalytics {
   }
 
   private async getPenaltyFrequency(): Promise<number> {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT COUNT(*) as penalty_count
       FROM rate_limit_penalties
       WHERE updated_at >= NOW() - INTERVAL '24 hours'

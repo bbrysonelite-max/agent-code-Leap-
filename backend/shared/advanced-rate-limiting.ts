@@ -142,7 +142,7 @@ export class AdvancedRateLimiter {
       return this.cache.get(cacheKey);
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT id, endpoint, method, tier, window_seconds as "windowSeconds",
              max_requests as "maxRequests", burst_limit as "burstLimit", enabled
       FROM rate_limit_rules
@@ -201,7 +201,7 @@ export class AdvancedRateLimiter {
       return this.cache.get(cacheKey);
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT id, user_id as "userId", tier, daily_quota as "dailyQuota",
              monthly_quota as "monthlyQuota", current_daily_usage as "currentDailyUsage",
              current_monthly_usage as "currentMonthlyUsage",
@@ -216,7 +216,7 @@ export class AdvancedRateLimiter {
     if (result.length === 0) {
       // Create new quota for user
       const defaultQuota = await this.getDefaultQuotaForTier(tier);
-      await db.query`
+      await db.queryAll`
         INSERT INTO user_quotas (user_id, tier, daily_quota, monthly_quota)
         VALUES (${userId}, ${tier}, ${defaultQuota.dailyQuota}, ${defaultQuota.monthlyQuota})
       `;
@@ -263,7 +263,7 @@ export class AdvancedRateLimiter {
     const windowStart = new Date(now.getTime() - (rule.windowSeconds * 1000));
     const windowEnd = new Date(now.getTime() + (rule.windowSeconds * 1000));
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT request_count as "requestCount", blocked_count as "blockedCount"
       FROM rate_limit_usage
       WHERE identifier = ${identifier}
@@ -303,7 +303,7 @@ export class AdvancedRateLimiter {
     const windowStart = new Date(now.getTime() - (rule.windowSeconds * 1000));
     const windowEnd = new Date(now.getTime() + (rule.windowSeconds * 1000));
 
-    await db.query`
+    await db.queryAll`
       INSERT INTO rate_limit_usage (identifier, endpoint, method, request_count, window_start, window_end)
       VALUES (${identifier}, ${endpoint}, ${method}, 1, ${windowStart}, ${windowEnd})
       ON CONFLICT (identifier, endpoint, method, window_start)
@@ -314,7 +314,7 @@ export class AdvancedRateLimiter {
   }
 
   private async incrementUserQuota(userId: string): Promise<void> {
-    await db.query`
+    await db.queryAll`
       UPDATE user_quotas
       SET current_daily_usage = current_daily_usage + 1,
           current_monthly_usage = current_monthly_usage + 1,
@@ -330,7 +330,7 @@ export class AdvancedRateLimiter {
     const now = new Date();
     
     // Update blocked count
-    await db.query`
+    await db.queryAll`
       UPDATE rate_limit_usage
       SET blocked_count = blocked_count + 1,
           updated_at = NOW()
@@ -345,7 +345,7 @@ export class AdvancedRateLimiter {
   }
 
   private async applyIntelligentBackoff(identifier: string, endpoint: string): Promise<void> {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT violation_count as "violationCount", penalty_multiplier as "penaltyMultiplier"
       FROM rate_limit_penalties
       WHERE identifier = ${identifier} AND endpoint = ${endpoint}
@@ -365,7 +365,7 @@ export class AdvancedRateLimiter {
     const penaltyMinutes = basePenaltyMinutes * Math.pow(2, violationCount - 1) * penaltyMultiplier;
     const penaltyUntil = new Date(Date.now() + (penaltyMinutes * 60 * 1000));
 
-    await db.query`
+    await db.queryAll`
       INSERT INTO rate_limit_penalties (identifier, endpoint, violation_count, penalty_multiplier, penalty_until)
       VALUES (${identifier}, ${endpoint}, ${violationCount}, ${penaltyMultiplier}, ${penaltyUntil})
       ON CONFLICT (identifier, endpoint)
@@ -380,7 +380,7 @@ export class AdvancedRateLimiter {
   private async getActivePenalty(identifier: string, endpoint: string): Promise<BackoffPenalty | null> {
     const now = new Date();
     
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT identifier, endpoint, violation_count as "violationCount",
              penalty_multiplier as "penaltyMultiplier", penalty_until as "penaltyUntil"
       FROM rate_limit_penalties
@@ -398,7 +398,7 @@ export class AdvancedRateLimiter {
     const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
     // Reset daily quotas
-    await db.query`
+    await db.queryAll`
       UPDATE user_quotas
       SET current_daily_usage = 0,
           quota_reset_date = ${today},
@@ -407,7 +407,7 @@ export class AdvancedRateLimiter {
     `;
 
     // Reset monthly quotas
-    await db.query`
+    await db.queryAll`
       UPDATE user_quotas
       SET current_monthly_usage = 0,
           monthly_reset_date = ${firstOfMonth},
@@ -430,7 +430,7 @@ export class AdvancedRateLimiter {
       ? `WHERE identifier = ${identifier} AND endpoint = ${endpoint}`
       : `WHERE identifier = ${identifier}`;
 
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT endpoint, method, 
              SUM(request_count) as total_requests,
              SUM(blocked_count) as total_blocked,

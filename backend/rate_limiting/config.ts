@@ -57,7 +57,7 @@ export interface UpdateUserQuotaRequest {
 export const getRules = api(
   { method: "GET", path: "/rate-limiting/rules", expose: true },
   async () => {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         id, endpoint, method, tier,
         window_seconds as "windowSeconds",
@@ -76,7 +76,7 @@ export const getRules = api(
 export const getRulesByEndpoint = api(
   { method: "GET", path: "/rate-limiting/rules/:endpoint", expose: true },
   async ({ endpoint }: { endpoint: string }) => {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         id, endpoint, method, tier,
         window_seconds as "windowSeconds",
@@ -107,7 +107,7 @@ export const createRule = api(
     const burstLimit = req.burstLimit || 0;
     const enabled = req.enabled !== false;
 
-    const result = await db.query`
+    const result = await db.queryAll`
       INSERT INTO rate_limit_rules (
         endpoint, method, tier, window_seconds, max_requests, burst_limit, enabled
       ) VALUES (
@@ -171,7 +171,7 @@ export const updateRule = api(
 
     const setClause = setParts.join(', ');
     
-    const result = await db.query`
+    const result = await db.queryAll`
       UPDATE rate_limit_rules 
       SET ${setClause}
       WHERE id = $${values.length}
@@ -194,7 +194,7 @@ export const updateRule = api(
 export const deleteRule = api(
   { method: "DELETE", path: "/rate-limiting/rules/:id", expose: true },
   async ({ id }: { id: number }): Promise<{ success: boolean }> => {
-    const result = await db.query`
+    const result = await db.queryAll`
       DELETE FROM rate_limit_rules WHERE id = ${id}
     `;
 
@@ -206,7 +206,7 @@ export const deleteRule = api(
 export const getUserQuotas = api(
   { method: "GET", path: "/rate-limiting/quotas", expose: true },
   async () => {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         id, user_id as "userId", tier,
         daily_quota as "dailyQuota",
@@ -223,7 +223,7 @@ export const getUserQuotas = api(
 export const getUserQuota = api(
   { method: "GET", path: "/rate-limiting/quotas/:userId", expose: true },
   async ({ userId }: { userId: string }): Promise<UserQuotaConfig> => {
-    const result = await db.query`
+    const result = await db.queryAll`
       SELECT 
         id, user_id as "userId", tier,
         daily_quota as "dailyQuota",
@@ -253,7 +253,7 @@ export const createUserQuota = api(
       throw new ValidationError("Quotas must be positive", "validation");
     }
 
-    const result = await db.query`
+    const result = await db.queryAll`
       INSERT INTO user_quotas (user_id, tier, daily_quota, monthly_quota)
       VALUES (${req.userId}, ${req.tier}, ${req.dailyQuota}, ${req.monthlyQuota})
       RETURNING id, user_id as "userId", tier,
@@ -306,7 +306,7 @@ export const updateUserQuota = api(
 
     const setClause = setParts.join(', ');
     
-    const result = await db.query`
+    const result = await db.queryAll`
       UPDATE user_quotas 
       SET ${setClause}
       WHERE user_id = $${values.length}
@@ -327,7 +327,7 @@ export const updateUserQuota = api(
 export const deleteUserQuota = api(
   { method: "DELETE", path: "/rate-limiting/quotas/:userId", expose: true },
   async ({ userId }: { userId: string }): Promise<{ success: boolean }> => {
-    const result = await db.query`
+    const result = await db.queryAll`
       DELETE FROM user_quotas WHERE user_id = ${userId}
     `;
 
@@ -379,7 +379,7 @@ export const bulkUpdateQuotasByTier = api(
 
     const setClause = setParts.join(', ');
     
-    const result = await db.query`
+    const result = await db.queryAll`
       UPDATE user_quotas 
       SET ${setClause}
       WHERE tier = $${values.length}

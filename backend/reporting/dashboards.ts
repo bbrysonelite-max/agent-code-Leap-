@@ -9,7 +9,7 @@ export const createDashboard = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryRow`
+    const result = await db.queryAllRow`
       INSERT INTO dashboards (user_id, name, description, layout, is_default, is_public)
       VALUES (${userID}, ${req.name}, ${req.description || null}, ${JSON.stringify(req.layout || [])}, 
               ${req.is_default || false}, ${req.is_public || false})
@@ -29,7 +29,7 @@ export const listDashboards = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const results = await db.query`
+    const results = await db.queryAll`
       SELECT * FROM dashboards 
       WHERE user_id = ${userID} OR is_public = true
       ORDER BY is_default DESC, created_at DESC
@@ -50,7 +50,7 @@ export const getDashboard = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryRow`
+    const result = await db.queryAllRow`
       SELECT * FROM dashboards 
       WHERE id = ${id} AND (user_id = ${userID} OR is_public = true)
     `;
@@ -125,7 +125,7 @@ export const removeDashboard = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.query`
+    const result = await db.queryAll`
       DELETE FROM dashboards 
       WHERE id = ${id} AND user_id = ${userID}
     `;

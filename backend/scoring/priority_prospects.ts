@@ -19,7 +19,7 @@ export const getTopProspects = api<TopProspectsRequest, TopProspectsResponse>(
 
     let results;
     if (req.priority) {
-      results = await db.query`
+      results = await db.queryAll`
         SELECT 
           ps.prospect_id,
           p.name,
@@ -35,7 +35,7 @@ export const getTopProspects = api<TopProspectsRequest, TopProspectsResponse>(
         LIMIT ${limit}
       `;
     } else {
-      results = await db.query`
+      results = await db.queryAll`
         SELECT 
           ps.prospect_id,
           p.name,
@@ -95,7 +95,7 @@ export const getProspectScore = api<{ prospectId: string }, ProspectScoreRespons
   wrapAsync(async ({ prospectId }) => {
     validateField(prospectId, "prospectId", [Rules.required()]);
 
-    const result = await db.queryRow`
+    const result = await db.queryAllRow`
       SELECT 
         ps.prospect_id,
         p.name,

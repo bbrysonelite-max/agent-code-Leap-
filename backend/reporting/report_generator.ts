@@ -128,7 +128,7 @@ async function generateCampaignReport(config: any, filters: ReportFilters): Prom
     ORDER BY period
   `;
   
-  const data = await emailDb.query(query, ...params);
+  const data = await emailDb.rawQueryAll(query, ...params);
   
   const summary = {
     total_campaigns: data.reduce((sum, row) => sum + parseInt(row.total_campaigns), 0),

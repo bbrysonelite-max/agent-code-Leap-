@@ -165,7 +165,7 @@ async function drillDownCampaigns(
     LIMIT 100
   `;
   
-  const results = await emailDb.query(query, ...params);
+  const results = await emailDb.rawQueryAll(query, ...params);
   
   return {
     dimension,

@@ -12,7 +12,7 @@ export const exportReport = async (
   
   // Get report data if not provided
   if (!reportData) {
-    const report = await db.queryRow`
+    const report = await db.queryAllRow`
       SELECT * FROM reports WHERE id = ${report_id}
     `;
     
@@ -302,7 +302,7 @@ export const downloadReport = api(
     const userID = auth.userID;
     
     // Verify user owns the report
-    const report = await db.queryRow`
+    const report = await db.queryAllRow`
       SELECT * FROM reports 
       WHERE id = ${request.report_id} AND user_id = ${userID}
     `;
@@ -312,7 +312,7 @@ export const downloadReport = api(
     }
     
     // Create execution record
-    const execution = await db.queryRow`
+    const execution = await db.queryAllRow`
       INSERT INTO report_executions (report_id, status, format)
       VALUES (${request.report_id}, 'running', ${request.format})
       RETURNING *
@@ -327,7 +327,7 @@ export const downloadReport = api(
       const executionTime = Date.now() - startTime;
       
       // Update execution record
-      await db.query`
+      await db.queryAll`
         UPDATE report_executions 
         SET status = 'completed', 
             file_path = ${exportResult.file_path},
@@ -348,7 +348,7 @@ export const downloadReport = api(
       
     } catch (error) {
       // Update execution record with error
-      await db.query`
+      await db.queryAll`
         UPDATE report_executions 
         SET status = 'failed', 
             error_message = ${error.message},
@@ -368,7 +368,7 @@ export const getDownload = api(
     const userID = auth.userID;
     
     // Verify user owns the execution
-    const execution = await db.queryRow`
+    const execution = await db.queryAllRow`
       SELECT e.*, r.user_id 
       FROM report_executions e
       JOIN reports r ON e.report_id = r.id

@@ -10,7 +10,7 @@ export const createReport = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryRow`
+    const result = await db.queryAllRow`
       INSERT INTO reports (user_id, name, description, type, config, filters, schedule_config, is_scheduled)
       VALUES (${userID}, ${req.name}, ${req.description || null}, ${req.type}, 
               ${JSON.stringify(req.config)}, ${JSON.stringify(req.filters || {})},
@@ -33,7 +33,7 @@ export const listReports = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const results = await db.query`
+    const results = await db.queryAll`
       SELECT * FROM reports 
       WHERE user_id = ${userID}
       ORDER BY created_at DESC
@@ -56,7 +56,7 @@ export const getReport = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryRow`
+    const result = await db.queryAllRow`
       SELECT * FROM reports 
       WHERE id = ${id} AND user_id = ${userID}
     `;
@@ -137,7 +137,7 @@ export const generateReport = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const report = await db.queryRow`
+    const report = await db.queryAllRow`
       SELECT * FROM reports 
       WHERE id = ${id} AND user_id = ${userID}
     `;
@@ -154,7 +154,7 @@ export const generateReport = api(
     
     const reportData = await generateReportData(reportConfig);
     
-    await db.query`
+    await db.queryAll`
       UPDATE reports 
       SET last_generated_at = NOW()
       WHERE id = ${id}
@@ -170,7 +170,7 @@ export const removeReport = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    await db.query`
+    await db.queryAll`
       DELETE FROM reports 
       WHERE id = ${id} AND user_id = ${userID}
     `;

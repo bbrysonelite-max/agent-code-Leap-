@@ -145,24 +145,24 @@ export const getAuditStats = api(
       topUsers,
       securitySeverity
     ] = await Promise.all([
-      DB.queryRow`SELECT COUNT(*) as count FROM audit_logs`,
-      DB.queryRow`SELECT COUNT(*) as count FROM security_logs`,
-      DB.queryRow`
+      DB.queryAllRow`SELECT COUNT(*) as count FROM audit_logs`,
+      DB.queryAllRow`SELECT COUNT(*) as count FROM security_logs`,
+      DB.queryAllRow`
         SELECT COUNT(*) as count FROM security_logs 
         WHERE event_type = 'login' AND success = false 
         AND created_at >= NOW() - INTERVAL '24 hours'
       `,
-      DB.queryRow`
+      DB.queryAllRow`
         SELECT COUNT(*) as count FROM audit_logs 
         WHERE compliance_relevant = true 
         AND created_at >= NOW() - INTERVAL '24 hours'
       `,
-      DB.queryRow`
+      DB.queryAllRow`
         SELECT COUNT(*) as count FROM audit_logs 
         WHERE action IN ('create', 'update', 'delete') 
         AND created_at >= NOW() - INTERVAL '24 hours'
       `,
-      DB.query`
+      DB.queryAll`
         SELECT user_id, COUNT(*) as activity_count 
         FROM audit_logs 
         WHERE user_id IS NOT NULL 
@@ -171,7 +171,7 @@ export const getAuditStats = api(
         ORDER BY activity_count DESC 
         LIMIT 10
       `,
-      DB.query`
+      DB.queryAll`
         SELECT severity, COUNT(*) as count 
         FROM security_logs 
         WHERE created_at >= NOW() - INTERVAL '24 hours'
@@ -237,7 +237,7 @@ export const getComplianceReport = api(
       securityIncidents,
       failedAccessAttempts
     ] = await Promise.all([
-      DB.query`
+      DB.queryAllAll`
         SELECT DATE_TRUNC('day', created_at) as date, COUNT(*) as count
         FROM audit_logs 
         WHERE action = 'read' AND compliance_relevant = true
@@ -245,7 +245,7 @@ export const getComplianceReport = api(
         GROUP BY DATE_TRUNC('day', created_at)
         ORDER BY date
       `,
-      DB.query`
+      DB.queryAllAll`
         SELECT action, COUNT(*) as count
         FROM audit_logs 
         WHERE action IN ('create', 'update', 'delete') 
@@ -253,19 +253,19 @@ export const getComplianceReport = api(
         AND created_at >= NOW() - INTERVAL ${interval}
         GROUP BY action
       `,
-      DB.query`
+      DB.queryAllAll`
         SELECT COUNT(*) as count
         FROM audit_logs 
         WHERE action = 'gdpr_deletion' 
         AND created_at >= NOW() - INTERVAL ${interval}
       `,
-      DB.query`
+      DB.queryAllAll`
         SELECT COUNT(*) as count
         FROM audit_logs 
         WHERE action = 'gdpr_export' 
         AND created_at >= NOW() - INTERVAL ${interval}
       `,
-      DB.query`
+      DB.queryAllAll`
         SELECT event_type, COUNT(*) as count
         FROM security_logs 
         WHERE severity IN ('ERROR', 'CRITICAL')
@@ -273,7 +273,7 @@ export const getComplianceReport = api(
         GROUP BY event_type
         ORDER BY count DESC
       `,
-      DB.query`
+      DB.queryAllAll`
         SELECT DATE_TRUNC('day', created_at) as date, COUNT(*) as count
         FROM security_logs 
         WHERE success = false

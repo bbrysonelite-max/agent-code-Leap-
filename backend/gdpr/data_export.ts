@@ -39,7 +39,7 @@ export const requestDataExport = api(
 export const getDataExport = api(
   { method: "GET", path: "/gdpr/export/:request_id", expose: true },
   async ({ request_id }: { request_id: string }): Promise<DataExportResponse> => {
-    const request = await DB.queryRow`
+    const request = await DB.queryAllRow`
       SELECT * FROM gdpr_requests 
       WHERE request_id = ${request_id} AND request_type = 'export'
     `;
@@ -68,7 +68,7 @@ export const getUserDataSummary = api(
   { method: "GET", path: "/gdpr/summary/:user_id", expose: true },
   async ({ user_id }: { user_id: string }): Promise<UserDataSummary> => {
     // Get data categories
-    const dataCategories = await DB.query`
+    const dataCategories = await DB.queryAll`
       SELECT DISTINCT data_category, service_name
       FROM data_mapping dm
       WHERE EXISTS (
@@ -78,7 +78,7 @@ export const getUserDataSummary = api(
     `;
 
     // Get active GDPR requests
-    const activeRequests = await DB.query`
+    const activeRequests = await DB.queryAll`
       SELECT request_id, request_type, status, created_at
       FROM gdpr_requests
       WHERE user_id = ${user_id} AND status != 'completed'
@@ -113,14 +113,14 @@ async function processDataExport(requestId: string): Promise<void> {
       WHERE request_id = ${requestId}
     `;
 
-    const request = await DB.queryRow`
+    const request = await DB.queryAllRow`
       SELECT * FROM gdpr_requests WHERE request_id = ${requestId}
     `;
 
     if (!request) return;
 
     // Get all data mappings for exportable data
-    const mappings = await DB.query`
+    const mappings = await DB.queryAll`
       SELECT * FROM data_mapping 
       WHERE is_exportable = true
     `;
