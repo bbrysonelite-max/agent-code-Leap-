@@ -11,7 +11,7 @@ export const syncProspectToLead = api(
     
     // This would typically use the shared database or make a service call
     // For now, we'll create a placeholder implementation
-    const prospect = await CRM.queryRow(prospectQuery, prospectId);
+    const prospect = await CRM.rawQueryRow(prospectQuery, prospectId);
     
     if (!prospect) {
       throw new Error("Prospect not found");
@@ -275,7 +275,7 @@ export const getProspectLeadMapping = api(
 
     query += ` ORDER BY l.created_at DESC`;
 
-    const mappings = await CRM.queryRows(query, ...params);
+    const mappings = await CRM.rawQueryAll(query, ...params);
     return mappings;
   }
 );

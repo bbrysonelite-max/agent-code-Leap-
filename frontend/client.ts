@@ -682,6 +682,7 @@ export namespace ai_crm {
             const body: Record<string, any> = {
                 "completed_at": params["completed_at"],
                 "contact_id":   params["contact_id"],
+                "created_by":   params["created_by"],
                 "deal_id":      params["deal_id"],
                 description:    params.description,
                 "lead_id":      params["lead_id"],
@@ -1555,11 +1556,6 @@ import {
     updateReport as api_reporting_reports_updateReport
 } from "~backend/reporting/reports";
 import {
-    getReportExecutions as api_reporting_scheduler_getReportExecutions,
-    getScheduledReports as api_reporting_scheduler_getScheduledReports,
-    toggleReportSchedule as api_reporting_scheduler_toggleReportSchedule
-} from "~backend/reporting/scheduler";
-import {
     createWidget as api_reporting_widgets_createWidget,
     getWidget as api_reporting_widgets_getWidget,
     getWidgetData as api_reporting_widgets_getWidgetData,
@@ -1585,8 +1581,6 @@ export namespace reporting {
             this.getDownload = this.getDownload.bind(this)
             this.getMetricSummary = this.getMetricSummary.bind(this)
             this.getReport = this.getReport.bind(this)
-            this.getReportExecutions = this.getReportExecutions.bind(this)
-            this.getScheduledReports = this.getScheduledReports.bind(this)
             this.getWidget = this.getWidget.bind(this)
             this.getWidgetData = this.getWidgetData.bind(this)
             this.listDashboards = this.listDashboards.bind(this)
@@ -1595,7 +1589,6 @@ export namespace reporting {
             this.removeDashboard = this.removeDashboard.bind(this)
             this.removeReport = this.removeReport.bind(this)
             this.removeWidget = this.removeWidget.bind(this)
-            this.toggleReportSchedule = this.toggleReportSchedule.bind(this)
             this.updateDashboard = this.updateDashboard.bind(this)
             this.updateReport = this.updateReport.bind(this)
             this.updateWidget = this.updateWidget.bind(this)
@@ -1661,18 +1654,6 @@ export namespace reporting {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_getReport>
         }
 
-        public async getReportExecutions(params: { id: string }): Promise<ResponseType<typeof api_reporting_scheduler_getReportExecutions>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}/executions`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_getReportExecutions>
-        }
-
-        public async getScheduledReports(): Promise<ResponseType<typeof api_reporting_scheduler_getScheduledReports>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/scheduled`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_getScheduledReports>
-        }
-
         public async getWidget(params: { id: string }): Promise<ResponseType<typeof api_reporting_widgets_getWidget>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
@@ -1721,23 +1702,11 @@ export namespace reporting {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_removeWidget>
         }
 
-        public async toggleReportSchedule(params: RequestType<typeof api_reporting_scheduler_toggleReportSchedule>): Promise<ResponseType<typeof api_reporting_scheduler_toggleReportSchedule>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                enabled: params.enabled,
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}/toggle-schedule`, {method: "POST", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_toggleReportSchedule>
-        }
-
         public async updateDashboard(params: RequestType<typeof api_reporting_dashboards_updateDashboard>): Promise<ResponseType<typeof api_reporting_dashboards_updateDashboard>> {
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
                 description:  params.description,
                 "is_default": params["is_default"],
-                "is_public":  params["is_public"],
                 layout:       params.layout,
                 name:         params.name,
             }
@@ -1766,7 +1735,7 @@ export namespace reporting {
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
                 config:        params.config,
-                "data_source": params["data_source"],
+                description:   params.description,
                 height:        params.height,
                 "position_x":  params["position_x"],
                 "position_y":  params["position_y"],

@@ -98,7 +98,7 @@ export const listActivities = api(
     query += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
 
-    const activities = await CRM.queryRows(query, ...params);
+    const activities = await CRM.rawQueryAll(query, ...params);
     return activities as Activity[];
   }
 );
@@ -147,7 +147,7 @@ export const updateActivity = api(
     `;
     params.push(id);
 
-    const activity = await CRM.queryRow(query, ...params);
+    const activity = await CRM.rawQueryRow(query, ...params);
 
     if (!activity) {
       throw new Error("Activity not found");
@@ -160,18 +160,18 @@ export const updateActivity = api(
 export const deleteActivity = api(
   { method: "DELETE", path: "/ai-crm/activities/:id", expose: true },
   async ({ id }: { id: string }): Promise<{ success: boolean }> => {
-    const result = await CRM.exec`
+    await CRM.exec`
       DELETE FROM activities WHERE id = ${id}
     `;
 
-    return { success: result.rowCount > 0 };
+    return { success: true };
   }
 );
 
 export const getUpcomingActivities = api(
   { method: "GET", path: "/ai-crm/activities/upcoming", expose: true },
   async ({ days = 7, limit = 20 }: { days?: number; limit?: number }) => {
-    const activities = await CRM.queryRows`
+    const activities = await CRM.queryAll`
       SELECT a.*, 
              c.name as contact_name, 
              l.name as lead_name,
@@ -195,7 +195,7 @@ export const getUpcomingActivities = api(
 export const getOverdueActivities = api(
   { method: "GET", path: "/ai-crm/activities/overdue", expose: true },
   async ({ limit = 20 }: { limit?: number }) => {
-    const activities = await CRM.queryRows`
+    const activities = await CRM.queryAll`
       SELECT a.*, 
              c.name as contact_name, 
              l.name as lead_name,

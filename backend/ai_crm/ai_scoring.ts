@@ -62,7 +62,7 @@ export const bulkScoreLeads = api(
 export const getTopScoredLeads = api(
   { method: "GET", path: "/ai-crm/leads/top-scored", expose: true },
   async ({ limit = 20, minScore = 70 }: { limit?: number; minScore?: number }) => {
-    const leads = await CRM.queryRows`
+    const leads = await CRM.queryAll`
       SELECT * FROM leads 
       WHERE ai_score >= ${minScore}
       ORDER BY ai_score DESC, priority ASC, created_at DESC

@@ -54,7 +54,7 @@ async function generateProspectReport(config: any, filters: ReportFilters): Prom
     ORDER BY period
   `;
   
-  const data = await prospectDb.query(query, ...params);
+  const data = await prospectDb.rawQueryAll(query, ...params);
   
   const summary = {
     total_prospects: data.reduce((sum, row) => sum + parseInt(row.total_prospects), 0),

@@ -89,7 +89,7 @@ async function drillDownProspects(
     LIMIT 100
   `;
   
-  const results = await prospectDb.query(query, ...params);
+  const results = await prospectDb.rawQueryAll(query, ...params);
   
   return {
     dimension,
@@ -393,7 +393,7 @@ async function getProspectSummary(dateRange: DateRange, filters?: ReportFilters)
     WHERE created_at >= $1 AND created_at <= $2
   `;
   
-  const result = await prospectDb.queryRow(query, dateRange.start_date, dateRange.end_date);
+  const result = await prospectDb.rawQueryRow(query, dateRange.start_date, dateRange.end_date);
   
   return {
     total_prospects: parseInt(result.total_prospects),

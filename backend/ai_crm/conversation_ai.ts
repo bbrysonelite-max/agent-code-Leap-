@@ -127,7 +127,7 @@ export const getConversationInsights = api(
     query += ` ORDER BY ca.ai_score DESC, ca.created_at DESC LIMIT $${paramIndex}`;
     params.push(limit);
 
-    const insights = await CRM.queryRows(query, ...params);
+    const insights = await CRM.rawQueryAll(query, ...params);
     return insights;
   }
 );
@@ -163,7 +163,7 @@ export const getSentimentTrends = api(
 
     query += ` GROUP BY ai_sentiment, DATE(created_at) ORDER BY date DESC`;
 
-    const trends = await CRM.queryRows(query, ...params);
+    const trends = await CRM.queryAll(query, ...params);
     return trends;
   }
 );

@@ -89,7 +89,7 @@ export const listDeals = api(
     query += ` ORDER BY d.value DESC, d.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
 
-    const deals = await CRM.queryRows(query, ...params);
+    const deals = await CRM.rawQueryAll(query, ...params);
     return deals;
   }
 );
@@ -138,7 +138,7 @@ export const updateDeal = api(
     `;
     params.push(id);
 
-    const deal = await CRM.queryRow(query, ...params);
+    const deal = await CRM.rawQueryRow(query, ...params);
 
     if (!deal) {
       throw new Error("Deal not found");
@@ -151,18 +151,18 @@ export const updateDeal = api(
 export const deleteDeal = api(
   { method: "DELETE", path: "/ai-crm/deals/:id", expose: true },
   async ({ id }: { id: string }): Promise<{ success: boolean }> => {
-    const result = await CRM.exec`
+    await CRM.exec`
       DELETE FROM deals WHERE id = ${id}
     `;
 
-    return { success: result.rowCount > 0 };
+    return { success: true };
   }
 );
 
 export const getDealsPipeline = api(
   { method: "GET", path: "/ai-crm/deals/pipeline", expose: true },
   async () => {
-    const pipeline = await CRM.queryRows`
+    const pipeline = await CRM.queryAll`
       SELECT 
         stage,
         COUNT(*) as deal_count,

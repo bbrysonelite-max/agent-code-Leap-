@@ -106,7 +106,7 @@ export const updateDashboard = api(
       RETURNING *
     `;
     
-    const result = await db.queryRow(query, ...values);
+    const result = await db.rawQueryRow(query, ...values);
     
     if (!result) {
       throw new Error("Dashboard not found or access denied");

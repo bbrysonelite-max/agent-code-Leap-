@@ -57,7 +57,7 @@ export const listContacts = api(
     query += ` ORDER BY lifetime_value DESC, created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
 
-    const contacts = await CRM.queryRows(query, ...params);
+    const contacts = await CRM.rawQueryAll(query, ...params);
     return contacts as Contact[];
   }
 );
@@ -106,7 +106,7 @@ export const updateContact = api(
     `;
     params.push(id);
 
-    const contact = await CRM.queryRow(query, ...params);
+    const contact = await CRM.rawQueryRow(query, ...params);
 
     if (!contact) {
       throw new Error("Contact not found");
@@ -119,18 +119,18 @@ export const updateContact = api(
 export const deleteContact = api(
   { method: "DELETE", path: "/ai-crm/contacts/:id", expose: true },
   async ({ id }: { id: string }): Promise<{ success: boolean }> => {
-    const result = await CRM.exec`
+    await CRM.exec`
       DELETE FROM contacts WHERE id = ${id}
     `;
 
-    return { success: result.rowCount > 0 };
+    return { success: true };
   }
 );
 
 export const searchContacts = api(
   { method: "GET", path: "/ai-crm/contacts/search", expose: true },
   async ({ query, limit = 20 }: { query: string; limit?: number }) => {
-    const contacts = await CRM.queryRows`
+    const contacts = await CRM.queryAll`
       SELECT * FROM contacts 
       WHERE 
         name ILIKE ${`%${query}%`} OR

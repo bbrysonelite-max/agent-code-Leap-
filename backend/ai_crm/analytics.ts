@@ -22,7 +22,7 @@ export const getPipelineAnalytics = api(
           AVG(value) as avg_value
         FROM deals
       `,
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           'lead_to_contact' as conversion_type,
           COUNT(DISTINCT l.id) as total_leads,
@@ -37,7 +37,7 @@ export const getPipelineAnalytics = api(
         FROM contacts c
         LEFT JOIN deals d ON c.id = d.contact_id
       `,
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           CASE 
             WHEN ai_score >= 80 THEN 'high'
@@ -87,7 +87,7 @@ export const getActivityAnalytics = api(
   { method: "GET", path: "/ai-crm/analytics/activities", expose: true },
   async ({ days = 30 }: { days?: number }) => {
     const [byType, bySentiment, byDay] = await Promise.all([
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           type,
           COUNT(*) as count,
@@ -97,7 +97,7 @@ export const getActivityAnalytics = api(
         GROUP BY type
         ORDER BY count DESC
       `,
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           ai_sentiment,
           COUNT(*) as count
@@ -107,7 +107,7 @@ export const getActivityAnalytics = api(
         GROUP BY ai_sentiment
         ORDER BY count DESC
       `,
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           DATE(created_at) as date,
           COUNT(*) as activity_count,
@@ -135,7 +135,7 @@ export const getTopPerformers = api(
   { method: "GET", path: "/ai-crm/analytics/top-performers", expose: true },
   async ({ limit = 10 }: { limit?: number }) => {
     const [topLeads, topContacts, topDeals] = await Promise.all([
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           id, name, email, company, ai_score, status,
           (SELECT COUNT(*) FROM activities WHERE lead_id = leads.id) as activity_count
@@ -143,7 +143,7 @@ export const getTopPerformers = api(
         ORDER BY ai_score DESC, activity_count DESC
         LIMIT ${limit}
       `,
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           id, name, email, company, type, lifetime_value,
           (SELECT COUNT(*) FROM activities WHERE contact_id = contacts.id) as activity_count,
@@ -152,7 +152,7 @@ export const getTopPerformers = api(
         ORDER BY lifetime_value DESC, deal_count DESC, activity_count DESC
         LIMIT ${limit}
       `,
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           d.id, d.name, d.value, d.stage, d.ai_win_probability,
           c.name as contact_name, c.company as contact_company,
@@ -177,7 +177,7 @@ export const getAIInsightsAnalytics = api(
   { method: "GET", path: "/ai-crm/analytics/ai-insights", expose: true },
   async ({ days = 30 }: { days?: number }) => {
     const [byType, byPriority, actionTaken] = await Promise.all([
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           insight_type,
           COUNT(*) as count,
@@ -187,7 +187,7 @@ export const getAIInsightsAnalytics = api(
         GROUP BY insight_type
         ORDER BY count DESC
       `,
-      CRM.queryRows`
+      CRM.queryAll`
         SELECT 
           priority,
           COUNT(*) as count,

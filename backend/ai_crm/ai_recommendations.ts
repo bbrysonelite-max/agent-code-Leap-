@@ -83,7 +83,7 @@ export const getAIInsights = api(
       params.push(req.limit);
     }
 
-    const insights = await CRM.queryRows(query, ...params);
+    const insights = await CRM.rawQueryAll(query, ...params);
     return insights as AIInsight[];
   }
 );
@@ -129,20 +129,20 @@ export const createAIInsight = api(
 export const markInsightActedUpon = api(
   { method: "PUT", path: "/ai-crm/insights/:id/acted-upon", expose: true },
   async ({ id }: { id: string }): Promise<{ success: boolean }> => {
-    const result = await CRM.exec`
+    await CRM.exec`
       UPDATE ai_insights 
       SET acted_upon = true 
       WHERE id = ${id}
     `;
 
-    return { success: result.rowCount > 0 };
+    return { success: true };
   }
 );
 
 export const getDashboardInsights = api(
   { method: "GET", path: "/ai-crm/insights/dashboard", expose: true },
   async ({ limit = 10 }: { limit?: number }) => {
-    const insights = await CRM.queryRows`
+    const insights = await CRM.queryAll`
       SELECT ai.*, 
              CASE 
                WHEN ai.entity_type = 'lead' THEN l.name
@@ -178,7 +178,7 @@ export const getRecommendationsByPriority = api(
   async ({ priority, limit = 20 }: { priority: string; limit?: number }) => {
     const recommendations: NextBestAction[] = [];
 
-    const highScoreLeads = await CRM.queryRows`
+    const highScoreLeads = await CRM.queryAll`
       SELECT * FROM leads 
       WHERE ai_score >= 70 AND status = 'new'
       ORDER BY ai_score DESC 
@@ -197,7 +197,7 @@ export const getRecommendationsByPriority = api(
       });
     }
 
-    const stalledDeals = await CRM.queryRows`
+    const stalledDeals = await CRM.queryAll`
       SELECT d.*, c.name as contact_name
       FROM deals d
       JOIN contacts c ON d.contact_id = c.id
@@ -339,7 +339,7 @@ async function generateContactRecommendations(contactId: string): Promise<NextBe
     }
   }
 
-  const openDeals = await CRM.queryRows`
+  const openDeals = await CRM.queryAll`
     SELECT * FROM deals 
     WHERE contact_id = ${contactId} 
       AND stage NOT IN ('closed_won', 'closed_lost')
@@ -400,7 +400,7 @@ async function generateDealRecommendations(dealId: string): Promise<NextBestActi
     });
   }
 
-  const recentActivities = await CRM.queryRows`
+  const recentActivities = await CRM.queryAll`
     SELECT * FROM activities 
     WHERE deal_id = ${dealId}
     ORDER BY created_at DESC

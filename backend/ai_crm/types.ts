@@ -182,6 +182,7 @@ export interface CreateActivityRequest {
   outcome?: string;
   scheduled_at?: Date;
   completed_at?: Date;
+  created_by?: string;
 }
 
 export interface AnalyzeConversationRequest {

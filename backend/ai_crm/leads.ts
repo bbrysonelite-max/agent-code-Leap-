@@ -82,7 +82,7 @@ export const listLeads = api(
     query += ` ORDER BY ai_score DESC, created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
 
-    const leads = await CRM.queryRows(query, ...params);
+    const leads = await CRM.rawQueryAll(query, ...params);
     return leads as Lead[];
   }
 );
@@ -131,7 +131,7 @@ export const updateLead = api(
     `;
     params.push(id);
 
-    const lead = await CRM.queryRow(query, ...params);
+    const lead = await CRM.rawQueryRow(query, ...params);
 
     if (!lead) {
       throw new Error("Lead not found");
@@ -144,18 +144,18 @@ export const updateLead = api(
 export const deleteLead = api(
   { method: "DELETE", path: "/ai-crm/leads/:id", expose: true },
   async ({ id }: { id: string }): Promise<{ success: boolean }> => {
-    const result = await CRM.exec`
+    await CRM.exec`
       DELETE FROM leads WHERE id = ${id}
     `;
 
-    return { success: result.rowCount > 0 };
+    return { success: true };
   }
 );
 
 export const searchLeads = api(
   { method: "GET", path: "/ai-crm/leads/search", expose: true },
   async ({ query, limit = 20 }: { query: string; limit?: number }) => {
-    const leads = await CRM.queryRows`
+    const leads = await CRM.queryAll`
       SELECT * FROM leads 
       WHERE 
         name ILIKE ${`%${query}%`} OR

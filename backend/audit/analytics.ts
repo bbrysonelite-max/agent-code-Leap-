@@ -55,8 +55,8 @@ export const getAuditLogs = api(
     params.push(limit, offset);
 
     const [countResult, logs] = await Promise.all([
-      DB.queryRow(countQuery, ...params.slice(0, -2)),
-      DB.query(logsQuery, ...params)
+      DB.rawQueryRow(countQuery, ...params.slice(0, -2)),
+      DB.rawQueryAll(logsQuery, ...params)
     ]);
 
     return {
@@ -119,8 +119,8 @@ export const getSecurityLogs = api(
     params.push(limit, offset);
 
     const [countResult, logs] = await Promise.all([
-      DB.queryRow(countQuery, ...params.slice(0, -2)),
-      DB.query(logsQuery, ...params)
+      DB.rawQueryRow(countQuery, ...params.slice(0, -2)),
+      DB.rawQueryAll(logsQuery, ...params)
     ]);
 
     return {
