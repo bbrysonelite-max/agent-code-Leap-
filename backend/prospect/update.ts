@@ -1,6 +1,9 @@
-import { api, APIError } from "encore.dev/api";
+import { api } from "encore.dev/api";
 import { prospectDB } from "./db";
 import type { Prospect, ProspectClassification, ProspectStatus } from "../agent/types";
+import { validateField, Rules } from "../shared/validation";
+import { requireRow } from "../shared/database";
+import { wrapAsync, BusinessLogicError } from "../shared/errors";
 
 export interface UpdateProspectRequest {
   id: number;
@@ -9,10 +12,24 @@ export interface UpdateProspectRequest {
   notes?: string;
 }
 
+const validClassifications: ProspectClassification[] = ['business_builder', 'product_customer', 'unqualified'];
+const validStatuses: ProspectStatus[] = ['new', 'contacted', 'responded', 'qualified', 'converted'];
+
 // Updates prospect information and classification.
 export const update = api<UpdateProspectRequest, Prospect>(
   { expose: true, method: "PUT", path: "/prospects/:id" },
-  async (req) => {
+  wrapAsync(async (req) => {
+    // Validate input
+    validateField(req.id, "id", [Rules.required(), Rules.positive(), Rules.integer()]);
+    if (req.classification !== undefined) {
+      validateField(req.classification, "classification", [Rules.oneOf(validClassifications)]);
+    }
+    if (req.status !== undefined) {
+      validateField(req.status, "status", [Rules.oneOf(validStatuses)]);
+    }
+    if (req.notes !== undefined) {
+      validateField(req.notes, "notes", [Rules.maxLength(1000)]);
+    }
     const updates: string[] = [];
     const params: any[] = [];
     let paramIndex = 1;
@@ -36,7 +53,7 @@ export const update = api<UpdateProspectRequest, Prospect>(
     }
 
     if (updates.length === 0) {
-      throw APIError.invalidArgument("No fields to update");
+      throw new BusinessLogicError("No fields to update", "NO_FIELDS_TO_UPDATE");
     }
 
     updates.push(`updated_at = NOW()`);
@@ -49,12 +66,10 @@ export const update = api<UpdateProspectRequest, Prospect>(
       RETURNING *
     `;
 
-    const row = await prospectDB.rawQueryRow<Prospect>(query, ...params);
-    
-    if (!row) {
-      throw APIError.notFound("Prospect not found");
-    }
-    
-    return row;
-  }
+    return await requireRow(
+      () => prospectDB.rawQueryRow<Prospect>(query, ...params),
+      "prospect",
+      req.id
+    );
+  })
 );

@@ -1,6 +1,9 @@
 import { api } from "encore.dev/api";
 import { emailDB } from "./db";
 import type { EmailTemplate, EmailTemplateType } from "../agent/types";
+import { validateField, Rules } from "../shared/validation";
+import { executeQuery } from "../shared/database";
+import { wrapAsync } from "../shared/errors";
 
 export interface ListTemplatesRequest {
   template_type?: EmailTemplateType;
@@ -11,10 +14,16 @@ export interface ListTemplatesResponse {
   templates: EmailTemplate[];
 }
 
+const validTemplateTypes: EmailTemplateType[] = ['initial_outreach', 'follow_up', 'business_builder', 'product_customer'];
+
 // Retrieves email templates for Nu Skin outreach campaigns.
 export const listTemplates = api<ListTemplatesRequest, ListTemplatesResponse>(
   { expose: true, method: "GET", path: "/email/templates" },
-  async (req) => {
+  wrapAsync(async (req) => {
+    // Validate input
+    if (req.template_type) {
+      validateField(req.template_type, "template_type", [Rules.oneOf(validTemplateTypes)]);
+    }
     let whereClause = "WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
@@ -35,8 +44,11 @@ export const listTemplates = api<ListTemplatesRequest, ListTemplatesResponse>(
       ORDER BY template_type, name
     `;
 
-    const templates = await emailDB.rawQueryAll<EmailTemplate>(query, ...params);
+    const templates = await executeQuery(
+      () => emailDB.rawQueryAll<EmailTemplate>(query, ...params),
+      "list email templates"
+    );
     
     return { templates };
-  }
+  })
 );

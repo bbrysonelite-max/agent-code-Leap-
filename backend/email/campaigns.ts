@@ -2,6 +2,9 @@ import { api } from "encore.dev/api";
 import { Query } from "encore.dev/api";
 import { emailDB } from "./db";
 import type { EmailCampaign, CampaignStatus } from "../agent/types";
+import { validateField, Rules } from "../shared/validation";
+import { executeQuery } from "../shared/database";
+import { wrapAsync } from "../shared/errors";
 
 export interface ListCampaignsRequest {
   prospect_id?: Query<number>;
@@ -21,10 +24,28 @@ export interface ListCampaignsResponse {
   total: number;
 }
 
+const validCampaignStatuses: CampaignStatus[] = ['draft', 'sent', 'delivered', 'opened', 'clicked', 'replied', 'bounced'];
+
 // Retrieves email campaigns with prospect information.
 export const listCampaigns = api<ListCampaignsRequest, ListCampaignsResponse>(
   { expose: true, method: "GET", path: "/email/campaigns" },
-  async (req) => {
+  wrapAsync(async (req) => {
+    // Validate input
+    if (req.prospect_id !== undefined) {
+      validateField(req.prospect_id, "prospect_id", [Rules.positive(), Rules.integer()]);
+    }
+    
+    if (req.status) {
+      validateField(req.status, "status", [Rules.oneOf(validCampaignStatuses)]);
+    }
+    
+    if (req.limit !== undefined) {
+      validateField(req.limit, "limit", [Rules.positive(), Rules.integer(), Rules.max(1000)]);
+    }
+    
+    if (req.offset !== undefined) {
+      validateField(req.offset, "offset", [Rules.min(0), Rules.integer()]);
+    }
     let whereClause = "WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
@@ -49,7 +70,10 @@ export const listCampaigns = api<ListCampaignsRequest, ListCampaignsResponse>(
       FROM email_campaigns ec 
       ${whereClause}
     `;
-    const totalRow = await emailDB.rawQueryRow<{ total: number }>(countQuery, ...params);
+    const totalRow = await executeQuery(
+      () => emailDB.rawQueryRow<{ total: number }>(countQuery, ...params),
+      "count email campaigns"
+    );
     const total = totalRow?.total || 0;
 
     const dataQuery = `
@@ -66,8 +90,11 @@ export const listCampaigns = api<ListCampaignsRequest, ListCampaignsResponse>(
     `;
     params.push(limit, offset);
 
-    const campaigns = await emailDB.rawQueryAll<CampaignWithProspect>(dataQuery, ...params);
+    const campaigns = await executeQuery(
+      () => emailDB.rawQueryAll<CampaignWithProspect>(dataQuery, ...params),
+      "list email campaigns"
+    );
     
     return { campaigns, total };
-  }
+  })
 );

@@ -1,6 +1,9 @@
 import { api } from "encore.dev/api";
 import { prospectDB } from "./db";
 import type { Prospect, ProspectClassification } from "../agent/types";
+import { validateField, Rules } from "../shared/validation";
+import { insertRow } from "../shared/database";
+import { wrapAsync } from "../shared/errors";
 
 export interface CreateProspectRequest {
   agent_id: number;
@@ -13,24 +16,40 @@ export interface CreateProspectRequest {
   notes?: string;
 }
 
+const validClassifications: ProspectClassification[] = ['business_builder', 'product_customer', 'unqualified'];
+
 // Creates a new prospect for Nu Skin outreach.
 export const create = api<CreateProspectRequest, Prospect>(
   { expose: true, method: "POST", path: "/prospects" },
-  async (req) => {
-    const row = await prospectDB.queryRow<Prospect>`
-      INSERT INTO prospects (
-        agent_id, name, email, linkedin_profile, company, position, classification, notes
-      ) VALUES (
-        ${req.agent_id}, ${req.name}, ${req.email}, ${req.linkedin_profile || null}, 
-        ${req.company || null}, ${req.position || null}, ${req.classification}, ${req.notes || null}
-      )
-      RETURNING *
-    `;
-    
-    if (!row) {
-      throw new Error("Failed to create prospect");
+  wrapAsync(async (req) => {
+    // Validate input
+    validateField(req.agent_id, "agent_id", [Rules.required(), Rules.positive(), Rules.integer()]);
+    validateField(req.name, "name", [Rules.required(), Rules.minLength(2), Rules.maxLength(100)]);
+    validateField(req.email, "email", [Rules.required(), Rules.email(), Rules.maxLength(255)]);
+    if (req.linkedin_profile) {
+      validateField(req.linkedin_profile, "linkedin_profile", [Rules.url(), Rules.maxLength(500)]);
     }
-    
-    return row;
-  }
+    if (req.company) {
+      validateField(req.company, "company", [Rules.maxLength(100)]);
+    }
+    if (req.position) {
+      validateField(req.position, "position", [Rules.maxLength(100)]);
+    }
+    validateField(req.classification, "classification", [Rules.required(), Rules.oneOf(validClassifications)]);
+    if (req.notes) {
+      validateField(req.notes, "notes", [Rules.maxLength(1000)]);
+    }
+    return await insertRow(
+      () => prospectDB.queryRow<Prospect>`
+        INSERT INTO prospects (
+          agent_id, name, email, linkedin_profile, company, position, classification, notes
+        ) VALUES (
+          ${req.agent_id}, ${req.name}, ${req.email}, ${req.linkedin_profile || null}, 
+          ${req.company || null}, ${req.position || null}, ${req.classification}, ${req.notes || null}
+        )
+        RETURNING *
+      `,
+      "prospect"
+    );
+  })
 );

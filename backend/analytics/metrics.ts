@@ -1,6 +1,9 @@
 import { api } from "encore.dev/api";
 import { Query } from "encore.dev/api";
 import { analyticsDB } from "./db";
+import { validateField, Rules } from "../shared/validation";
+import { executeQuery } from "../shared/database";
+import { wrapAsync, BusinessLogicError } from "../shared/errors";
 
 export interface GetMetricsRequest {
   agent_id?: Query<number>;
@@ -29,7 +32,15 @@ export interface DailyStats {
 // Retrieves comprehensive analytics and performance metrics.
 export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
   { expose: true, method: "GET", path: "/analytics/metrics" },
-  async (req) => {
+  wrapAsync(async (req) => {
+    // Validate input
+    if (req.days !== undefined) {
+      validateField(req.days, "days", [Rules.positive(), Rules.integer(), Rules.max(365)]);
+    }
+    
+    if (req.agent_id !== undefined) {
+      validateField(req.agent_id, "agent_id", [Rules.positive(), Rules.integer()]);
+    }
     const days = req.days || 30;
     let agentFilter = "";
     const params: any[] = [days];
@@ -51,13 +62,16 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
       WHERE created_at >= NOW() - INTERVAL '${days} days' ${agentFilter}
     `;
 
-    const totalsRow = await analyticsDB.rawQueryRow<{
-      total_prospects: number;
-      contacted_prospects: number;
-      total_responses: number;
-      qualified_prospects: number;
-      converted_prospects: number;
-    }>(totalsQuery, ...(req.agent_id ? [req.agent_id] : []));
+    const totalsRow = await executeQuery(
+      () => analyticsDB.rawQueryRow<{
+        total_prospects: number;
+        contacted_prospects: number;
+        total_responses: number;
+        qualified_prospects: number;
+        converted_prospects: number;
+      }>(totalsQuery, ...(req.agent_id ? [req.agent_id] : [])),
+      "fetch prospect totals"
+    );
 
     // Get email stats
     const emailQuery = `
@@ -67,9 +81,12 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
       WHERE ec.sent_at >= NOW() - INTERVAL '${days} days' ${agentFilter}
     `;
 
-    const emailRow = await analyticsDB.rawQueryRow<{ total_emails_sent: number }>(
-      emailQuery, 
-      ...(req.agent_id ? [req.agent_id] : [])
+    const emailRow = await executeQuery(
+      () => analyticsDB.rawQueryRow<{ total_emails_sent: number }>(
+        emailQuery, 
+        ...(req.agent_id ? [req.agent_id] : [])
+      ),
+      "fetch email stats"
     );
 
     // Get daily stats
@@ -88,13 +105,16 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
       LIMIT ${days}
     `;
 
-    const dailyStats = await analyticsDB.rawQueryAll<{
-      date: string;
-      prospects_found: number;
-      emails_sent: number;
-      emails_opened: number;
-      responses_received: number;
-    }>(dailyQuery, ...(req.agent_id ? [req.agent_id] : []));
+    const dailyStats = await executeQuery(
+      () => analyticsDB.rawQueryAll<{
+        date: string;
+        prospects_found: number;
+        emails_sent: number;
+        emails_opened: number;
+        responses_received: number;
+      }>(dailyQuery, ...(req.agent_id ? [req.agent_id] : [])),
+      "fetch daily statistics"
+    );
 
     const totals = totalsRow || {
       total_prospects: 0,
@@ -127,5 +147,5 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
         date: new Date(stat.date).toISOString().split('T')[0],
       })),
     };
-  }
+  })
 );

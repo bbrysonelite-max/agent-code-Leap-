@@ -2,6 +2,9 @@ import { api } from "encore.dev/api";
 import { Query } from "encore.dev/api";
 import { prospectDB } from "./db";
 import type { Prospect, ProspectClassification, ProspectStatus } from "../agent/types";
+import { validateField, Rules } from "../shared/validation";
+import { executeQuery } from "../shared/database";
+import { wrapAsync } from "../shared/errors";
 
 export interface ListProspectsRequest {
   agent_id?: Query<number>;
@@ -17,10 +20,37 @@ export interface ListProspectsResponse {
   total: number;
 }
 
+const validClassifications: ProspectClassification[] = ['business_builder', 'product_customer', 'unqualified'];
+const validStatuses: ProspectStatus[] = ['new', 'contacted', 'responded', 'qualified', 'converted'];
+
 // Retrieves prospects with optional filtering and search.
 export const list = api<ListProspectsRequest, ListProspectsResponse>(
   { expose: true, method: "GET", path: "/prospects" },
-  async (req) => {
+  wrapAsync(async (req) => {
+    // Validate input
+    if (req.agent_id !== undefined) {
+      validateField(req.agent_id, "agent_id", [Rules.positive(), Rules.integer()]);
+    }
+    
+    if (req.classification) {
+      validateField(req.classification, "classification", [Rules.oneOf(validClassifications)]);
+    }
+    
+    if (req.status) {
+      validateField(req.status, "status", [Rules.oneOf(validStatuses)]);
+    }
+    
+    if (req.search) {
+      validateField(req.search, "search", [Rules.minLength(1), Rules.maxLength(100)]);
+    }
+    
+    if (req.limit !== undefined) {
+      validateField(req.limit, "limit", [Rules.positive(), Rules.integer(), Rules.max(1000)]);
+    }
+    
+    if (req.offset !== undefined) {
+      validateField(req.offset, "offset", [Rules.min(0), Rules.integer()]);
+    }
     let whereClause = "WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
@@ -53,7 +83,10 @@ export const list = api<ListProspectsRequest, ListProspectsResponse>(
     const offset = req.offset || 0;
 
     const countQuery = `SELECT COUNT(*) as total FROM prospects ${whereClause}`;
-    const totalRow = await prospectDB.rawQueryRow<{ total: number }>(countQuery, ...params);
+    const totalRow = await executeQuery(
+      () => prospectDB.rawQueryRow<{ total: number }>(countQuery, ...params),
+      "count prospects"
+    );
     const total = totalRow?.total || 0;
 
     const dataQuery = `
@@ -64,8 +97,11 @@ export const list = api<ListProspectsRequest, ListProspectsResponse>(
     `;
     params.push(limit, offset);
 
-    const prospects = await prospectDB.rawQueryAll<Prospect>(dataQuery, ...params);
+    const prospects = await executeQuery(
+      () => prospectDB.rawQueryAll<Prospect>(dataQuery, ...params),
+      "list prospects"
+    );
     
     return { prospects, total };
-  }
+  })
 );

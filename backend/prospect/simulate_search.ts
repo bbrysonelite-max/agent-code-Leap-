@@ -1,6 +1,9 @@
 import { api } from "encore.dev/api";
 import { prospectDB } from "./db";
 import type { Prospect } from "../agent/types";
+import { validateField, Rules } from "../shared/validation";
+import { executeQuery, insertRow } from "../shared/database";
+import { wrapAsync, BusinessLogicError } from "../shared/errors";
 
 export interface SimulateSearchRequest {
   agent_id: number;
@@ -15,7 +18,12 @@ export interface SimulateSearchResponse {
 // Simulates LinkedIn-style prospect search and adds them to the database.
 export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>(
   { expose: true, method: "POST", path: "/prospects/simulate-search" },
-  async (req) => {
+  wrapAsync(async (req) => {
+    // Validate input
+    validateField(req.agent_id, "agent_id", [Rules.required(), Rules.positive(), Rules.integer()]);
+    if (req.count !== undefined) {
+      validateField(req.count, "count", [Rules.positive(), Rules.integer(), Rules.max(20)]);
+    }
     const count = req.count || 5;
     
     // Simulate prospect data
@@ -91,33 +99,41 @@ export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>
     for (let i = 0; i < Math.min(count, mockProspects.length); i++) {
       const mockData = mockProspects[i];
       
-      const row = await prospectDB.queryRow<Prospect>`
-        INSERT INTO prospects (
-          agent_id, name, email, linkedin_profile, company, position, classification
-        ) VALUES (
-          ${req.agent_id}, ${mockData.name}, ${mockData.email}, 
-          ${mockData.linkedin_profile}, ${mockData.company}, 
-          ${mockData.position}, ${mockData.classification}
-        )
-        RETURNING *
-      `;
-      
-      if (row) {
+      try {
+        const row = await insertRow(
+          () => prospectDB.queryRow<Prospect>`
+            INSERT INTO prospects (
+              agent_id, name, email, linkedin_profile, company, position, classification
+            ) VALUES (
+              ${req.agent_id}, ${mockData.name}, ${mockData.email}, 
+              ${mockData.linkedin_profile}, ${mockData.company}, 
+              ${mockData.position}, ${mockData.classification}
+            )
+            RETURNING *
+          `,
+          "prospect"
+        );
         prospects.push(row);
+      } catch (error) {
+        // Skip duplicate prospects but continue with others
+        console.warn(`Skipped duplicate prospect: ${mockData.email}`);
       }
     }
 
     // Update agent's daily count
-    await prospectDB.exec`
-      UPDATE agents 
-      SET prospects_found_today = prospects_found_today + ${prospects.length},
-          last_activity_at = NOW()
-      WHERE id = ${req.agent_id}
-    `;
+    await executeQuery(
+      () => prospectDB.exec`
+        UPDATE agents 
+        SET prospects_found_today = prospects_found_today + ${prospects.length},
+            last_activity_at = NOW()
+        WHERE id = ${req.agent_id}
+      `,
+      "update agent prospect count"
+    );
 
     return {
       prospects,
       message: `Found ${prospects.length} new prospects from LinkedIn search simulation`,
     };
-  }
+  })
 );
