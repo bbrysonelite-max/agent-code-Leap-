@@ -1,13 +1,13 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
-import { stripe } from "./stripe";
+import * as mcpStripe from "./mcp_stripe";
 import type { Customer, CreateCustomerRequest } from "./types";
 
 export const createCustomer = api(
   { method: "POST", path: "/customers", expose: true },
   async (req: CreateCustomerRequest): Promise<Customer> => {
-    // Create customer in Stripe
-    const stripeCustomer = await stripe.customers.create({
+    // Create customer using MCP Stripe
+    const stripeCustomer = await mcpStripe.createCustomer({
       email: req.email,
       name: req.name,
       metadata: {

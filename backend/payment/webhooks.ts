@@ -1,6 +1,13 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
-import { stripe, getWebhookSecret } from "./stripe";
+import * as mcpStripe from "./mcp_stripe";
+import { secret } from "encore.dev/config";
+
+const stripeWebhookSecret = secret("StripeWebhookSecret");
+
+export function getWebhookSecret(): string {
+  return stripeWebhookSecret();
+}
 
 interface WebhookPayload {
   data: string;
@@ -92,8 +99,8 @@ async function handleSubscriptionUpdate(subscription: any): Promise<void> {
   try {
     if (subscription.items.data.length > 0) {
       const priceId = subscription.items.data[0].price.id;
-      const price = await stripe.prices.retrieve(priceId);
-      const product = await stripe.products.retrieve(price.product as string);
+      const price = await mcpStripe.retrievePrice(priceId);
+      const product = await mcpStripe.retrieveProduct(price.product);
       planName = product.name;
     }
   } catch (err) {

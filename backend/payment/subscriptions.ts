@@ -1,6 +1,6 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
-import { stripe } from "./stripe";
+import * as mcpStripe from "./mcp_stripe";
 import type { Subscription, CreateSubscriptionRequest, UpdateSubscriptionRequest } from "./types";
 
 export const createSubscription = api(
@@ -32,11 +32,11 @@ export const createSubscription = api(
       createParams.default_payment_method = req.paymentMethodId;
     }
 
-    const stripeSubscription = await stripe.subscriptions.create(createParams);
+    const stripeSubscription = await mcpStripe.createSubscription(createParams);
 
-    // Get plan name from Stripe price
-    const price = await stripe.prices.retrieve(req.priceId);
-    const product = await stripe.products.retrieve(price.product as string);
+    // Get plan name from Stripe price using MCP
+    const price = await mcpStripe.retrievePrice(req.priceId);
+    const product = await mcpStripe.retrieveProduct(price.product);
 
     // Store subscription in database
     const result = await db.queryRow`
@@ -115,8 +115,9 @@ export const updateSubscription = api(
     const updateParams: any = {};
 
     if (req.priceId) {
+      const currentSub = await mcpStripe.retrieveSubscription(stripeSubscriptionId);
       updateParams.items = [{
-        id: (await stripe.subscriptions.retrieve(stripeSubscriptionId)).items.data[0].id,
+        id: currentSub.items.data[0].id,
         price: req.priceId,
       }];
     }
@@ -125,7 +126,7 @@ export const updateSubscription = api(
       updateParams.cancel_at_period_end = req.cancelAtPeriodEnd;
     }
 
-    const stripeSubscription = await stripe.subscriptions.update(stripeSubscriptionId, updateParams);
+    const stripeSubscription = await mcpStripe.updateSubscription(stripeSubscriptionId, updateParams);
 
     // Update subscription in database
     if (req.priceId && req.cancelAtPeriodEnd !== undefined) {
@@ -167,8 +168,8 @@ export const cancelSubscription = api(
 
     const stripeSubscriptionId = subResult.stripe_subscription_id;
 
-    // Cancel subscription in Stripe
-    await stripe.subscriptions.cancel(stripeSubscriptionId);
+    // Cancel subscription using MCP Stripe
+    await mcpStripe.cancelSubscription(stripeSubscriptionId);
 
     // Update subscription status in database
     await db.exec`

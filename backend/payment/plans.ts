@@ -1,13 +1,13 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
-import { stripe } from "./stripe";
+import * as mcpStripe from "./mcp_stripe";
 import type { Plan } from "./types";
 
 export const syncPlansFromStripe = api(
   { method: "POST", path: "/plans/sync", expose: true },
   async (): Promise<{ synced: number }> => {
-    // Get all active prices from Stripe
-    const prices = await stripe.prices.list({
+    // Get all active prices using MCP Stripe
+    const prices = await mcpStripe.listPrices({
       active: true,
       expand: ['data.product'],
     });

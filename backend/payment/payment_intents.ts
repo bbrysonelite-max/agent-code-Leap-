@@ -1,6 +1,6 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
-import { stripe } from "./stripe";
+import * as mcpStripe from "./mcp_stripe";
 import type { CreatePaymentIntentRequest } from "./types";
 
 export const createPaymentIntent = api(
@@ -17,8 +17,8 @@ export const createPaymentIntent = api(
 
     const stripeCustomerId = customerResult.stripe_customer_id;
 
-    // Create payment intent in Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Create payment intent using MCP Stripe
+    const paymentIntent = await mcpStripe.createPaymentIntent({
       amount: req.amount,
       currency: req.currency,
       customer: stripeCustomerId,
@@ -45,7 +45,7 @@ export const confirmPaymentIntent = api(
       confirmParams.payment_method = paymentMethodId;
     }
 
-    const paymentIntent = await stripe.paymentIntents.confirm(id, confirmParams);
+    const paymentIntent = await mcpStripe.confirmPaymentIntent(id, confirmParams);
 
     return {
       status: paymentIntent.status,
@@ -66,7 +66,7 @@ interface GetPaymentIntentResponse {
 export const getPaymentIntent = api(
   { method: "GET", path: "/payment-intents/:id", expose: true },
   async ({ id }: { id: string }): Promise<GetPaymentIntentResponse> => {
-    const paymentIntent = await stripe.paymentIntents.retrieve(id);
+    const paymentIntent = await mcpStripe.retrievePaymentIntent(id);
     
     return {
       id: paymentIntent.id,

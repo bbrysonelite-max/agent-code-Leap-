@@ -1,6 +1,6 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
-import { stripe } from "./stripe";
+import * as mcpStripe from "./mcp_stripe";
 import type { Invoice } from "./types";
 
 interface ListInvoicesResponse {
@@ -100,10 +100,10 @@ export const createInvoice = api(
 
     const stripeCustomerId = customerResult.stripe_customer_id;
 
-    // Create invoice items in Stripe
+    // Create invoice items using MCP Stripe
     const invoiceItems = [];
     for (const item of items) {
-      const invoiceItem = await stripe.invoiceItems.create({
+      const invoiceItem = await mcpStripe.createInvoiceItem({
         customer: stripeCustomerId,
         amount: item.amount,
         currency: 'usd',
@@ -113,8 +113,8 @@ export const createInvoice = api(
       invoiceItems.push(invoiceItem);
     }
 
-    // Create invoice in Stripe
-    const stripeInvoice = await stripe.invoices.create({
+    // Create invoice using MCP Stripe
+    const stripeInvoice = await mcpStripe.createInvoice({
       customer: stripeCustomerId,
       description: description,
       auto_advance: false, // Don't automatically finalize
@@ -167,8 +167,8 @@ export const finalizeInvoice = api(
 
     const stripeInvoiceId = invoiceResult.stripe_invoice_id;
 
-    // Finalize invoice in Stripe
-    const stripeInvoice = await stripe.invoices.finalizeInvoice(stripeInvoiceId);
+    // Finalize invoice using MCP Stripe
+    const stripeInvoice = await mcpStripe.finalizeInvoice(stripeInvoiceId);
 
     // Update invoice in database
     await db.exec`
@@ -196,8 +196,8 @@ export const sendInvoice = api(
 
     const stripeInvoiceId = invoiceResult.stripe_invoice_id;
 
-    // Send invoice via Stripe
-    await stripe.invoices.sendInvoice(stripeInvoiceId);
+    // Send invoice using MCP Stripe
+    await mcpStripe.sendInvoice(stripeInvoiceId);
 
     return { success: true };
   }
