@@ -4,6 +4,8 @@ import type { EmailCampaign, Prospect, EmailTemplate } from "../agent/types";
 import { validateField, Rules } from "../shared/validation";
 import { requireRow, executeQuery, insertRow } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
+import { validateEmailContent, sanitizeHtml, logSecurityEvent } from "../shared/security";
+import { checkRateLimit, emailRateLimiter } from "../shared/rate-limiting";
 
 export interface SendEmailRequest {
   prospect_id: number;
@@ -44,7 +46,7 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
       req.template_id
     );
 
-    // Personalize the email content
+    // Personalize the email content with security validation
     const agentName = req.agent_name || "Your Nu Skin Partner";
     const personalizedSubject = template.subject
       .replace(/\{\{name\}\}/g, prospect.name)
@@ -56,6 +58,20 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
       .replace(/\{\{company\}\}/g, prospect.company || "your company")
       .replace(/\{\{agent_name\}\}/g, agentName)
       .replace(/\{\{topic\}\}/g, template.template_type === 'business_builder' ? 'the Nu Skin business opportunity' : 'our premium skincare products');
+    
+    // Validate and sanitize email content
+    try {
+      validateEmailContent(personalizedBody);
+    } catch (error) {
+      logSecurityEvent("email_content_validation_failed", {
+        prospect_id: req.prospect_id,
+        template_id: req.template_id,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+      throw error;
+    }
+    
+    const sanitizedBody = sanitizeHtml(personalizedBody);
 
     // Create email campaign record
     const campaign = await insertRow(
@@ -64,7 +80,7 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
           prospect_id, template_id, subject, body, sent_at, status
         ) VALUES (
           ${req.prospect_id}, ${req.template_id}, ${personalizedSubject}, 
-          ${personalizedBody}, NOW(), 'sent'
+          ${sanitizedBody}, NOW(), 'sent'
         )
         RETURNING *
       `,

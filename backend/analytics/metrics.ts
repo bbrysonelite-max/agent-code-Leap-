@@ -50,7 +50,7 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
       params.push(req.agent_id);
     }
 
-    // Get overall totals
+    // Get overall totals - using parameterized query to prevent SQL injection
     const totalsQuery = `
       SELECT 
         COUNT(*) as total_prospects,
@@ -59,7 +59,7 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
         COUNT(CASE WHEN status = 'qualified' OR status = 'converted' THEN 1 END) as qualified_prospects,
         COUNT(CASE WHEN status = 'converted' THEN 1 END) as converted_prospects
       FROM prospects 
-      WHERE created_at >= NOW() - INTERVAL '${days} days' ${agentFilter}
+      WHERE created_at >= NOW() - INTERVAL '$1 days' ${agentFilter}
     `;
 
     const totalsRow = await executeQuery(
@@ -69,27 +69,28 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
         total_responses: number;
         qualified_prospects: number;
         converted_prospects: number;
-      }>(totalsQuery, ...(req.agent_id ? [req.agent_id] : [])),
+      }>(totalsQuery, days, ...(req.agent_id ? [req.agent_id] : [])),
       "fetch prospect totals"
     );
 
-    // Get email stats
+    // Get email stats - using parameterized query
     const emailQuery = `
       SELECT COUNT(*) as total_emails_sent
       FROM email_campaigns ec
       JOIN prospects p ON ec.prospect_id = p.id
-      WHERE ec.sent_at >= NOW() - INTERVAL '${days} days' ${agentFilter}
+      WHERE ec.sent_at >= NOW() - INTERVAL '$1 days' ${agentFilter}
     `;
 
     const emailRow = await executeQuery(
       () => analyticsDB.rawQueryRow<{ total_emails_sent: number }>(
         emailQuery, 
+        days,
         ...(req.agent_id ? [req.agent_id] : [])
       ),
       "fetch email stats"
     );
 
-    // Get daily stats
+    // Get daily stats - using parameterized query
     const dailyQuery = `
       SELECT 
         DATE(p.created_at) as date,
@@ -98,11 +99,11 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
         COUNT(ec.opened_at) as emails_opened,
         COUNT(CASE WHEN p.status IN ('responded', 'qualified', 'converted') THEN 1 END) as responses_received
       FROM prospects p
-      LEFT JOIN email_campaigns ec ON p.id = ec.prospect_id AND ec.sent_at >= NOW() - INTERVAL '${days} days'
-      WHERE p.created_at >= NOW() - INTERVAL '${days} days' ${agentFilter}
+      LEFT JOIN email_campaigns ec ON p.id = ec.prospect_id AND ec.sent_at >= NOW() - INTERVAL '$1 days'
+      WHERE p.created_at >= NOW() - INTERVAL '$1 days' ${agentFilter}
       GROUP BY DATE(p.created_at)
       ORDER BY date DESC
-      LIMIT ${days}
+      LIMIT $1
     `;
 
     const dailyStats = await executeQuery(
@@ -112,7 +113,7 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
         emails_sent: number;
         emails_opened: number;
         responses_received: number;
-      }>(dailyQuery, ...(req.agent_id ? [req.agent_id] : [])),
+      }>(dailyQuery, days, ...(req.agent_id ? [req.agent_id] : [])),
       "fetch daily statistics"
     );
 

@@ -5,6 +5,7 @@ import type { Prospect, ProspectClassification, ProspectStatus } from "../agent/
 import { validateField, Rules } from "../shared/validation";
 import { executeQuery } from "../shared/database";
 import { wrapAsync } from "../shared/errors";
+import { sanitizeSearchInput } from "../shared/security";
 
 export interface ListProspectsRequest {
   agent_id?: Query<number>;
@@ -42,6 +43,7 @@ export const list = api<ListProspectsRequest, ListProspectsResponse>(
     
     if (req.search) {
       validateField(req.search, "search", [Rules.minLength(1), Rules.maxLength(100)]);
+      req.search = sanitizeSearchInput(req.search);
     }
     
     if (req.limit !== undefined) {
