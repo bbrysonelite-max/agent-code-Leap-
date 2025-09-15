@@ -8,6 +8,7 @@ import NetworkStatus from './components/NetworkStatus';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ProspectManagement from './components/ProspectManagement';
+import { PriorityProspects } from './components/PriorityProspects';
 import EmailCampaigns from './components/EmailCampaigns';
 import Analytics from './components/Analytics';
 import AgentControls from './components/AgentControls';
@@ -26,6 +27,7 @@ export default function App() {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/prospects" element={<ProspectManagement />} />
+                  <Route path="/priority" element={<PriorityProspects />} />
                   <Route path="/campaigns" element={<EmailCampaigns />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/agent" element={<AgentControls />} />

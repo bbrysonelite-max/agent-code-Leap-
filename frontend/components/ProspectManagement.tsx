@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Filter, UserPlus, Edit, Mail, MoreHorizontal } from 'lucide-react';
+import { Search, Filter, UserPlus, Edit, Mail, MoreHorizontal, Target, Star, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/components/ui/use-toast';
 import backend from '~backend/client';
 import type { ProspectClassification, ProspectStatus } from '~backend/agent/types';
+import { useProspectScore, useScoreProspect, useBulkScoreProspects } from '@/hooks/useScoring';
 import LoadingSpinner from './LoadingSpinner';
 import ProspectDialog from './ProspectDialog';
 import SimulateSearchDialog from './SimulateSearchDialog';
@@ -60,6 +61,9 @@ export default function ProspectManagement() {
     },
   });
 
+  const scoreProspectMutation = useScoreProspect();
+  const bulkScoreMutation = useBulkScoreProspects();
+
   const getClassificationColor = (classification: ProspectClassification) => {
     switch (classification) {
       case 'business_builder':
@@ -100,6 +104,45 @@ export default function ProspectManagement() {
     });
   };
 
+  const handleScoreProspect = (prospect: any) => {
+    const factors = {
+      companySize: prospect.company ? 100 : 50, // Simplified for demo
+      position: prospect.position,
+      seniority: prospect.position?.toLowerCase().includes('senior') ? 'senior' : 
+                prospect.position?.toLowerCase().includes('manager') ? 'manager' : 'associate',
+      linkedinConnections: Math.floor(Math.random() * 500) + 50,
+      linkedinActivity: Math.floor(Math.random() * 10),
+      emailOpenRate: Math.random() * 0.5 + 0.1,
+      emailClickRate: Math.random() * 0.2,
+      emailReplies: Math.floor(Math.random() * 3),
+    };
+
+    scoreProspectMutation.mutate({
+      prospectId: prospect.id.toString(),
+      factors,
+    });
+  };
+
+  const handleBulkScore = () => {
+    const prospectIds = (prospectsData?.prospects || prospectsData?.data)?.map(p => p.id.toString()) || [];
+    if (prospectIds.length > 0) {
+      bulkScoreMutation.mutate(prospectIds);
+      toast({
+        title: 'Bulk Scoring Started',
+        description: `Scoring ${prospectIds.length} prospects...`,
+      });
+    }
+  };
+
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'high': return 'text-red-600 bg-red-50 border-red-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'low': return 'text-green-600 bg-green-50 border-green-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -116,6 +159,14 @@ export default function ProspectManagement() {
           </p>
         </div>
         <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleBulkScore}
+            disabled={bulkScoreMutation.isPending}
+          >
+            <Target className="h-4 w-4 mr-2" />
+            {bulkScoreMutation.isPending ? 'Scoring...' : 'Score All'}
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => setShowSimulateDialog(true)}
@@ -188,10 +239,23 @@ export default function ProspectManagement() {
               >
                 <div className="flex-1">
                   <div className="flex items-center space-x-3">
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {prospect.name}
-                      </h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                          {prospect.name}
+                        </h3>
+                        {prospect.ai_score && (
+                          <div className="flex items-center gap-1 text-xs">
+                            <Star className="h-3 w-3 text-yellow-500" />
+                            <span className="font-medium">{prospect.ai_score}</span>
+                          </div>
+                        )}
+                        {prospect.priority && (
+                          <Badge variant="outline" className={`${getPriorityColor(prospect.priority)} text-xs`}>
+                            {prospect.priority}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         {prospect.email}
                       </p>
@@ -199,6 +263,20 @@ export default function ProspectManagement() {
                         <p className="text-sm text-gray-500 dark:text-gray-500">
                           {prospect.position} at {prospect.company}
                         </p>
+                      )}
+                      {prospect.score_reasons && prospect.score_reasons.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {prospect.score_reasons.slice(0, 2).map((reason, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {reason}
+                            </Badge>
+                          ))}
+                          {prospect.score_reasons.length > 2 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{prospect.score_reasons.length - 2} more
+                            </Badge>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -219,6 +297,13 @@ export default function ProspectManagement() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => handleScoreProspect(prospect)}
+                        disabled={scoreProspectMutation.isPending}
+                      >
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        {scoreProspectMutation.isPending ? 'Scoring...' : 'AI Score'}
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
                           setSelectedProspect(prospect);

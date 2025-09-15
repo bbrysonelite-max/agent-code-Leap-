@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Users, Mail, Activity, Settings, Bot, Link } from 'lucide-react';
+import { BarChart3, Users, Mail, Activity, Settings, Bot, Link, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Prospects', href: '/prospects', icon: Users },
+  { name: 'Priority Leads', href: '/priority', icon: Target },
   { name: 'Campaigns', href: '/campaigns', icon: Mail },
   { name: 'Analytics', href: '/analytics', icon: Activity },
   { name: 'Agent Controls', href: '/agent', icon: Settings },

@@ -38,6 +38,7 @@ export class Client {
     public readonly email: email.ServiceClient
     public readonly prospect: prospect.ServiceClient
     public readonly salesforce: salesforce.ServiceClient
+    public readonly scoring: scoring.ServiceClient
     private readonly options: ClientOptions
     private readonly target: string
 
@@ -57,6 +58,7 @@ export class Client {
         this.email = new email.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
         this.salesforce = new salesforce.ServiceClient(base)
+        this.scoring = new scoring.ServiceClient(base)
     }
 
     /**
@@ -490,6 +492,62 @@ export namespace salesforce {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/salesforce/mappings/${encodeURIComponent(params.mapping_id)}`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_field_mappings_updateFieldMapping>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import { bulkScoreProspects as api_scoring_bulk_score_bulkScoreProspects } from "~backend/scoring/bulk_score";
+import {
+    getProspectScore as api_scoring_priority_prospects_getProspectScore,
+    getTopProspects as api_scoring_priority_prospects_getTopProspects
+} from "~backend/scoring/priority_prospects";
+import { scoreProspect as api_scoring_score_prospect_scoreProspect } from "~backend/scoring/score_prospect";
+
+export namespace scoring {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.bulkScoreProspects = this.bulkScoreProspects.bind(this)
+            this.getProspectScore = this.getProspectScore.bind(this)
+            this.getTopProspects = this.getTopProspects.bind(this)
+            this.scoreProspect = this.scoreProspect.bind(this)
+        }
+
+        public async bulkScoreProspects(params: RequestType<typeof api_scoring_bulk_score_bulkScoreProspects>): Promise<ResponseType<typeof api_scoring_bulk_score_bulkScoreProspects>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/scoring/bulk`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_scoring_bulk_score_bulkScoreProspects>
+        }
+
+        public async getProspectScore(params: { prospectId: string }): Promise<ResponseType<typeof api_scoring_priority_prospects_getProspectScore>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/scoring/prospect/${encodeURIComponent(params.prospectId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_scoring_priority_prospects_getProspectScore>
+        }
+
+        public async getTopProspects(params: RequestType<typeof api_scoring_priority_prospects_getTopProspects>): Promise<ResponseType<typeof api_scoring_priority_prospects_getTopProspects>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit:    params.limit === undefined ? undefined : String(params.limit),
+                minScore: params.minScore === undefined ? undefined : String(params.minScore),
+                priority: params.priority === undefined ? undefined : String(params.priority),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/scoring/top-prospects`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_scoring_priority_prospects_getTopProspects>
+        }
+
+        public async scoreProspect(params: RequestType<typeof api_scoring_score_prospect_scoreProspect>): Promise<ResponseType<typeof api_scoring_score_prospect_scoreProspect>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/scoring/prospect`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_scoring_score_prospect_scoreProspect>
         }
     }
 }

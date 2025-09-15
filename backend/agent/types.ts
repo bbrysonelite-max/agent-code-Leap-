@@ -27,6 +27,10 @@ export interface Prospect {
   classification: ProspectClassification;
   status: ProspectStatus;
   notes: string | null;
+  ai_score?: number;
+  priority?: 'high' | 'medium' | 'low';
+  score_reasons?: string[];
+  last_scored_at?: Date;
   created_at: Date;
   updated_at: Date;
 }
