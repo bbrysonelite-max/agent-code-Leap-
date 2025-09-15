@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Users, Mail, Activity, Settings, Bot } from 'lucide-react';
+import { BarChart3, Users, Mail, Activity, Settings, Bot, Link } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -8,6 +8,7 @@ const navigation = [
   { name: 'Campaigns', href: '/campaigns', icon: Mail },
   { name: 'Analytics', href: '/analytics', icon: Activity },
   { name: 'Agent Controls', href: '/agent', icon: Settings },
+  { name: 'Salesforce CRM', href: '/salesforce', icon: Link },
 ];
 
 export default function Sidebar() {

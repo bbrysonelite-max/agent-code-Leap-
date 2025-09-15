@@ -7,6 +7,7 @@ import ProspectManagement from './components/ProspectManagement';
 import EmailCampaigns from './components/EmailCampaigns';
 import Analytics from './components/Analytics';
 import AgentControls from './components/AgentControls';
+import SalesforceIntegration from './components/SalesforceIntegration';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/campaigns" element={<EmailCampaigns />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/agent" element={<AgentControls />} />
+              <Route path="/salesforce" element={<SalesforceIntegration />} />
             </Routes>
           </main>
         </div>
