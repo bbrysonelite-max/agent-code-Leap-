@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import LoadingSpinner from './LoadingSpinner';
 import StatsCard from './StatsCard';
 import AgentStatusCard from './AgentStatusCard';
+import RealtimeActivityFeed from './RealtimeActivityFeed';
+import RealtimeNotifications from './RealtimeNotifications';
+import RealtimeTestControls from './RealtimeTestControls';
 import { useAgents } from '../hooks/useAgents';
 import { useMetrics } from '../hooks/useAnalytics';
 import { useRecentProspects } from '../hooks/useProspects';
@@ -113,37 +116,11 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2" />
-              Performance Trend
-            </CardTitle>
-            <CardDescription>
-              Last 7 days activity summary
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {metrics?.daily_stats.slice(0, 7).map((stat) => (
-                <div key={stat.date} className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(stat.date).toLocaleDateString()}
-                  </div>
-                  <div className="flex space-x-4 text-sm">
-                    <span className="text-blue-600">
-                      {stat.prospects_found} prospects
-                    </span>
-                    <span className="text-green-600">
-                      {stat.emails_sent} emails
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <RealtimeActivityFeed />
       </div>
+
+      <RealtimeTestControls />
+      <RealtimeNotifications />
     </div>
   );
 }

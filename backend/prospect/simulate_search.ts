@@ -4,6 +4,8 @@ import type { Prospect } from "../agent/types";
 import { validateField, Rules } from "../shared/validation";
 import { executeQuery, insertRow } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
+import { broadcastMessage } from "../realtime/websocket";
+import type { ProspectDiscoveryData } from "../realtime/types";
 
 export interface SimulateSearchRequest {
   agent_id: number;
@@ -95,6 +97,18 @@ export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>
     ];
 
     const prospects: Prospect[] = [];
+    const searchId = `search_${Date.now()}_${req.agent_id}`;
+    
+    // Broadcast search started
+    await broadcastMessage({
+      type: "prospect_discovery",
+      data: {
+        searchId,
+        prospectCount: 0,
+        status: "searching"
+      } as ProspectDiscoveryData,
+      timestamp: new Date().toISOString()
+    }, "prospect_discovery");
     
     for (let i = 0; i < Math.min(count, mockProspects.length); i++) {
       const mockData = mockProspects[i];
@@ -114,11 +128,35 @@ export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>
           "prospect"
         );
         prospects.push(row);
+        
+        // Broadcast each new prospect found
+        await broadcastMessage({
+          type: "prospect_discovery",
+          data: {
+            searchId,
+            prospectCount: prospects.length,
+            status: "found",
+            prospect: row
+          } as ProspectDiscoveryData,
+          timestamp: new Date().toISOString()
+        }, "prospect_discovery");
+        
       } catch (error) {
         // Skip duplicate prospects but continue with others
         console.warn(`Skipped duplicate prospect: ${mockData.email}`);
       }
     }
+    
+    // Broadcast search completed
+    await broadcastMessage({
+      type: "prospect_discovery",
+      data: {
+        searchId,
+        prospectCount: prospects.length,
+        status: "completed"
+      } as ProspectDiscoveryData,
+      timestamp: new Date().toISOString()
+    }, "prospect_discovery");
 
     // Update agent's daily count
     await executeQuery(

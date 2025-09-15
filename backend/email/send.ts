@@ -6,6 +6,8 @@ import { requireRow, executeQuery, insertRow } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
 import { validateEmailContent, sanitizeHtml, logSecurityEvent } from "../shared/security";
 import { checkRateLimit, emailRateLimiter } from "../shared/rate-limiting";
+import { broadcastMessage } from "../realtime/websocket";
+import type { EmailProgressData } from "../realtime/types";
 
 export interface SendEmailRequest {
   prospect_id: number;
@@ -73,6 +75,35 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
     
     const sanitizedBody = sanitizeHtml(personalizedBody);
 
+    // Broadcast email queued
+    await broadcastMessage({
+      type: "email_progress",
+      data: {
+        campaignId: `temp_${Date.now()}`,
+        emailId: `email_${Date.now()}`,
+        status: "queued",
+        recipientEmail: prospect.email,
+        progress: { sent: 0, total: 1, failed: 0 }
+      } as EmailProgressData,
+      timestamp: new Date().toISOString()
+    }, "email_progress");
+
+    // Simulate sending delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Broadcast email sending
+    await broadcastMessage({
+      type: "email_progress",
+      data: {
+        campaignId: `temp_${Date.now()}`,
+        emailId: `email_${Date.now()}`,
+        status: "sending",
+        recipientEmail: prospect.email,
+        progress: { sent: 0, total: 1, failed: 0 }
+      } as EmailProgressData,
+      timestamp: new Date().toISOString()
+    }, "email_progress");
+
     // Create email campaign record
     const campaign = await insertRow(
       () => emailDB.queryRow<EmailCampaign>`
@@ -86,6 +117,19 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
       `,
       "email campaign"
     );
+
+    // Broadcast email sent
+    await broadcastMessage({
+      type: "email_progress",
+      data: {
+        campaignId: campaign.id.toString(),
+        emailId: campaign.id.toString(),
+        status: "sent",
+        recipientEmail: prospect.email,
+        progress: { sent: 1, total: 1, failed: 0 }
+      } as EmailProgressData,
+      timestamp: new Date().toISOString()
+    }, "email_progress");
 
     // Update prospect status and agent stats
     await executeQuery(

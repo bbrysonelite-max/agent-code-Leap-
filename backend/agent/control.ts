@@ -4,6 +4,8 @@ import type { Agent, AgentStatus } from "./types";
 import { validateField, Rules } from "../shared/validation";
 import { requireRow } from "../shared/database";
 import { wrapAsync } from "../shared/errors";
+import { broadcastMessage } from "../realtime/websocket";
+import type { AgentActivityData } from "../realtime/types";
 
 export interface UpdateStatusRequest {
   id: number;
@@ -20,7 +22,7 @@ export const updateStatus = api<UpdateStatusRequest, Agent>(
     validateField(req.id, "id", [Rules.required(), Rules.positive(), Rules.integer()]);
     validateField(req.status, "status", [Rules.required(), Rules.oneOf(validStatuses)]);
 
-    return await requireRow(
+    const agent = await requireRow(
       () => agentDB.queryRow<Agent>`
         UPDATE agents 
         SET status = ${req.status}, 
@@ -35,5 +37,21 @@ export const updateStatus = api<UpdateStatusRequest, Agent>(
       "agent",
       req.id
     );
+
+    // Broadcast real-time update
+    const activityData: AgentActivityData = {
+      agentId: agent.id.toString(),
+      action: "status_changed",
+      status: req.status === 'running' ? 'active' : req.status === 'paused' ? 'idle' : 'idle',
+      details: { newStatus: req.status, timestamp: new Date().toISOString() }
+    };
+
+    await broadcastMessage({
+      type: "agent_activity",
+      data: activityData,
+      timestamp: new Date().toISOString()
+    }, "agent_activity");
+
+    return agent;
   })
 );

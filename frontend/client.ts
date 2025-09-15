@@ -38,6 +38,7 @@ export class Client {
     public readonly analytics: analytics.ServiceClient
     public readonly email: email.ServiceClient
     public readonly prospect: prospect.ServiceClient
+    public readonly realtime: realtime.ServiceClient
     public readonly salesforce: salesforce.ServiceClient
     public readonly scoring: scoring.ServiceClient
     private readonly options: ClientOptions
@@ -59,6 +60,7 @@ export class Client {
         this.analytics = new analytics.ServiceClient(base)
         this.email = new email.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
+        this.realtime = new realtime.ServiceClient(base)
         this.salesforce = new salesforce.ServiceClient(base)
         this.scoring = new scoring.ServiceClient(base)
     }
@@ -770,6 +772,7 @@ export namespace analytics {
  * Import the endpoint handlers to derive the types for the client.
  */
 import { listCampaigns as api_email_campaigns_listCampaigns } from "~backend/email/campaigns";
+import { trackResponse as api_email_response_tracking_trackResponse } from "~backend/email/response_tracking";
 import { sendEmail as api_email_send_sendEmail } from "~backend/email/send";
 import { listTemplates as api_email_templates_listTemplates } from "~backend/email/templates";
 
@@ -783,6 +786,8 @@ export namespace email {
             this.listCampaigns = this.listCampaigns.bind(this)
             this.listTemplates = this.listTemplates.bind(this)
             this.sendEmail = this.sendEmail.bind(this)
+            this.simulateResponse = this.simulateResponse.bind(this)
+            this.trackResponse = this.trackResponse.bind(this)
         }
 
         /**
@@ -826,6 +831,22 @@ export namespace email {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/email/send`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_email_send_sendEmail>
+        }
+
+        /**
+         * Simulate random email responses for demo purposes
+         */
+        public async simulateResponse(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/email/simulate-response`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Tracks email responses and sends real-time notifications
+         */
+        public async trackResponse(params: RequestType<typeof api_email_response_tracking_trackResponse>): Promise<ResponseType<typeof api_email_response_tracking_trackResponse>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/email/track-response`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_email_response_tracking_trackResponse>
         }
     }
 }
@@ -904,6 +925,49 @@ export namespace prospect {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_prospect_update_update>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    connect as api_realtime_websocket_connect,
+    getConnectedClients as api_realtime_websocket_getConnectedClients
+} from "~backend/realtime/websocket";
+
+export namespace realtime {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.connect = this.connect.bind(this)
+            this.getConnectedClients = this.getConnectedClients.bind(this)
+        }
+
+        /**
+         * Real-time WebSocket connection for live updates
+         */
+        public async connect(params: RequestType<typeof api_realtime_websocket_connect>): Promise<StreamInOut<StreamRequest<typeof api_realtime_websocket_connect>, StreamResponse<typeof api_realtime_websocket_connect>>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                clientId:      params.clientId,
+                subscriptions: params.subscriptions.map((v) => v),
+            })
+
+            return await this.baseClient.createStreamInOut(`/realtime/connect`, {query})
+        }
+
+        /**
+         * Get connected clients stats
+         */
+        public async getConnectedClients(): Promise<ResponseType<typeof api_realtime_websocket_getConnectedClients>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/realtime/clients`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_realtime_websocket_getConnectedClients>
         }
     }
 }

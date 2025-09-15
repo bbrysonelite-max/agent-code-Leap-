@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Filter, UserPlus, Edit, Mail, MoreHorizontal, Target, Star, TrendingUp } from 'lucide-react';
+import { Search, Filter, UserPlus, Edit, Mail, MoreHorizontal, Target, Star, TrendingUp, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import backend from '~backend/client';
 import type { ProspectClassification, ProspectStatus } from '~backend/agent/types';
 import { useProspectScore, useScoreProspect, useBulkScoreProspects } from '@/hooks/useScoring';
+import { useProspectDiscovery } from '../hooks/useRealtime';
 import LoadingSpinner from './LoadingSpinner';
 import ProspectDialog from './ProspectDialog';
 import SimulateSearchDialog from './SimulateSearchDialog';
@@ -25,6 +26,15 @@ export default function ProspectManagement() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { discoveries, connected } = useProspectDiscovery();
+
+  // Auto-refresh prospects when new ones are discovered
+  useEffect(() => {
+    const latestDiscovery = discoveries[0];
+    if (latestDiscovery && latestDiscovery.status === 'found') {
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
+    }
+  }, [discoveries, queryClient]);
 
   const { data: agents } = useQuery({
     queryKey: ['agents'],
@@ -157,6 +167,19 @@ export default function ProspectManagement() {
           <p className="text-gray-600 dark:text-gray-400">
             Manage and track your Nu Skin prospects
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            <Activity 
+              className={`h-4 w-4 ${connected ? 'text-green-500' : 'text-gray-400'}`}
+            />
+            <span className="text-sm text-gray-500">
+              {connected ? 'Live updates active' : 'Offline mode'}
+            </span>
+            {discoveries.length > 0 && discoveries[0].status === 'searching' && (
+              <Badge variant="secondary" className="animate-pulse">
+                Searching for prospects...
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex space-x-2">
           <Button 

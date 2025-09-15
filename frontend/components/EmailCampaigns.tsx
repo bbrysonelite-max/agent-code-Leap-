@@ -1,16 +1,19 @@
-import { useState } from 'react';
-import { Mail, Send, Eye, MoreHorizontal, Filter } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, Send, Eye, MoreHorizontal, Filter, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
 import type { CampaignStatus } from '~backend/agent/types';
 import LoadingSpinner from './LoadingSpinner';
 import EmailTemplateDialog from './EmailTemplateDialog';
 import SendEmailDialog from './SendEmailDialog';
 import { useCampaigns, useEmailTemplates } from '../hooks/useEmail';
 import { useProspects } from '../hooks/useProspects';
+import { useEmailProgress, useEmailResponses } from '../hooks/useRealtime';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function EmailCampaigns() {
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | 'all'>('all');
@@ -24,6 +27,21 @@ export default function EmailCampaigns() {
   });
   const { data: templatesData, isLoading: templatesLoading } = useEmailTemplates(true);
   const { data: prospects } = useProspects({ limit: 1000 });
+  const { emailProgress, connected } = useEmailProgress();
+  const { responses } = useEmailResponses();
+  const { toast } = useToast();
+
+  // Show toast notifications for email responses
+  useEffect(() => {
+    const latestResponse = responses[0];
+    if (latestResponse) {
+      toast({
+        title: `Email ${latestResponse.responseType}`,
+        description: `${latestResponse.recipientEmail} ${latestResponse.responseType} your email`,
+        variant: latestResponse.responseType === 'bounced' ? 'destructive' : 'default',
+      });
+    }
+  }, [responses, toast]);
 
   const getStatusColor = (status: CampaignStatus) => {
     switch (status) {
@@ -58,6 +76,14 @@ export default function EmailCampaigns() {
           <p className="text-gray-600 dark:text-gray-400">
             Manage your Nu Skin outreach campaigns and templates
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            <Activity 
+              className={`h-4 w-4 ${connected ? 'text-green-500' : 'text-gray-400'}`}
+            />
+            <span className="text-sm text-gray-500">
+              {connected ? 'Live email tracking active' : 'Offline mode'}
+            </span>
+          </div>
         </div>
         <div className="flex space-x-2">
           <Button 
@@ -73,6 +99,48 @@ export default function EmailCampaigns() {
           </Button>
         </div>
       </div>
+
+      {/* Real-time Email Progress */}
+      {emailProgress.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Mail className="h-5 w-5 mr-2" />
+              Email Progress
+            </CardTitle>
+            <CardDescription>
+              Live email sending status
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {emailProgress.slice(0, 3).map((progress, index) => (
+                <div key={`${progress.emailId}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{progress.recipientEmail}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge 
+                        variant={progress.status === 'sent' ? 'default' : progress.status === 'failed' ? 'destructive' : 'secondary'}
+                      >
+                        {progress.status}
+                      </Badge>
+                      <span className="text-xs text-gray-500">
+                        {progress.progress.sent}/{progress.progress.total} sent
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-24">
+                    <Progress 
+                      value={(progress.progress.sent / progress.progress.total) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Campaign Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
