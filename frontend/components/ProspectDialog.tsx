@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import backend from '~backend/client';
 import type { Agent, ProspectClassification } from '~backend/agent/types';
+import { useCreateProspect, useUpdateProspect } from '../hooks/useProspects';
 
 interface ProspectDialogProps {
   open: boolean;
@@ -36,8 +34,8 @@ export default function ProspectDialog({
     notes: '',
   });
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const createMutation = useCreateProspect();
+  const updateMutation = useUpdateProspect();
 
   useEffect(() => {
     if (prospect) {
@@ -65,45 +63,7 @@ export default function ProspectDialog({
     }
   }, [prospect, agents]);
 
-  const createMutation = useMutation({
-    mutationFn: (data: any) => backend.prospect.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['prospects'] });
-      toast({
-        title: 'Prospect Created',
-        description: 'New prospect has been added successfully.',
-      });
-      onClose();
-    },
-    onError: (error) => {
-      console.error('Failed to create prospect:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create prospect. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
 
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => backend.prospect.update(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['prospects'] });
-      toast({
-        title: 'Prospect Updated',
-        description: 'Prospect information has been updated successfully.',
-      });
-      onClose();
-    },
-    onError: (error) => {
-      console.error('Failed to update prospect:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update prospect. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,9 +78,13 @@ export default function ProspectDialog({
         id: prospect.id,
         classification: data.classification,
         notes: data.notes,
+      }, {
+        onSuccess: () => onClose(),
       });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(data, {
+        onSuccess: () => onClose(),
+      });
     }
   };
 

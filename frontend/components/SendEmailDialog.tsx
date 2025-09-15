@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
-import backend from '~backend/client';
 import type { Prospect, EmailTemplate } from '~backend/agent/types';
+import { useSendEmail } from '../hooks/useEmail';
 
 interface SendEmailDialogProps {
   open: boolean;
@@ -26,44 +24,12 @@ export default function SendEmailDialog({
   const [templateId, setTemplateId] = useState('');
   const [agentName, setAgentName] = useState('');
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const sendEmailMutation = useMutation({
-    mutationFn: (data: { prospect_id: number; template_id: number; agent_name?: string }) =>
-      backend.email.sendEmail(data),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['prospects'] });
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      toast({
-        title: 'Email Sent',
-        description: result.message,
-      });
-      onOpenChange(false);
-      setProspectId('');
-      setTemplateId('');
-      setAgentName('');
-    },
-    onError: (error) => {
-      console.error('Failed to send email:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send email. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
+  const sendEmailMutation = useSendEmail();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!prospectId || !templateId) {
-      toast({
-        title: 'Error',
-        description: 'Please select both a prospect and template.',
-        variant: 'destructive',
-      });
       return;
     }
 
@@ -71,6 +37,13 @@ export default function SendEmailDialog({
       prospect_id: parseInt(prospectId),
       template_id: parseInt(templateId),
       agent_name: agentName || undefined,
+    }, {
+      onSuccess: () => {
+        onOpenChange(false);
+        setProspectId('');
+        setTemplateId('');
+        setAgentName('');
+      },
     });
   };
 

@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { useToast } from '@/components/ui/use-toast';
-import backend from '~backend/client';
 import type { Agent } from '~backend/agent/types';
+import { useSimulateSearch } from '../hooks/useProspects';
 
 interface SimulateSearchDialogProps {
   open: boolean;
@@ -24,46 +22,22 @@ export default function SimulateSearchDialog({
   const [agentId, setAgentId] = useState('');
   const [count, setCount] = useState([5]);
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const simulateSearchMutation = useMutation({
-    mutationFn: (data: { agent_id: number; count: number }) =>
-      backend.prospect.simulateSearch(data),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['prospects'] });
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      toast({
-        title: 'Search Completed',
-        description: result.message,
-      });
-      onOpenChange(false);
-    },
-    onError: (error) => {
-      console.error('Failed to simulate search:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to simulate prospect search. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
+  const simulateSearchMutation = useSimulateSearch();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!agentId) {
-      toast({
-        title: 'Error',
-        description: 'Please select an agent.',
-        variant: 'destructive',
-      });
       return;
     }
 
     simulateSearchMutation.mutate({
       agent_id: parseInt(agentId),
       count: count[0],
+    }, {
+      onSuccess: () => {
+        onOpenChange(false);
+      },
     });
   };
 

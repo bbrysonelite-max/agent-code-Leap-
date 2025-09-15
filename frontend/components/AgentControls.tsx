@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bot, Play, Pause, Square, Plus, Settings, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,71 +7,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import backend from '~backend/client';
 import LoadingSpinner from './LoadingSpinner';
 import AgentStatusCard from './AgentStatusCard';
+import { useAgents, useCreateAgent, useControlAgent } from '../hooks/useAgents';
 
 export default function AgentControls() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
 
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { data: agents, isLoading } = useAgents();
+  
+  const createAgentMutation = useCreateAgent();
+  const controlAgentMutation = useControlAgent();
+  
+  // Override onSuccess for create agent to handle UI state
+  const handleCreateAgent = () => {
+    createAgentMutation.mutate({ name: newAgentName }, {
+      onSuccess: () => {
+        setShowCreateDialog(false);
+        setNewAgentName('');
+      },
+    });
+  };
 
-  const { data: agents, isLoading } = useQuery({
-    queryKey: ['agents'],
-    queryFn: () => backend.agent.list(),
-    refetchInterval: 5000,
-  });
-
-  const createAgentMutation = useMutation({
-    mutationFn: (name: string) => backend.agent.create({ name }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      toast({
-        title: 'Agent Created',
-        description: 'New Nu Skin prospecting agent has been created successfully.',
-      });
-      setShowCreateDialog(false);
-      setNewAgentName('');
-    },
-    onError: (error) => {
-      console.error('Failed to create agent:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create agent. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const controlAgentMutation = useMutation({
-    mutationFn: ({ agentId, action }: { agentId: number; action: 'start' | 'pause' | 'stop' }) => {
-      const statusMap = {
-        start: 'running' as const,
-        pause: 'paused' as const,
-        stop: 'stopped' as const,
-      };
-      return backend.agent.updateStatus({ id: agentId, status: statusMap[action] });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      toast({
-        title: 'Agent Updated',
-        description: 'Agent status has been updated successfully.',
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to control agent:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update agent status. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const handleCreateAgent = (e: React.FormEvent) => {
+  const handleCreateAgentForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAgentName.trim()) {
       toast({
@@ -82,10 +41,10 @@ export default function AgentControls() {
       });
       return;
     }
-    createAgentMutation.mutate(newAgentName.trim());
+    handleCreateAgent();
   };
 
-  const handleControlAgent = (agentId: number, action: 'start' | 'pause' | 'stop') => {
+  const handleControlAgent = (agentId: number, action: 'start' | 'stop' | 'pause') => {
     controlAgentMutation.mutate({ agentId, action });
   };
 
@@ -122,7 +81,7 @@ export default function AgentControls() {
                 Create a new Nu Skin prospecting agent to start finding qualified prospects.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateAgent}>
+            <form onSubmit={handleCreateAgentForm}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="agentName">Agent Name</Label>

@@ -1,6 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from '@/components/ui/toaster';
+import { queryClient } from './lib/react-query';
+import ErrorBoundary from './components/ErrorBoundary';
+import NetworkStatus from './components/NetworkStatus';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ProspectManagement from './components/ProspectManagement';
@@ -9,35 +13,32 @@ import Analytics from './components/Analytics';
 import AgentControls from './components/AgentControls';
 import SalesforceIntegration from './components/SalesforceIntegration';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-    },
-  },
-});
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-          <Sidebar />
-          <main className="flex-1 overflow-auto">
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/prospects" element={<ProspectManagement />} />
-              <Route path="/campaigns" element={<EmailCampaigns />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/agent" element={<AgentControls />} />
-              <Route path="/salesforce" element={<SalesforceIntegration />} />
-            </Routes>
-          </main>
-        </div>
-        <Toaster />
-      </Router>
+      <ErrorBoundary>
+        <Router>
+          <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+            <Sidebar />
+            <main className="flex-1 overflow-auto">
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/prospects" element={<ProspectManagement />} />
+                  <Route path="/campaigns" element={<EmailCampaigns />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/agent" element={<AgentControls />} />
+                  <Route path="/salesforce" element={<SalesforceIntegration />} />
+                </Routes>
+              </ErrorBoundary>
+            </main>
+          </div>
+          <NetworkStatus />
+          <Toaster />
+          <ReactQueryDevtools initialIsOpen={false} />
+        </Router>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

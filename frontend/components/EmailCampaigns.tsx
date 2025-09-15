@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Mail, Send, Eye, MoreHorizontal, Filter } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/components/ui/use-toast';
-import backend from '~backend/client';
 import type { CampaignStatus } from '~backend/agent/types';
 import LoadingSpinner from './LoadingSpinner';
 import EmailTemplateDialog from './EmailTemplateDialog';
 import SendEmailDialog from './SendEmailDialog';
+import { useCampaigns, useEmailTemplates } from '../hooks/useEmail';
+import { useProspects } from '../hooks/useProspects';
 
 export default function EmailCampaigns() {
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | 'all'>('all');
@@ -19,26 +18,12 @@ export default function EmailCampaigns() {
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const { data: campaignsData, isLoading: campaignsLoading } = useQuery({
-    queryKey: ['campaigns', statusFilter],
-    queryFn: () => backend.email.listCampaigns({
-      status: statusFilter !== 'all' ? statusFilter : undefined,
-      limit: 100,
-    }),
+  const { data: campaignsData, isLoading: campaignsLoading } = useCampaigns({ 
+    status: statusFilter === 'all' ? undefined : statusFilter, 
+    limit: 100 
   });
-
-  const { data: templatesData, isLoading: templatesLoading } = useQuery({
-    queryKey: ['templates'],
-    queryFn: () => backend.email.listTemplates({ active_only: true }),
-  });
-
-  const { data: prospects } = useQuery({
-    queryKey: ['prospects-all'],
-    queryFn: () => backend.prospect.list({ limit: 1000 }),
-  });
+  const { data: templatesData, isLoading: templatesLoading } = useEmailTemplates(true);
+  const { data: prospects } = useProspects({ limit: 1000 });
 
   const getStatusColor = (status: CampaignStatus) => {
     switch (status) {

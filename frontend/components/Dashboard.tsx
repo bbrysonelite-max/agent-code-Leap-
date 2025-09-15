@@ -1,29 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
 import { Users, Mail, TrendingUp, Target, Activity, Bot } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import backend from '~backend/client';
 import LoadingSpinner from './LoadingSpinner';
 import StatsCard from './StatsCard';
 import AgentStatusCard from './AgentStatusCard';
+import { useAgents } from '../hooks/useAgents';
+import { useMetrics } from '../hooks/useAnalytics';
+import { useRecentProspects } from '../hooks/useProspects';
 
 export default function Dashboard() {
-  const { data: agents, isLoading: agentsLoading } = useQuery({
-    queryKey: ['agents'],
-    queryFn: () => backend.agent.list(),
-    refetchInterval: 5000,
-  });
-
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['metrics'],
-    queryFn: () => backend.analytics.getMetrics({}),
-    refetchInterval: 30000,
-  });
-
-  const { data: prospects, isLoading: prospectsLoading } = useQuery({
-    queryKey: ['recent-prospects'],
-    queryFn: () => backend.prospect.list({ limit: 5 }),
-  });
+  const { data: agents, isLoading: agentsLoading } = useAgents();
+  const { data: metrics, isLoading: metricsLoading } = useMetrics();
+  const { data: prospects, isLoading: prospectsLoading } = useRecentProspects(5);
 
   if (agentsLoading || metricsLoading || prospectsLoading) {
     return <LoadingSpinner />;
