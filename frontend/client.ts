@@ -37,6 +37,7 @@ export class Client {
     public readonly analytics: analytics.ServiceClient
     public readonly email: email.ServiceClient
     public readonly prospect: prospect.ServiceClient
+    public readonly salesforce: salesforce.ServiceClient
     private readonly options: ClientOptions
     private readonly target: string
 
@@ -55,6 +56,7 @@ export class Client {
         this.analytics = new analytics.ServiceClient(base)
         this.email = new email.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
+        this.salesforce = new salesforce.ServiceClient(base)
     }
 
     /**
@@ -190,11 +192,13 @@ export namespace email {
         }
 
         /**
-         * Retrieves email campaigns with prospect information.
+         * Retrieves email campaigns with prospect information using cursor-based pagination.
          */
         public async listCampaigns(params: RequestType<typeof api_email_campaigns_listCampaigns>): Promise<ResponseType<typeof api_email_campaigns_listCampaigns>> {
             // Convert our params into the objects we need for the request
             const query = makeRecord<string, string | string[]>({
+                cursor:        params.cursor,
+                direction:     params.direction === undefined ? undefined : String(params.direction),
                 limit:         params.limit === undefined ? undefined : String(params.limit),
                 offset:        params.offset === undefined ? undefined : String(params.offset),
                 "prospect_id": params["prospect_id"] === undefined ? undefined : String(params["prospect_id"]),
@@ -263,13 +267,15 @@ export namespace prospect {
         }
 
         /**
-         * Retrieves prospects with optional filtering and search.
+         * Retrieves prospects with optional filtering and search using cursor-based pagination.
          */
         public async list(params: RequestType<typeof api_prospect_list_list>): Promise<ResponseType<typeof api_prospect_list_list>> {
             // Convert our params into the objects we need for the request
             const query = makeRecord<string, string | string[]>({
                 "agent_id":     params["agent_id"] === undefined ? undefined : String(params["agent_id"]),
                 classification: params.classification === undefined ? undefined : String(params.classification),
+                cursor:         params.cursor,
+                direction:      params.direction === undefined ? undefined : String(params.direction),
                 limit:          params.limit === undefined ? undefined : String(params.limit),
                 offset:         params.offset === undefined ? undefined : String(params.offset),
                 search:         params.search,
@@ -304,6 +310,186 @@ export namespace prospect {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_prospect_update_update>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    deleteConnection as api_salesforce_connections_deleteConnection,
+    testConnection as api_salesforce_connections_testConnection
+} from "~backend/salesforce/connections";
+import {
+    deleteFieldMapping as api_salesforce_field_mappings_deleteFieldMapping,
+    getFieldMappings as api_salesforce_field_mappings_getFieldMappings,
+    getSalesforceSchema as api_salesforce_field_mappings_getSalesforceSchema,
+    updateFieldMapping as api_salesforce_field_mappings_updateFieldMapping
+} from "~backend/salesforce/field_mappings";
+import { getSyncStatus as api_salesforce_sync_getSyncStatus } from "~backend/salesforce/sync";
+
+export namespace salesforce {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.createConnection = this.createConnection.bind(this)
+            this.createFieldMapping = this.createFieldMapping.bind(this)
+            this.deleteConnection = this.deleteConnection.bind(this)
+            this.deleteFieldMapping = this.deleteFieldMapping.bind(this)
+            this.generateAIMappings = this.generateAIMappings.bind(this)
+            this.generateFieldMappings = this.generateFieldMappings.bind(this)
+            this.getConflicts = this.getConflicts.bind(this)
+            this.getFieldMappings = this.getFieldMappings.bind(this)
+            this.getSalesforceSchema = this.getSalesforceSchema.bind(this)
+            this.getSyncStatus = this.getSyncStatus.bind(this)
+            this.handleOAuthCallback = this.handleOAuthCallback.bind(this)
+            this.listConnections = this.listConnections.bind(this)
+            this.resolveConflict = this.resolveConflict.bind(this)
+            this.startSync = this.startSync.bind(this)
+            this.testConnection = this.testConnection.bind(this)
+            this.updateFieldMapping = this.updateFieldMapping.bind(this)
+        }
+
+        /**
+         * Initialize Salesforce OAuth connection
+         */
+        public async createConnection(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/connections`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Create a field mapping
+         */
+        public async createFieldMapping(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/mappings`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Delete connection
+         */
+        public async deleteConnection(params: { connection_id: number }): Promise<ResponseType<typeof api_salesforce_connections_deleteConnection>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_connections_deleteConnection>
+        }
+
+        /**
+         * Delete a field mapping
+         */
+        public async deleteFieldMapping(params: { mapping_id: number }): Promise<ResponseType<typeof api_salesforce_field_mappings_deleteFieldMapping>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/mappings/${encodeURIComponent(params.mapping_id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_field_mappings_deleteFieldMapping>
+        }
+
+        /**
+         * Generate AI-powered field mappings
+         */
+        public async generateAIMappings(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/ai-mappings`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * AI-powered field mapping using semantic analysis
+         */
+        public async generateFieldMappings(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/ai-mapping`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Get conflicts for review
+         */
+        public async getConflicts(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/conflicts`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get field mappings for a connection and object type
+         */
+        public async getFieldMappings(params: RequestType<typeof api_salesforce_field_mappings_getFieldMappings>): Promise<ResponseType<typeof api_salesforce_field_mappings_getFieldMappings>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "object_type": params["object_type"] === undefined ? undefined : String(params["object_type"]),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/mappings`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_field_mappings_getFieldMappings>
+        }
+
+        /**
+         * Get Salesforce object schema
+         */
+        public async getSalesforceSchema(params: { connection_id: number, object_type: string }): Promise<ResponseType<typeof api_salesforce_field_mappings_getSalesforceSchema>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/schema/${encodeURIComponent(params.object_type)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_field_mappings_getSalesforceSchema>
+        }
+
+        /**
+         * Get sync status
+         */
+        public async getSyncStatus(params: { sync_id: number }): Promise<ResponseType<typeof api_salesforce_sync_getSyncStatus>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/sync/${encodeURIComponent(params.sync_id)}/status`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_sync_getSyncStatus>
+        }
+
+        /**
+         * Handle OAuth callback from Salesforce
+         */
+        public async handleOAuthCallback(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/oauth/callback`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * List all connections
+         */
+        public async listConnections(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/connections`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Conflict resolution endpoint
+         */
+        public async resolveConflict(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/conflicts/resolve`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Start synchronization between local data and Salesforce
+         */
+        public async startSync(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/sync`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Test Salesforce connection
+         */
+        public async testConnection(params: { connection_id: number }): Promise<ResponseType<typeof api_salesforce_connections_testConnection>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/test`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_connections_testConnection>
+        }
+
+        /**
+         * Update a field mapping
+         */
+        public async updateFieldMapping(params: RequestType<typeof api_salesforce_field_mappings_updateFieldMapping>): Promise<ResponseType<typeof api_salesforce_field_mappings_updateFieldMapping>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                "is_active":           params["is_active"],
+                "salesforce_field":    params["salesforce_field"],
+                "transformation_rule": params["transformation_rule"],
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/mappings/${encodeURIComponent(params.mapping_id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_field_mappings_updateFieldMapping>
         }
     }
 }

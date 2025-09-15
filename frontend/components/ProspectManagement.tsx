@@ -181,7 +181,7 @@ export default function ProspectManagement() {
           </div>
 
           <div className="space-y-2">
-            {prospectsData?.prospects.map((prospect) => (
+            {(prospectsData?.prospects || prospectsData?.data)?.map((prospect) => (
               <div
                 key={prospect.id}
                 className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -239,7 +239,7 @@ export default function ProspectManagement() {
             ))}
           </div>
 
-          {prospectsData?.prospects.length === 0 && (
+          {((prospectsData?.prospects || prospectsData?.data)?.length === 0) && (
             <div className="text-center py-8">
               <p className="text-gray-500 dark:text-gray-400">
                 No prospects found. Try adjusting your filters or add some prospects.

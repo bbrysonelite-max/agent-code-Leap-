@@ -94,7 +94,7 @@ export default function EmailCampaigns() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-600">
-              {campaignsData?.campaigns.filter(c => c.status === 'sent').length || 0}
+              {(campaignsData?.campaigns || campaignsData?.data)?.filter(c => c.status === 'sent').length || 0}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Emails Sent</p>
           </CardContent>
@@ -102,7 +102,7 @@ export default function EmailCampaigns() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-600">
-              {campaignsData?.campaigns.filter(c => c.status === 'opened').length || 0}
+              {(campaignsData?.campaigns || campaignsData?.data)?.filter(c => c.status === 'opened').length || 0}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Emails Opened</p>
           </CardContent>
@@ -110,7 +110,7 @@ export default function EmailCampaigns() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-purple-600">
-              {campaignsData?.campaigns.filter(c => c.status === 'clicked').length || 0}
+              {(campaignsData?.campaigns || campaignsData?.data)?.filter(c => c.status === 'clicked').length || 0}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Links Clicked</p>
           </CardContent>
@@ -118,7 +118,7 @@ export default function EmailCampaigns() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-emerald-600">
-              {campaignsData?.campaigns.filter(c => c.status === 'replied').length || 0}
+              {(campaignsData?.campaigns || campaignsData?.data)?.filter(c => c.status === 'replied').length || 0}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Replies Received</p>
           </CardContent>
@@ -155,7 +155,7 @@ export default function EmailCampaigns() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {campaignsData?.campaigns.map((campaign) => (
+            {(campaignsData?.campaigns || campaignsData?.data)?.map((campaign) => (
               <div
                 key={campaign.id}
                 className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -208,7 +208,7 @@ export default function EmailCampaigns() {
             ))}
           </div>
 
-          {campaignsData?.campaigns.length === 0 && (
+          {((campaignsData?.campaigns || campaignsData?.data)?.length === 0) && (
             <div className="text-center py-8">
               <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500 dark:text-gray-400">

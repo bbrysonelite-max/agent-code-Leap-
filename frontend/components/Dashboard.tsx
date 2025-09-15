@@ -104,7 +104,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {prospects?.prospects.slice(0, 5).map((prospect) => (
+              {(prospects?.prospects || prospects?.data)?.slice(0, 5).map((prospect) => (
                 <div key={prospect.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">

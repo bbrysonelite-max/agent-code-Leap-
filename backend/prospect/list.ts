@@ -6,29 +6,40 @@ import { validateField, Rules } from "../shared/validation";
 import { executeQuery } from "../shared/database";
 import { wrapAsync } from "../shared/errors";
 import { sanitizeSearchInput } from "../shared/security";
+import { 
+  CursorPaginationRequest,
+  CursorPaginationResponse,
+  validatePaginationParams,
+  buildCursorWhereClause,
+  createPaginationResponse,
+  DEFAULT_LIMIT
+} from "../shared/pagination";
 
-export interface ListProspectsRequest {
+export interface ListProspectsRequest extends CursorPaginationRequest {
   agent_id?: Query<number>;
   classification?: Query<ProspectClassification>;
   status?: Query<ProspectStatus>;
   search?: Query<string>;
-  limit?: Query<number>;
+  // Keep legacy pagination for backward compatibility
   offset?: Query<number>;
 }
 
-export interface ListProspectsResponse {
-  prospects: Prospect[];
-  total: number;
+export interface ListProspectsResponse extends CursorPaginationResponse<Prospect> {
+  // Keep legacy response for backward compatibility
+  prospects?: Prospect[];
+  total?: number;
 }
 
 const validClassifications: ProspectClassification[] = ['business_builder', 'product_customer', 'unqualified'];
 const validStatuses: ProspectStatus[] = ['new', 'contacted', 'responded', 'qualified', 'converted'];
 
-// Retrieves prospects with optional filtering and search.
+// Retrieves prospects with optional filtering and search using cursor-based pagination.
 export const list = api<ListProspectsRequest, ListProspectsResponse>(
   { expose: true, method: "GET", path: "/prospects" },
   wrapAsync(async (req) => {
     // Validate input
+    validatePaginationParams(req);
+    
     if (req.agent_id !== undefined) {
       validateField(req.agent_id, "agent_id", [Rules.positive(), Rules.integer()]);
     }
@@ -46,17 +57,20 @@ export const list = api<ListProspectsRequest, ListProspectsResponse>(
       req.search = sanitizeSearchInput(req.search);
     }
     
-    if (req.limit !== undefined) {
-      validateField(req.limit, "limit", [Rules.positive(), Rules.integer(), Rules.max(1000)]);
-    }
-    
     if (req.offset !== undefined) {
       validateField(req.offset, "offset", [Rules.min(0), Rules.integer()]);
     }
+
+    // Support both cursor-based and legacy offset-based pagination
+    const useCursorPagination = req.cursor !== undefined || req.offset === undefined;
+    const limit = req.limit || DEFAULT_LIMIT;
+    const direction = req.direction || 'next';
+
     let whereClause = "WHERE 1=1";
     const params: any[] = [];
     let paramIndex = 1;
 
+    // Build filter conditions
     if (req.agent_id) {
       whereClause += ` AND agent_id = $${paramIndex}`;
       params.push(req.agent_id);
@@ -81,29 +95,84 @@ export const list = api<ListProspectsRequest, ListProspectsResponse>(
       paramIndex++;
     }
 
-    const limit = req.limit || 50;
-    const offset = req.offset || 0;
+    if (useCursorPagination) {
+      // Cursor-based pagination
+      const cursorWhere = buildCursorWhereClause(req.cursor, direction);
+      if (cursorWhere.clause) {
+        whereClause += cursorWhere.clause.replace('$CURSOR_PARAM', `$${paramIndex}`).replace('$CURSOR_ID_PARAM', `$${paramIndex + 1}`);
+        params.push(...cursorWhere.params);
+        paramIndex += 2;
+      }
 
-    const countQuery = `SELECT COUNT(*) as total FROM prospects ${whereClause}`;
-    const totalRow = await executeQuery(
-      () => prospectDB.rawQueryRow<{ total: number }>(countQuery, ...params),
-      "count prospects"
-    );
-    const total = totalRow?.total || 0;
+      // Fetch one extra item to determine if there are more pages
+      const orderDirection = direction === 'next' ? 'DESC' : 'ASC';
+      const dataQuery = `
+        SELECT * FROM prospects 
+        ${whereClause} 
+        ORDER BY created_at ${orderDirection}, id ${orderDirection}
+        LIMIT $${paramIndex}
+      `;
+      params.push(limit + 1);
 
-    const dataQuery = `
-      SELECT * FROM prospects 
-      ${whereClause} 
-      ORDER BY created_at DESC 
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    params.push(limit, offset);
+      const prospects = await executeQuery(
+        () => prospectDB.rawQueryAll<Prospect>(dataQuery, ...params),
+        "list prospects"
+      );
 
-    const prospects = await executeQuery(
-      () => prospectDB.rawQueryAll<Prospect>(dataQuery, ...params),
-      "list prospects"
-    );
-    
-    return { prospects, total };
+      // If direction is 'prev', reverse the results to maintain chronological order
+      if (direction === 'prev') {
+        prospects.reverse();
+      }
+
+      // Get total count for metadata (optional, can be expensive)
+      const countQuery = `SELECT COUNT(*) as total FROM prospects ${whereClause.split(' AND (created_at')[0]}`;
+      const countParams = params.slice(0, paramIndex - 1);
+      const totalRow = await executeQuery(
+        () => prospectDB.rawQueryRow<{ total: number }>(countQuery, ...countParams),
+        "count prospects"
+      );
+      const total = totalRow?.total || 0;
+
+      const response = createPaginationResponse(prospects, limit, direction, total);
+      
+      // Include legacy fields for backward compatibility
+      return {
+        ...response,
+        prospects: response.data,
+        total: response.total_count
+      };
+    } else {
+      // Legacy offset-based pagination
+      const offset = req.offset || 0;
+
+      const countQuery = `SELECT COUNT(*) as total FROM prospects ${whereClause}`;
+      const totalRow = await executeQuery(
+        () => prospectDB.rawQueryRow<{ total: number }>(countQuery, ...params),
+        "count prospects"
+      );
+      const total = totalRow?.total || 0;
+
+      const dataQuery = `
+        SELECT * FROM prospects 
+        ${whereClause} 
+        ORDER BY created_at DESC 
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      params.push(limit, offset);
+
+      const prospects = await executeQuery(
+        () => prospectDB.rawQueryAll<Prospect>(dataQuery, ...params),
+        "list prospects"
+      );
+      
+      return {
+        data: prospects,
+        prospects,
+        total,
+        total_count: total,
+        has_next: offset + prospects.length < total,
+        has_prev: offset > 0
+      };
+    }
   })
 );
