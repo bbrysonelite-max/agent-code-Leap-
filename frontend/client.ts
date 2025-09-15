@@ -34,6 +34,7 @@ const BROWSER = typeof globalThis === "object" && ("window" in globalThis);
  */
 export class Client {
     public readonly agent: agent.ServiceClient
+    public readonly ai_crm: ai_crm.ServiceClient
     public readonly analytics: analytics.ServiceClient
     public readonly email: email.ServiceClient
     public readonly prospect: prospect.ServiceClient
@@ -54,6 +55,7 @@ export class Client {
         this.options = options ?? {}
         const base = new BaseClient(this.target, this.options)
         this.agent = new agent.ServiceClient(base)
+        this.ai_crm = new ai_crm.ServiceClient(base)
         this.analytics = new analytics.ServiceClient(base)
         this.email = new email.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
@@ -138,6 +140,596 @@ export namespace agent {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/agents/${encodeURIComponent(params.id)}/status`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_agent_control_updateStatus>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    createActivity as api_ai_crm_activities_createActivity,
+    deleteActivity as api_ai_crm_activities_deleteActivity,
+    getActivity as api_ai_crm_activities_getActivity,
+    getOverdueActivities as api_ai_crm_activities_getOverdueActivities,
+    getUpcomingActivities as api_ai_crm_activities_getUpcomingActivities,
+    listActivities as api_ai_crm_activities_listActivities,
+    updateActivity as api_ai_crm_activities_updateActivity
+} from "~backend/ai_crm/activities";
+import {
+    createAIInsight as api_ai_crm_ai_recommendations_createAIInsight,
+    generateRecommendations as api_ai_crm_ai_recommendations_generateRecommendations,
+    getAIInsights as api_ai_crm_ai_recommendations_getAIInsights,
+    getDashboardInsights as api_ai_crm_ai_recommendations_getDashboardInsights,
+    getRecommendationsByPriority as api_ai_crm_ai_recommendations_getRecommendationsByPriority,
+    markInsightActedUpon as api_ai_crm_ai_recommendations_markInsightActedUpon
+} from "~backend/ai_crm/ai_recommendations";
+import {
+    bulkScoreLeads as api_ai_crm_ai_scoring_bulkScoreLeads,
+    getLeadRecommendations as api_ai_crm_ai_scoring_getLeadRecommendations,
+    getTopScoredLeads as api_ai_crm_ai_scoring_getTopScoredLeads,
+    scoreLeadWithAI as api_ai_crm_ai_scoring_scoreLeadWithAI
+} from "~backend/ai_crm/ai_scoring";
+import {
+    getAIInsightsAnalytics as api_ai_crm_analytics_getAIInsightsAnalytics,
+    getActivityAnalytics as api_ai_crm_analytics_getActivityAnalytics,
+    getPipelineAnalytics as api_ai_crm_analytics_getPipelineAnalytics,
+    getTopPerformers as api_ai_crm_analytics_getTopPerformers
+} from "~backend/ai_crm/analytics";
+import {
+    createContact as api_ai_crm_contacts_createContact,
+    deleteContact as api_ai_crm_contacts_deleteContact,
+    getContact as api_ai_crm_contacts_getContact,
+    listContacts as api_ai_crm_contacts_listContacts,
+    searchContacts as api_ai_crm_contacts_searchContacts,
+    updateContact as api_ai_crm_contacts_updateContact
+} from "~backend/ai_crm/contacts";
+import {
+    analyzeConversation as api_ai_crm_conversation_ai_analyzeConversation,
+    analyzeSentimentBatch as api_ai_crm_conversation_ai_analyzeSentimentBatch,
+    getConversationAnalysis as api_ai_crm_conversation_ai_getConversationAnalysis,
+    getConversationInsights as api_ai_crm_conversation_ai_getConversationInsights,
+    getSentimentTrends as api_ai_crm_conversation_ai_getSentimentTrends
+} from "~backend/ai_crm/conversation_ai";
+import {
+    createDeal as api_ai_crm_deals_createDeal,
+    deleteDeal as api_ai_crm_deals_deleteDeal,
+    getDeal as api_ai_crm_deals_getDeal,
+    getDealsAnalytics as api_ai_crm_deals_getDealsAnalytics,
+    listDeals as api_ai_crm_deals_listDeals,
+    updateDeal as api_ai_crm_deals_updateDeal
+} from "~backend/ai_crm/deals";
+import {
+    bulkImportProspects as api_ai_crm_integrations_bulkImportProspects,
+    convertLeadToContact as api_ai_crm_integrations_convertLeadToContact,
+    getIntegrationStats as api_ai_crm_integrations_getIntegrationStats,
+    getProspectLeadMapping as api_ai_crm_integrations_getProspectLeadMapping,
+    syncEmailCampaignActivity as api_ai_crm_integrations_syncEmailCampaignActivity,
+    syncLeadScore as api_ai_crm_integrations_syncLeadScore,
+    syncProspectToLead as api_ai_crm_integrations_syncProspectToLead
+} from "~backend/ai_crm/integrations";
+import {
+    createLead as api_ai_crm_leads_createLead,
+    deleteLead as api_ai_crm_leads_deleteLead,
+    getLead as api_ai_crm_leads_getLead,
+    listLeads as api_ai_crm_leads_listLeads,
+    searchLeads as api_ai_crm_leads_searchLeads,
+    updateLead as api_ai_crm_leads_updateLead
+} from "~backend/ai_crm/leads";
+
+export namespace ai_crm {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.analyzeConversation = this.analyzeConversation.bind(this)
+            this.analyzeSentimentBatch = this.analyzeSentimentBatch.bind(this)
+            this.bulkImportProspects = this.bulkImportProspects.bind(this)
+            this.bulkScoreLeads = this.bulkScoreLeads.bind(this)
+            this.convertLeadToContact = this.convertLeadToContact.bind(this)
+            this.createAIInsight = this.createAIInsight.bind(this)
+            this.createActivity = this.createActivity.bind(this)
+            this.createContact = this.createContact.bind(this)
+            this.createDeal = this.createDeal.bind(this)
+            this.createLead = this.createLead.bind(this)
+            this.deleteActivity = this.deleteActivity.bind(this)
+            this.deleteContact = this.deleteContact.bind(this)
+            this.deleteDeal = this.deleteDeal.bind(this)
+            this.deleteLead = this.deleteLead.bind(this)
+            this.generateRecommendations = this.generateRecommendations.bind(this)
+            this.getAIInsights = this.getAIInsights.bind(this)
+            this.getAIInsightsAnalytics = this.getAIInsightsAnalytics.bind(this)
+            this.getActivity = this.getActivity.bind(this)
+            this.getActivityAnalytics = this.getActivityAnalytics.bind(this)
+            this.getContact = this.getContact.bind(this)
+            this.getConversationAnalysis = this.getConversationAnalysis.bind(this)
+            this.getConversationInsights = this.getConversationInsights.bind(this)
+            this.getDashboardInsights = this.getDashboardInsights.bind(this)
+            this.getDeal = this.getDeal.bind(this)
+            this.getDealsAnalytics = this.getDealsAnalytics.bind(this)
+            this.getDealsPipeline = this.getDealsPipeline.bind(this)
+            this.getIntegrationStats = this.getIntegrationStats.bind(this)
+            this.getLead = this.getLead.bind(this)
+            this.getLeadRecommendations = this.getLeadRecommendations.bind(this)
+            this.getOverdueActivities = this.getOverdueActivities.bind(this)
+            this.getPipelineAnalytics = this.getPipelineAnalytics.bind(this)
+            this.getProspectLeadMapping = this.getProspectLeadMapping.bind(this)
+            this.getRecommendationsByPriority = this.getRecommendationsByPriority.bind(this)
+            this.getSentimentTrends = this.getSentimentTrends.bind(this)
+            this.getTopPerformers = this.getTopPerformers.bind(this)
+            this.getTopScoredLeads = this.getTopScoredLeads.bind(this)
+            this.getUpcomingActivities = this.getUpcomingActivities.bind(this)
+            this.listActivities = this.listActivities.bind(this)
+            this.listContacts = this.listContacts.bind(this)
+            this.listDeals = this.listDeals.bind(this)
+            this.listLeads = this.listLeads.bind(this)
+            this.markInsightActedUpon = this.markInsightActedUpon.bind(this)
+            this.scoreLeadWithAI = this.scoreLeadWithAI.bind(this)
+            this.searchContacts = this.searchContacts.bind(this)
+            this.searchLeads = this.searchLeads.bind(this)
+            this.syncEmailCampaignActivity = this.syncEmailCampaignActivity.bind(this)
+            this.syncLeadScore = this.syncLeadScore.bind(this)
+            this.syncProspectToLead = this.syncProspectToLead.bind(this)
+            this.updateActivity = this.updateActivity.bind(this)
+            this.updateContact = this.updateContact.bind(this)
+            this.updateDeal = this.updateDeal.bind(this)
+            this.updateLead = this.updateLead.bind(this)
+        }
+
+        public async analyzeConversation(params: RequestType<typeof api_ai_crm_conversation_ai_analyzeConversation>): Promise<ResponseType<typeof api_ai_crm_conversation_ai_analyzeConversation>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/conversations/analyze`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_conversation_ai_analyzeConversation>
+        }
+
+        public async analyzeSentimentBatch(params: RequestType<typeof api_ai_crm_conversation_ai_analyzeSentimentBatch>): Promise<ResponseType<typeof api_ai_crm_conversation_ai_analyzeSentimentBatch>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/conversations/analyze-sentiment-batch`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_conversation_ai_analyzeSentimentBatch>
+        }
+
+        public async bulkImportProspects(params: RequestType<typeof api_ai_crm_integrations_bulkImportProspects>): Promise<ResponseType<typeof api_ai_crm_integrations_bulkImportProspects>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/integrations/bulk-import-prospects`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_integrations_bulkImportProspects>
+        }
+
+        public async bulkScoreLeads(params: RequestType<typeof api_ai_crm_ai_scoring_bulkScoreLeads>): Promise<ResponseType<typeof api_ai_crm_ai_scoring_bulkScoreLeads>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/leads/bulk-score`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_ai_scoring_bulkScoreLeads>
+        }
+
+        public async convertLeadToContact(params: RequestType<typeof api_ai_crm_integrations_convertLeadToContact>): Promise<ResponseType<typeof api_ai_crm_integrations_convertLeadToContact>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/integrations/lead-to-contact`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_integrations_convertLeadToContact>
+        }
+
+        public async createAIInsight(params: RequestType<typeof api_ai_crm_ai_recommendations_createAIInsight>): Promise<ResponseType<typeof api_ai_crm_ai_recommendations_createAIInsight>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/insights`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_ai_recommendations_createAIInsight>
+        }
+
+        public async createActivity(params: RequestType<typeof api_ai_crm_activities_createActivity>): Promise<ResponseType<typeof api_ai_crm_activities_createActivity>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/activities`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_activities_createActivity>
+        }
+
+        public async createContact(params: RequestType<typeof api_ai_crm_contacts_createContact>): Promise<ResponseType<typeof api_ai_crm_contacts_createContact>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/contacts`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_contacts_createContact>
+        }
+
+        public async createDeal(params: RequestType<typeof api_ai_crm_deals_createDeal>): Promise<ResponseType<typeof api_ai_crm_deals_createDeal>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/deals`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_deals_createDeal>
+        }
+
+        public async createLead(params: RequestType<typeof api_ai_crm_leads_createLead>): Promise<ResponseType<typeof api_ai_crm_leads_createLead>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/leads`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_leads_createLead>
+        }
+
+        public async deleteActivity(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_activities_deleteActivity>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/activities/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_activities_deleteActivity>
+        }
+
+        public async deleteContact(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_contacts_deleteContact>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/contacts/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_contacts_deleteContact>
+        }
+
+        public async deleteDeal(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_deals_deleteDeal>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/deals/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_deals_deleteDeal>
+        }
+
+        public async deleteLead(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_leads_deleteLead>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/leads/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_leads_deleteLead>
+        }
+
+        public async generateRecommendations(params: RequestType<typeof api_ai_crm_ai_recommendations_generateRecommendations>): Promise<ResponseType<typeof api_ai_crm_ai_recommendations_generateRecommendations>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/recommendations/generate`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_ai_recommendations_generateRecommendations>
+        }
+
+        public async getAIInsights(params: RequestType<typeof api_ai_crm_ai_recommendations_getAIInsights>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "entity_id":       params["entity_id"],
+                "entity_type":     params["entity_type"] === undefined ? undefined : String(params["entity_type"]),
+                "insight_type":    params["insight_type"],
+                limit:             params.limit === undefined ? undefined : String(params.limit),
+                "only_actionable": params["only_actionable"] === undefined ? undefined : String(params["only_actionable"]),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/insights`, {query, method: "GET", body: undefined})
+        }
+
+        public async getAIInsightsAnalytics(params: RequestType<typeof api_ai_crm_analytics_getAIInsightsAnalytics>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                days: params.days === undefined ? undefined : String(params.days),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/analytics/ai-insights`, {query, method: "GET", body: undefined})
+        }
+
+        public async getActivity(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_activities_getActivity>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/activities/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_activities_getActivity>
+        }
+
+        public async getActivityAnalytics(params: RequestType<typeof api_ai_crm_analytics_getActivityAnalytics>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                days: params.days === undefined ? undefined : String(params.days),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/analytics/activities`, {query, method: "GET", body: undefined})
+        }
+
+        public async getContact(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_contacts_getContact>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/contacts/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_contacts_getContact>
+        }
+
+        public async getConversationAnalysis(params: { activityId: string }): Promise<ResponseType<typeof api_ai_crm_conversation_ai_getConversationAnalysis>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/conversations/${encodeURIComponent(params.activityId)}/analysis`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_conversation_ai_getConversationAnalysis>
+        }
+
+        public async getConversationInsights(params: RequestType<typeof api_ai_crm_conversation_ai_getConversationInsights>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                entityId:   params.entityId,
+                entityType: params.entityType === undefined ? undefined : String(params.entityType),
+                limit:      params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/conversations/insights`, {query, method: "GET", body: undefined})
+        }
+
+        public async getDashboardInsights(params: RequestType<typeof api_ai_crm_ai_recommendations_getDashboardInsights>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/insights/dashboard`, {query, method: "GET", body: undefined})
+        }
+
+        public async getDeal(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_deals_getDeal>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/deals/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_deals_getDeal>
+        }
+
+        public async getDealsAnalytics(params: RequestType<typeof api_ai_crm_deals_getDealsAnalytics>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                days: params.days === undefined ? undefined : String(params.days),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/deals/analytics`, {query, method: "GET", body: undefined})
+        }
+
+        public async getDealsPipeline(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ai-crm/deals/pipeline`, {method: "GET", body: undefined})
+        }
+
+        public async getIntegrationStats(params: RequestType<typeof api_ai_crm_integrations_getIntegrationStats>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                days: params.days === undefined ? undefined : String(params.days),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/integrations/stats`, {query, method: "GET", body: undefined})
+        }
+
+        public async getLead(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_leads_getLead>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/leads/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_leads_getLead>
+        }
+
+        public async getLeadRecommendations(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_ai_scoring_getLeadRecommendations>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/leads/${encodeURIComponent(params.id)}/recommendations`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_ai_scoring_getLeadRecommendations>
+        }
+
+        public async getOverdueActivities(params: RequestType<typeof api_ai_crm_activities_getOverdueActivities>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/activities/overdue`, {query, method: "GET", body: undefined})
+        }
+
+        public async getPipelineAnalytics(): Promise<ResponseType<typeof api_ai_crm_analytics_getPipelineAnalytics>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/analytics/pipeline`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_analytics_getPipelineAnalytics>
+        }
+
+        public async getProspectLeadMapping(params: RequestType<typeof api_ai_crm_integrations_getProspectLeadMapping>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                prospectId: params.prospectId === undefined ? undefined : String(params.prospectId),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/integrations/prospect-lead-mapping`, {query, method: "GET", body: undefined})
+        }
+
+        public async getRecommendationsByPriority(params: RequestType<typeof api_ai_crm_ai_recommendations_getRecommendationsByPriority>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/recommendations/priority/${encodeURIComponent(params.priority)}`, {query, method: "GET", body: undefined})
+        }
+
+        public async getSentimentTrends(params: RequestType<typeof api_ai_crm_conversation_ai_getSentimentTrends>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                days:       params.days === undefined ? undefined : String(params.days),
+                entityId:   params.entityId,
+                entityType: params.entityType === undefined ? undefined : String(params.entityType),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/conversations/sentiment-trends`, {query, method: "GET", body: undefined})
+        }
+
+        public async getTopPerformers(params: RequestType<typeof api_ai_crm_analytics_getTopPerformers>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/analytics/top-performers`, {query, method: "GET", body: undefined})
+        }
+
+        public async getTopScoredLeads(params: RequestType<typeof api_ai_crm_ai_scoring_getTopScoredLeads>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit:    params.limit === undefined ? undefined : String(params.limit),
+                minScore: params.minScore === undefined ? undefined : String(params.minScore),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/leads/top-scored`, {query, method: "GET", body: undefined})
+        }
+
+        public async getUpcomingActivities(params: RequestType<typeof api_ai_crm_activities_getUpcomingActivities>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                days:  params.days === undefined ? undefined : String(params.days),
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/activities/upcoming`, {query, method: "GET", body: undefined})
+        }
+
+        public async listActivities(params: RequestType<typeof api_ai_crm_activities_listActivities>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "contact_id": params["contact_id"],
+                "deal_id":    params["deal_id"],
+                "lead_id":    params["lead_id"],
+                limit:        params.limit === undefined ? undefined : String(params.limit),
+                offset:       params.offset === undefined ? undefined : String(params.offset),
+                sentiment:    params.sentiment,
+                type:         params.type,
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/activities`, {query, method: "GET", body: undefined})
+        }
+
+        public async listContacts(params: RequestType<typeof api_ai_crm_contacts_listContacts>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                company: params.company,
+                limit:   params.limit === undefined ? undefined : String(params.limit),
+                offset:  params.offset === undefined ? undefined : String(params.offset),
+                type:    params.type,
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/contacts`, {query, method: "GET", body: undefined})
+        }
+
+        public async listDeals(params: RequestType<typeof api_ai_crm_deals_listDeals>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "assigned_to": params["assigned_to"],
+                limit:         params.limit === undefined ? undefined : String(params.limit),
+                "max_value":   params["max_value"] === undefined ? undefined : String(params["max_value"]),
+                "min_value":   params["min_value"] === undefined ? undefined : String(params["min_value"]),
+                offset:        params.offset === undefined ? undefined : String(params.offset),
+                stage:         params.stage,
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/deals`, {query, method: "GET", body: undefined})
+        }
+
+        public async listLeads(params: RequestType<typeof api_ai_crm_leads_listLeads>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "assigned_to": params["assigned_to"],
+                limit:         params.limit === undefined ? undefined : String(params.limit),
+                "min_score":   params["min_score"] === undefined ? undefined : String(params["min_score"]),
+                offset:        params.offset === undefined ? undefined : String(params.offset),
+                priority:      params.priority,
+                status:        params.status,
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/leads`, {query, method: "GET", body: undefined})
+        }
+
+        public async markInsightActedUpon(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_ai_recommendations_markInsightActedUpon>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/insights/${encodeURIComponent(params.id)}/acted-upon`, {method: "PUT", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_ai_recommendations_markInsightActedUpon>
+        }
+
+        public async scoreLeadWithAI(params: { id: string }): Promise<ResponseType<typeof api_ai_crm_ai_scoring_scoreLeadWithAI>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/leads/${encodeURIComponent(params.id)}/score`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_ai_scoring_scoreLeadWithAI>
+        }
+
+        public async searchContacts(params: RequestType<typeof api_ai_crm_contacts_searchContacts>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+                query: params.query,
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/contacts/search`, {query, method: "GET", body: undefined})
+        }
+
+        public async searchLeads(params: RequestType<typeof api_ai_crm_leads_searchLeads>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+                query: params.query,
+            })
+
+            await this.baseClient.callTypedAPI(`/ai-crm/leads/search`, {query, method: "GET", body: undefined})
+        }
+
+        public async syncEmailCampaignActivity(params: RequestType<typeof api_ai_crm_integrations_syncEmailCampaignActivity>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ai-crm/integrations/email-campaign-activity`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        public async syncLeadScore(params: RequestType<typeof api_ai_crm_integrations_syncLeadScore>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ai-crm/integrations/sync-lead-score`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        public async syncProspectToLead(params: RequestType<typeof api_ai_crm_integrations_syncProspectToLead>): Promise<ResponseType<typeof api_ai_crm_integrations_syncProspectToLead>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/integrations/prospect-to-lead`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_integrations_syncProspectToLead>
+        }
+
+        public async updateActivity(params: RequestType<typeof api_ai_crm_activities_updateActivity>): Promise<ResponseType<typeof api_ai_crm_activities_updateActivity>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                "completed_at": params["completed_at"],
+                "contact_id":   params["contact_id"],
+                "deal_id":      params["deal_id"],
+                description:    params.description,
+                "lead_id":      params["lead_id"],
+                outcome:        params.outcome,
+                "scheduled_at": params["scheduled_at"],
+                subject:        params.subject,
+                type:           params.type,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/activities/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_activities_updateActivity>
+        }
+
+        public async updateContact(params: RequestType<typeof api_ai_crm_contacts_updateContact>): Promise<ResponseType<typeof api_ai_crm_contacts_updateContact>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                address:            params.address,
+                company:            params.company,
+                email:              params.email,
+                "lead_id":          params["lead_id"],
+                "linkedin_profile": params["linkedin_profile"],
+                name:               params.name,
+                phone:              params.phone,
+                position:           params.position,
+                tags:               params.tags,
+                "twitter_handle":   params["twitter_handle"],
+                type:               params.type,
+                website:            params.website,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/contacts/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_contacts_updateContact>
+        }
+
+        public async updateDeal(params: RequestType<typeof api_ai_crm_deals_updateDeal>): Promise<ResponseType<typeof api_ai_crm_deals_updateDeal>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                "assigned_to":         params["assigned_to"],
+                "contact_id":          params["contact_id"],
+                currency:              params.currency,
+                "expected_close_date": params["expected_close_date"],
+                name:                  params.name,
+                notes:                 params.notes,
+                probability:           params.probability,
+                source:                params.source,
+                stage:                 params.stage,
+                value:                 params.value,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/deals/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_deals_updateDeal>
+        }
+
+        public async updateLead(params: RequestType<typeof api_ai_crm_leads_updateLead>): Promise<ResponseType<typeof api_ai_crm_leads_updateLead>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                "assigned_to":      params["assigned_to"],
+                company:            params.company,
+                email:              params.email,
+                "linkedin_profile": params["linkedin_profile"],
+                name:               params.name,
+                notes:              params.notes,
+                phone:              params.phone,
+                position:           params.position,
+                status:             params.status,
+                website:            params.website,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/ai-crm/leads/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_crm_leads_updateLead>
         }
     }
 }

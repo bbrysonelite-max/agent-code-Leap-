@@ -13,6 +13,10 @@ import EmailCampaigns from './components/EmailCampaigns';
 import Analytics from './components/Analytics';
 import AgentControls from './components/AgentControls';
 import SalesforceIntegration from './components/SalesforceIntegration';
+import AICRMDashboard from './components/AICRMDashboard';
+import LeadsManagement from './components/LeadsManagement';
+import DealsManagement from './components/DealsManagement';
+import CRMIntegration from './components/CRMIntegration';
 
 export default function App() {
   return (
@@ -32,6 +36,10 @@ export default function App() {
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/agent" element={<AgentControls />} />
                   <Route path="/salesforce" element={<SalesforceIntegration />} />
+                  <Route path="/ai-crm" element={<AICRMDashboard />} />
+                  <Route path="/ai-crm/leads" element={<LeadsManagement />} />
+                  <Route path="/ai-crm/deals" element={<DealsManagement />} />
+                  <Route path="/ai-crm/integration" element={<CRMIntegration />} />
                 </Routes>
               </ErrorBoundary>
             </main>
