@@ -977,6 +977,7 @@ export namespace realtime {
  */
 import {
     deleteConnection as api_salesforce_connections_deleteConnection,
+    revokeAccess as api_salesforce_connections_revokeAccess,
     testConnection as api_salesforce_connections_testConnection
 } from "~backend/salesforce/connections";
 import {
@@ -985,7 +986,19 @@ import {
     getSalesforceSchema as api_salesforce_field_mappings_getSalesforceSchema,
     updateFieldMapping as api_salesforce_field_mappings_updateFieldMapping
 } from "~backend/salesforce/field_mappings";
-import { getSyncStatus as api_salesforce_sync_getSyncStatus } from "~backend/salesforce/sync";
+import {
+    batchResolveConflicts as api_salesforce_realtime_sync_batchResolveConflicts,
+    handleSalesforceWebhook as api_salesforce_realtime_sync_handleSalesforceWebhook
+} from "~backend/salesforce/realtime_sync";
+import {
+    cancelSync as api_salesforce_sync_cancelSync,
+    getSyncHistory as api_salesforce_sync_getSyncHistory,
+    getSyncStatistics as api_salesforce_sync_getSyncStatistics,
+    getSyncStatus as api_salesforce_sync_getSyncStatus,
+    setupWebhooks as api_salesforce_sync_setupWebhooks,
+    syncProspect as api_salesforce_sync_syncProspect,
+    validateSyncSetup as api_salesforce_sync_validateSyncSetup
+} from "~backend/salesforce/sync";
 
 export namespace salesforce {
 
@@ -994,22 +1007,50 @@ export namespace salesforce {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.batchResolveConflicts = this.batchResolveConflicts.bind(this)
+            this.cancelSync = this.cancelSync.bind(this)
             this.createConnection = this.createConnection.bind(this)
             this.createFieldMapping = this.createFieldMapping.bind(this)
             this.deleteConnection = this.deleteConnection.bind(this)
             this.deleteFieldMapping = this.deleteFieldMapping.bind(this)
             this.generateAIMappings = this.generateAIMappings.bind(this)
-            this.generateFieldMappings = this.generateFieldMappings.bind(this)
+            this.generateFieldMappingsAPI = this.generateFieldMappingsAPI.bind(this)
             this.getConflicts = this.getConflicts.bind(this)
             this.getFieldMappings = this.getFieldMappings.bind(this)
             this.getSalesforceSchema = this.getSalesforceSchema.bind(this)
+            this.getSyncHistory = this.getSyncHistory.bind(this)
+            this.getSyncStatistics = this.getSyncStatistics.bind(this)
             this.getSyncStatus = this.getSyncStatus.bind(this)
             this.handleOAuthCallback = this.handleOAuthCallback.bind(this)
+            this.handleSalesforceWebhook = this.handleSalesforceWebhook.bind(this)
             this.listConnections = this.listConnections.bind(this)
             this.resolveConflict = this.resolveConflict.bind(this)
+            this.revokeAccess = this.revokeAccess.bind(this)
+            this.setupWebhooks = this.setupWebhooks.bind(this)
             this.startSync = this.startSync.bind(this)
+            this.syncProspect = this.syncProspect.bind(this)
             this.testConnection = this.testConnection.bind(this)
             this.updateFieldMapping = this.updateFieldMapping.bind(this)
+            this.validateFieldMapping = this.validateFieldMapping.bind(this)
+            this.validateSyncSetup = this.validateSyncSetup.bind(this)
+        }
+
+        /**
+         * Batch conflict resolution
+         */
+        public async batchResolveConflicts(params: RequestType<typeof api_salesforce_realtime_sync_batchResolveConflicts>): Promise<ResponseType<typeof api_salesforce_realtime_sync_batchResolveConflicts>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/conflicts/batch-resolve`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_realtime_sync_batchResolveConflicts>
+        }
+
+        /**
+         * Cancel running sync
+         */
+        public async cancelSync(params: { sync_id: number }): Promise<ResponseType<typeof api_salesforce_sync_cancelSync>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/sync/${encodeURIComponent(params.sync_id)}/cancel`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_sync_cancelSync>
         }
 
         /**
@@ -1054,7 +1095,7 @@ export namespace salesforce {
         /**
          * AI-powered field mapping using semantic analysis
          */
-        public async generateFieldMappings(): Promise<void> {
+        public async generateFieldMappingsAPI(): Promise<void> {
             await this.baseClient.callTypedAPI(`/salesforce/ai-mapping`, {method: "POST", body: undefined})
         }
 
@@ -1089,6 +1130,24 @@ export namespace salesforce {
         }
 
         /**
+         * Get sync history for a connection
+         */
+        public async getSyncHistory(params: { connection_id: number }): Promise<ResponseType<typeof api_salesforce_sync_getSyncHistory>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/sync-history`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_sync_getSyncHistory>
+        }
+
+        /**
+         * Get sync statistics
+         */
+        public async getSyncStatistics(params: { connection_id: number }): Promise<ResponseType<typeof api_salesforce_sync_getSyncStatistics>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/statistics`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_sync_getSyncStatistics>
+        }
+
+        /**
          * Get sync status
          */
         public async getSyncStatus(params: { sync_id: number }): Promise<ResponseType<typeof api_salesforce_sync_getSyncStatus>> {
@@ -1102,6 +1161,23 @@ export namespace salesforce {
          */
         public async handleOAuthCallback(): Promise<void> {
             await this.baseClient.callTypedAPI(`/salesforce/oauth/callback`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Enhanced real-time sync with webhook support
+         */
+        public async handleSalesforceWebhook(params: RequestType<typeof api_salesforce_realtime_sync_handleSalesforceWebhook>): Promise<ResponseType<typeof api_salesforce_realtime_sync_handleSalesforceWebhook>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                action:        params.action,
+                "object_type": params["object_type"],
+                "record_id":   params["record_id"],
+                timestamp:     params.timestamp,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/webhooks/${encodeURIComponent(params.connection_id)}`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_realtime_sync_handleSalesforceWebhook>
         }
 
         /**
@@ -1119,10 +1195,43 @@ export namespace salesforce {
         }
 
         /**
+         * Revoke access and deactivate connection
+         */
+        public async revokeAccess(params: { connection_id: number }): Promise<ResponseType<typeof api_salesforce_connections_revokeAccess>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/revoke`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_connections_revokeAccess>
+        }
+
+        /**
+         * Setup webhooks for real-time sync
+         */
+        public async setupWebhooks(params: RequestType<typeof api_salesforce_sync_setupWebhooks>): Promise<ResponseType<typeof api_salesforce_sync_setupWebhooks>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                "object_types": params["object_types"],
+                "webhook_url":  params["webhook_url"],
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/setup-webhooks`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_sync_setupWebhooks>
+        }
+
+        /**
          * Start synchronization between local data and Salesforce
          */
         public async startSync(): Promise<void> {
             await this.baseClient.callTypedAPI(`/salesforce/sync`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Sync specific prospect manually
+         */
+        public async syncProspect(params: RequestType<typeof api_salesforce_sync_syncProspect>): Promise<ResponseType<typeof api_salesforce_sync_syncProspect>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/sync/prospect`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_sync_syncProspect>
         }
 
         /**
@@ -1148,6 +1257,22 @@ export namespace salesforce {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/salesforce/mappings/${encodeURIComponent(params.mapping_id)}`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_field_mappings_updateFieldMapping>
+        }
+
+        /**
+         * Enhanced field mapping validation
+         */
+        public async validateFieldMapping(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/salesforce/validate-mapping`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Validate sync setup
+         */
+        public async validateSyncSetup(params: { connection_id: number }): Promise<ResponseType<typeof api_salesforce_sync_validateSyncSetup>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/salesforce/connections/${encodeURIComponent(params.connection_id)}/validate-setup`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_salesforce_sync_validateSyncSetup>
         }
     }
 }

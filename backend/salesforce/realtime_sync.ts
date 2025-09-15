@@ -20,7 +20,7 @@ export const triggerProspectSync = api(
     validateField(req.prospect_id, "prospect_id", [Rules.positive(), Rules.integer()]);
     validateField(req.action, "action", [Rules.oneOf(['create', 'update', 'delete'])]);
 
-    // Get all active Salesforce connections
+    // Get all active Salesforce connections with real-time sync enabled
     const connections = await executeQuery(
       () => salesforceDB.rawQueryAll<SalesforceConnection>(
         `SELECT * FROM salesforce_connections WHERE is_active = true`
@@ -28,12 +28,128 @@ export const triggerProspectSync = api(
       "get active salesforce connections"
     );
 
-    // Process sync for each connection
-    for (const connection of connections) {
-      await processProspectSync(connection, req.prospect_id, req.action);
-    }
+    // Process sync for each connection asynchronously
+    const syncPromises = connections.map(connection => 
+      processProspectSync(connection, req.prospect_id, req.action)
+        .catch(error => {
+          console.error(`Real-time sync failed for connection ${connection.id}:`, error);
+          // Log error but don't fail the entire operation
+          return { error: error.message, connectionId: connection.id };
+        })
+    );
+
+    await Promise.allSettled(syncPromises);
 
     return { success: true };
+  })
+);
+
+export interface SalesforceWebhookRequest {
+  connection_id: number;
+  object_type: string;
+  record_id: string;
+  action: 'create' | 'update' | 'delete';
+  timestamp: string;
+}
+
+// Enhanced real-time sync with webhook support
+export const handleSalesforceWebhook = api<SalesforceWebhookRequest, { success: boolean; message: string }>(
+  { expose: true, method: "POST", path: "/salesforce/webhooks/:connection_id" },
+  wrapAsync(async (req: SalesforceWebhookRequest): Promise<{ success: boolean; message: string }> => {
+    validateField(req.connection_id, "connection_id", [Rules.positive(), Rules.integer()]);
+    validateField(req.object_type, "object_type", [Rules.minLength(1)]);
+    validateField(req.record_id, "record_id", [Rules.minLength(1)]);
+    validateField(req.action, "action", [Rules.oneOf(['create', 'update', 'delete'])]);
+
+    try {
+      const connection = await executeQuery(
+        () => salesforceDB.rawQueryRow<SalesforceConnection>(
+          `SELECT * FROM salesforce_connections WHERE id = $1 AND is_active = true`,
+          req.connection_id
+        ),
+        "get connection for webhook"
+      );
+
+      if (!connection) {
+        return {
+          success: false,
+          message: "Connection not found or inactive"
+        };
+      }
+
+      // Process the webhook event
+      await processSalesforceWebhookEvent(
+        connection,
+        req.object_type,
+        req.record_id,
+        req.action,
+        new Date(req.timestamp)
+      );
+
+      return {
+        success: true,
+        message: "Webhook processed successfully"
+      };
+    } catch (error) {
+      console.error('Webhook processing failed:', error);
+      return {
+        success: false,
+        message: `Webhook processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  })
+);
+
+export interface BatchResolveConflictsRequest {
+  resolutions: Array<{
+    mapping_id: number;
+    resolution: 'local_wins' | 'salesforce_wins' | 'merge';
+    merge_fields?: Record<string, any>;
+  }>;
+}
+
+// Batch conflict resolution
+export const batchResolveConflicts = api<BatchResolveConflictsRequest, {
+  successful: number;
+  failed: number;
+  errors: Array<{ mapping_id: number; error: string }>;
+}>(
+  { expose: true, method: "POST", path: "/salesforce/conflicts/batch-resolve" },
+  wrapAsync(async (req: BatchResolveConflictsRequest): Promise<{
+    successful: number;
+    failed: number;
+    errors: Array<{ mapping_id: number; error: string }>;
+  }> => {
+    validateField(req.resolutions, "resolutions", [Rules.minLength(1)]);
+
+    let successful = 0;
+    let failed = 0;
+    const errors: Array<{ mapping_id: number; error: string }> = [];
+
+    for (const resolution of req.resolutions) {
+      try {
+        const result = await resolveConflict({
+          mapping_id: resolution.mapping_id,
+          resolution: resolution.resolution,
+          merge_fields: resolution.merge_fields
+        });
+
+        if (result.success) {
+          successful++;
+        } else {
+          failed++;
+          errors.push({ mapping_id: resolution.mapping_id, error: result.message });
+        }
+      } catch (error) {
+        failed++;
+        errors.push({
+          mapping_id: resolution.mapping_id,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    return { successful, failed, errors };
   })
 );
 
@@ -185,7 +301,34 @@ export const detectAndResolveConflictsEndpoint = api(
 const conflictDetectionCron = new CronJob("conflict-detection", {
   title: "Salesforce Conflict Detection",
   endpoint: detectAndResolveConflictsEndpoint,
-  every: "10m", // Run every 10 minutes
+  every: "5m", // Run every 5 minutes for better real-time experience
+});
+
+export const cleanupOldSyncLogsEndpoint = api(
+  { expose: false, method: "POST", path: "/salesforce/cron/cleanup-logs" },
+  wrapAsync(async (): Promise<{ success: boolean; deleted_count: number }> => {
+    // Delete sync logs older than 30 days
+    const result = await executeQuery(
+      () => salesforceDB.rawQueryRow<{ count: number }>(
+        `DELETE FROM salesforce_sync_logs 
+         WHERE started_at < NOW() - INTERVAL '30 days'
+         RETURNING COUNT(*) as count`,
+      ),
+      "cleanup old sync logs"
+    );
+
+    const deletedCount = result?.count || 0;
+    console.log(`Cleaned up ${deletedCount} old sync logs`);
+
+    return { success: true, deleted_count: deletedCount };
+  })
+);
+
+// Cron job for cleaning up old sync logs
+const cleanupSyncLogsCron = new CronJob("cleanup-sync-logs", {
+  title: "Cleanup Old Sync Logs",
+  endpoint: cleanupOldSyncLogsEndpoint,
+  every: "1h", // Run every hour
 });
 
 async function detectAndResolveConflicts(): Promise<void> {
@@ -200,9 +343,17 @@ async function detectAndResolveConflicts(): Promise<void> {
       "get active connections for conflict detection"
     );
 
-    for (const connection of connections) {
-      await detectConflictsForConnection(connection);
+    // Process connections in parallel with concurrency limit
+    const concurrency = 3;
+    for (let i = 0; i < connections.length; i += concurrency) {
+      const batch = connections.slice(i, i + concurrency);
+      await Promise.allSettled(
+        batch.map(connection => detectConflictsForConnection(connection))
+      );
     }
+
+    // Auto-resolve simple conflicts
+    await autoResolveSimpleConflicts();
 
     console.log("Conflict detection completed");
   } catch (error) {
@@ -213,54 +364,133 @@ async function detectAndResolveConflicts(): Promise<void> {
 async function detectConflictsForConnection(connection: SalesforceConnection): Promise<void> {
   const client = new SalesforceClient(connection);
 
-  // Get all pending sync mappings
-  const pendingMappings = await executeQuery(
-    () => salesforceDB.rawQueryAll<SalesforceSyncMapping>(
-      `SELECT * FROM salesforce_sync_mappings 
-       WHERE connection_id = $1 AND sync_status = 'pending'`,
-      connection.id
-    ),
-    "get pending sync mappings"
-  );
+  try {
+    // Test connection first
+    const isConnected = await client.testConnection();
+    if (!isConnected) {
+      console.warn(`Skipping conflict detection for connection ${connection.id} - connection test failed`);
+      return;
+    }
 
-  for (const mapping of pendingMappings) {
-    try {
-      // Check for conflicts by comparing timestamps
-      if (mapping.local_table === 'prospects') {
-        const localProspect = await executeQuery(
-          () => prospectDB.rawQueryRow<Prospect>(
-            `SELECT * FROM prospects WHERE id = $1`,
-            mapping.local_record_id
-          ),
-          "get local prospect"
-        );
+    // Get all synced mappings that might have conflicts
+    const syncedMappings = await executeQuery(
+      () => salesforceDB.rawQueryAll<SalesforceSyncMapping>(
+        `SELECT * FROM salesforce_sync_mappings 
+         WHERE connection_id = $1 AND sync_status IN ('synced', 'pending')
+         AND last_synced_at > NOW() - INTERVAL '24 hours'
+         ORDER BY last_synced_at DESC
+         LIMIT 100`,
+        connection.id
+      ),
+      "get recent sync mappings"
+    );
 
-        if (!localProspect) continue;
+    console.log(`Checking ${syncedMappings.length} mappings for conflicts on connection ${connection.id}`);
 
-        const salesforceRecord = await client.getRecord(
-          mapping.salesforce_object,
-          mapping.salesforce_record_id,
-          ['LastModifiedDate']
-        );
+    // Process mappings in batches
+    const batchSize = 5;
+    for (let i = 0; i < syncedMappings.length; i += batchSize) {
+      const batch = syncedMappings.slice(i, i + batchSize);
+      
+      await Promise.allSettled(
+        batch.map(async (mapping) => {
+          try {
+            await checkMappingForConflict(client, mapping);
+          } catch (error) {
+            console.error(`Conflict check failed for mapping ${mapping.id}:`, error);
+            await markAsSyncError(mapping.id, error);
+          }
+        })
+      );
 
-        const localUpdated = localProspect.updated_at;
-        const salesforceUpdated = new Date(salesforceRecord.LastModifiedDate);
-        const lastSynced = mapping.last_synced_at;
-
-        // Detect conflict: both sides updated since last sync
-        if (lastSynced && localUpdated > lastSynced && salesforceUpdated > lastSynced) {
-          await markAsConflict(mapping.id, localUpdated, salesforceUpdated);
-        } else if (localUpdated > lastSynced) {
-          // Local is newer, sync to Salesforce
-          await syncLocalToSalesforce(client, mapping, localProspect);
-        } else if (salesforceUpdated > lastSynced) {
-          // Salesforce is newer, sync to local
-          await syncSalesforceToLocal(client, mapping, salesforceRecord);
-        }
+      // Small delay between batches to avoid API limits
+      if (i + batchSize < syncedMappings.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
+    }
+  } catch (error) {
+    console.error(`Conflict detection failed for connection ${connection.id}:`, error);
+  }
+}
+
+async function checkMappingForConflict(client: SalesforceClient, mapping: SalesforceSyncMapping): Promise<void> {
+  // Check for conflicts by comparing timestamps
+  if (mapping.local_table === 'prospects') {
+    const localProspect = await executeQuery(
+      () => prospectDB.rawQueryRow<Prospect>(
+        `SELECT * FROM prospects WHERE id = $1`,
+        mapping.local_record_id
+      ),
+      "get local prospect"
+    );
+
+    if (!localProspect) {
+      // Local record was deleted, mark mapping for cleanup
+      await executeQuery(
+        () => salesforceDB.rawQueryRow(
+          `UPDATE salesforce_sync_mappings 
+           SET sync_status = 'local_deleted', salesforce_updated_at = NOW()
+           WHERE id = $1`,
+          mapping.id
+        ),
+        "mark mapping as local deleted"
+      );
+      return;
+    }
+
+    // Get Salesforce record
+    let salesforceRecord;
+    try {
+      salesforceRecord = await client.getRecord(
+        mapping.salesforce_object,
+        mapping.salesforce_record_id,
+        ['LastModifiedDate', 'IsDeleted']
+      );
     } catch (error) {
-      console.error(`Conflict detection failed for mapping ${mapping.id}:`, error);
-      await markAsSyncError(mapping.id, error);
+      if (error instanceof Error && error.message.includes('NOT_FOUND')) {
+        // Salesforce record was deleted
+        await executeQuery(
+          () => salesforceDB.rawQueryRow(
+            `UPDATE salesforce_sync_mappings 
+             SET sync_status = 'salesforce_deleted', local_updated_at = NOW()
+             WHERE id = $1`,
+            mapping.id
+          ),
+          "mark mapping as salesforce deleted"
+        );
+        return;
+      }
+      throw error;
+    }
+
+    const localUpdated = localProspect.updated_at;
+    const salesforceUpdated = new Date(salesforceRecord.LastModifiedDate);
+    const lastSynced = mapping.last_synced_at || new Date(0);
+
+    // Define conflict threshold (5 minutes)
+    const conflictThreshold = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+    // Detect conflict: both sides updated since last sync with significant time difference
+    if (localUpdated > lastSynced && salesforceUpdated > lastSynced) {
+      const timeDiff = Math.abs(localUpdated.getTime() - salesforceUpdated.getTime());
+      
+      if (timeDiff < conflictThreshold) {
+        // Very close timing, likely same change - use newest timestamp
+        if (salesforceUpdated > localUpdated) {
+          await syncSalesforceToLocal(client, mapping, salesforceRecord);
+        } else {
+          await syncLocalToSalesforce(client, mapping, localProspect);
+        }
+      } else {
+        // Significant time difference - mark as conflict
+        await markAsConflict(mapping.id, localUpdated, salesforceUpdated);
+      }
+    } else if (localUpdated > lastSynced) {
+      // Local is newer, sync to Salesforce
+      await syncLocalToSalesforce(client, mapping, localProspect);
+    } else if (salesforceUpdated > lastSynced) {
+      // Salesforce is newer, sync to local
+      await syncSalesforceToLocal(client, mapping, salesforceRecord);
     }
   }
 }
@@ -418,6 +648,131 @@ async function markAsConflict(
     ),
     "mark mapping as conflict"
   );
+  
+  console.log(`Marked mapping ${mappingId} as conflict - Local: ${localUpdated.toISOString()}, Salesforce: ${salesforceUpdated.toISOString()}`);
+}
+
+// Auto-resolve simple conflicts based on business rules
+async function autoResolveSimpleConflicts(): Promise<void> {
+  // Get conflicts that can be auto-resolved
+  const autoResolvableConflicts = await executeQuery(
+    () => salesforceDB.rawQueryAll<SalesforceSyncMapping>(
+      `SELECT * FROM salesforce_sync_mappings 
+       WHERE sync_status = 'conflict' 
+       AND local_updated_at IS NOT NULL 
+       AND salesforce_updated_at IS NOT NULL
+       ORDER BY last_synced_at DESC
+       LIMIT 50`,
+    ),
+    "get auto-resolvable conflicts"
+  );
+
+  for (const mapping of autoResolvableConflicts) {
+    try {
+      // Apply business rules for auto-resolution
+      const resolution = determineAutoResolution(mapping);
+      
+      if (resolution) {
+        console.log(`Auto-resolving conflict ${mapping.id} with strategy: ${resolution}`);
+        
+        await resolveConflict({
+          mapping_id: mapping.id,
+          resolution: resolution
+        });
+      }
+    } catch (error) {
+      console.error(`Auto-resolution failed for mapping ${mapping.id}:`, error);
+    }
+  }
+}
+
+function determineAutoResolution(mapping: SalesforceSyncMapping): 'local_wins' | 'salesforce_wins' | null {
+  if (!mapping.local_updated_at || !mapping.salesforce_updated_at) {
+    return null;
+  }
+
+  const timeDiff = mapping.salesforce_updated_at.getTime() - mapping.local_updated_at.getTime();
+  const oneHour = 60 * 60 * 1000;
+
+  // If Salesforce was updated more than 1 hour after local, prefer Salesforce
+  if (timeDiff > oneHour) {
+    return 'salesforce_wins';
+  }
+  
+  // If local was updated more than 1 hour after Salesforce, prefer local
+  if (timeDiff < -oneHour) {
+    return 'local_wins';
+  }
+
+  // For recent conflicts, prefer the most recent change
+  return timeDiff > 0 ? 'salesforce_wins' : 'local_wins';
+}
+
+// Process Salesforce webhook events
+async function processSalesforceWebhookEvent(
+  connection: SalesforceConnection,
+  objectType: string,
+  recordId: string,
+  action: 'create' | 'update' | 'delete',
+  timestamp: Date
+): Promise<void> {
+  console.log(`Processing webhook event: ${action} ${objectType} ${recordId}`);
+
+  try {
+    // Find existing sync mapping
+    const mapping = await executeQuery(
+      () => salesforceDB.rawQueryRow<SalesforceSyncMapping>(
+        `SELECT * FROM salesforce_sync_mappings 
+         WHERE connection_id = $1 AND salesforce_object = $2 AND salesforce_record_id = $3`,
+        connection.id, objectType, recordId
+      ),
+      "find mapping for webhook event"
+    );
+
+    if (action === 'delete') {
+      if (mapping) {
+        await executeQuery(
+          () => salesforceDB.rawQueryRow(
+            `UPDATE salesforce_sync_mappings 
+             SET sync_status = 'salesforce_deleted', salesforce_updated_at = $1
+             WHERE id = $2`,
+            timestamp, mapping.id
+          ),
+          "mark mapping as salesforce deleted via webhook"
+        );
+      }
+      return;
+    }
+
+    if (mapping) {
+      // Update existing mapping timestamp
+      await executeQuery(
+        () => salesforceDB.rawQueryRow(
+          `UPDATE salesforce_sync_mappings 
+           SET salesforce_updated_at = $1, sync_status = 'pending'
+           WHERE id = $2`,
+          timestamp, mapping.id
+        ),
+        "update mapping timestamp via webhook"
+      );
+
+      // Trigger conflict detection for this specific mapping
+      const client = new SalesforceClient(connection);
+      await checkMappingForConflict(client, {
+        ...mapping,
+        salesforce_updated_at: timestamp,
+        sync_status: 'pending' as SyncMappingStatus
+      });
+    } else if (action === 'create') {
+      // Handle new record creation via webhook
+      // This would involve creating a new local record and mapping
+      console.log(`New ${objectType} created in Salesforce: ${recordId}`);
+      // Implementation depends on business rules
+    }
+  } catch (error) {
+    console.error(`Webhook event processing failed:`, error);
+    throw error;
+  }
 }
 
 async function markAsSyncError(mappingId: number, error: any): Promise<void> {

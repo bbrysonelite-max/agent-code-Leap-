@@ -60,7 +60,7 @@ export type SalesforceObjectType = 'Lead' | 'Contact' | 'Account' | 'Opportunity
 export type FieldType = 'text' | 'email' | 'phone' | 'date' | 'boolean' | 'picklist' | 'number';
 export type SyncType = 'full' | 'incremental' | 'realtime';
 export type SyncDirection = 'to_salesforce' | 'from_salesforce' | 'bidirectional';
-export type SyncStatus = 'running' | 'completed' | 'failed' | 'cancelled';
+export type SyncStatus = 'running' | 'completed' | 'completed_with_errors' | 'failed' | 'cancelled';
 export type LocalTable = 'prospects' | 'agents' | 'email_campaigns';
 export type SyncMappingStatus = 'synced' | 'pending' | 'conflict' | 'error';
 
