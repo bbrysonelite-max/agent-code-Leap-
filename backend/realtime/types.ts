@@ -4,7 +4,8 @@ export interface RealtimeHandshake {
 }
 
 export interface RealtimeMessage {
-  type: "agent_activity" | "prospect_discovery" | "email_progress" | "email_response" | "system_notification";
+  type: "agent_activity" | "prospect_discovery" | "email_progress" | "email_response" | "system_notification" | 
+        "nurturing_progress" | "prospect_enrolled" | "classification_updated" | "sequence_performance_update" | "nurturing_alerts";
   data: any;
   timestamp: string;
   clientId?: string;
@@ -52,4 +53,44 @@ export interface SystemNotificationData {
     label: string;
     url: string;
   };
+}
+
+export interface NurturingProgressData {
+  prospectId: string;
+  behaviorType: string;
+  engagementScore: number;
+  metadata?: Record<string, any>;
+  timestamp: string;
+}
+
+export interface ProspectEnrolledData {
+  prospectId: string;
+  sequenceId: string;
+  sequenceName: string;
+  enrollmentSource: string;
+}
+
+export interface ClassificationUpdatedData {
+  prospectId: string;
+  oldClassification: string;
+  newClassification: string;
+  reason: string;
+}
+
+export interface SequencePerformanceUpdateData {
+  sequenceId: string;
+  engagementRate: number;
+  conversionRate: number;
+  performanceData: Record<string, any>;
+}
+
+export interface NurturingAlertsData {
+  alerts: Array<{
+    type: string;
+    severity: 'low' | 'medium' | 'high';
+    message: string;
+    data?: any;
+  }>;
+  timestamp: string;
+  total_alerts: number;
 }
