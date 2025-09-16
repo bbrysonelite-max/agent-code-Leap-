@@ -13,11 +13,12 @@ CREATE TABLE audit_logs (
   endpoint VARCHAR(255),
   request_id VARCHAR(255),
   compliance_relevant BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  INDEX idx_audit_user_id (user_id),
-  INDEX idx_audit_resource (resource_type, resource_id),
-  INDEX idx_audit_action (action),
-  INDEX idx_audit_created_at (created_at),
-  INDEX idx_audit_compliance (compliance_relevant),
-  INDEX idx_audit_service (service_name)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_audit_user_id ON audit_logs (user_id);
+CREATE INDEX idx_audit_resource ON audit_logs (resource_type, resource_id);
+CREATE INDEX idx_audit_action ON audit_logs (action);
+CREATE INDEX idx_audit_created_at ON audit_logs (created_at);
+CREATE INDEX idx_audit_compliance ON audit_logs (compliance_relevant);
+CREATE INDEX idx_audit_service ON audit_logs (service_name);
