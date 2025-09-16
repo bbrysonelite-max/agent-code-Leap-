@@ -38,6 +38,7 @@ export class Client {
     public readonly analytics: analytics.ServiceClient
     public readonly audit: audit.ServiceClient
     public readonly auth: auth.ServiceClient
+    public readonly db_performance: db_performance.ServiceClient
     public readonly email: email.ServiceClient
     public readonly gdpr: gdpr.ServiceClient
     public readonly prospect: prospect.ServiceClient
@@ -65,6 +66,7 @@ export class Client {
         this.analytics = new analytics.ServiceClient(base)
         this.audit = new audit.ServiceClient(base)
         this.auth = new auth.ServiceClient(base)
+        this.db_performance = new db_performance.ServiceClient(base)
         this.email = new email.ServiceClient(base)
         this.gdpr = new gdpr.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
@@ -876,6 +878,137 @@ export namespace auth {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/user/me`, {method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auth_user_getUserInfo>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    getPerformanceDashboard as api_db_performance_monitor_getPerformanceDashboard,
+    logConnectionStats as api_db_performance_monitor_logConnectionStats,
+    logQueryPerformance as api_db_performance_monitor_logQueryPerformance
+} from "~backend/db_performance/monitor";
+import {
+    getDatabaseHealthReport as api_db_performance_optimizer_getDatabaseHealthReport,
+    getIndexAnalysis as api_db_performance_optimizer_getIndexAnalysis,
+    optimizeQuery as api_db_performance_optimizer_optimizeQuery
+} from "~backend/db_performance/optimizer";
+import {
+    acknowledgeAlert as api_db_performance_slow_query_detector_acknowledgeAlert,
+    getSlowQueryAnalysis as api_db_performance_slow_query_detector_getSlowQueryAnalysis,
+    resolveAlert as api_db_performance_slow_query_detector_resolveAlert,
+    runSlowQueryDetection as api_db_performance_slow_query_detector_runSlowQueryDetection
+} from "~backend/db_performance/slow_query_detector";
+
+export namespace db_performance {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.acknowledgeAlert = this.acknowledgeAlert.bind(this)
+            this.getDatabaseHealthReport = this.getDatabaseHealthReport.bind(this)
+            this.getIndexAnalysis = this.getIndexAnalysis.bind(this)
+            this.getPerformanceDashboard = this.getPerformanceDashboard.bind(this)
+            this.getSlowQueryAnalysis = this.getSlowQueryAnalysis.bind(this)
+            this.logConnectionStats = this.logConnectionStats.bind(this)
+            this.logQueryPerformance = this.logQueryPerformance.bind(this)
+            this.optimizeQuery = this.optimizeQuery.bind(this)
+            this.resolveAlert = this.resolveAlert.bind(this)
+            this.runSlowQueryDetection = this.runSlowQueryDetection.bind(this)
+        }
+
+        public async acknowledgeAlert(params: RequestType<typeof api_db_performance_slow_query_detector_acknowledgeAlert>): Promise<ResponseType<typeof api_db_performance_slow_query_detector_acknowledgeAlert>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                "acknowledged_by": params["acknowledged_by"],
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/alerts/${encodeURIComponent(params.alert_id)}/acknowledge`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_slow_query_detector_acknowledgeAlert>
+        }
+
+        public async getDatabaseHealthReport(): Promise<ResponseType<typeof api_db_performance_optimizer_getDatabaseHealthReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/health`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_optimizer_getDatabaseHealthReport>
+        }
+
+        public async getIndexAnalysis(params: RequestType<typeof api_db_performance_optimizer_getIndexAnalysis>): Promise<ResponseType<typeof api_db_performance_optimizer_getIndexAnalysis>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "database_name": params["database_name"],
+                "table_name":    params["table_name"],
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/indexes`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_optimizer_getIndexAnalysis>
+        }
+
+        public async getPerformanceDashboard(params: RequestType<typeof api_db_performance_monitor_getPerformanceDashboard>): Promise<ResponseType<typeof api_db_performance_monitor_getPerformanceDashboard>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "service_name": params["service_name"],
+                timeframe:      params.timeframe,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/dashboard`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_monitor_getPerformanceDashboard>
+        }
+
+        public async getSlowQueryAnalysis(params: RequestType<typeof api_db_performance_slow_query_detector_getSlowQueryAnalysis>): Promise<ResponseType<typeof api_db_performance_slow_query_detector_getSlowQueryAnalysis>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "service_name":       params["service_name"],
+                "severity_threshold": params["severity_threshold"],
+                timeframe:            params.timeframe,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/slow-queries`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_slow_query_detector_getSlowQueryAnalysis>
+        }
+
+        public async logConnectionStats(params: RequestType<typeof api_db_performance_monitor_logConnectionStats>): Promise<ResponseType<typeof api_db_performance_monitor_logConnectionStats>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/connections`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_monitor_logConnectionStats>
+        }
+
+        public async logQueryPerformance(params: RequestType<typeof api_db_performance_monitor_logQueryPerformance>): Promise<ResponseType<typeof api_db_performance_monitor_logQueryPerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/log`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_monitor_logQueryPerformance>
+        }
+
+        public async optimizeQuery(params: RequestType<typeof api_db_performance_optimizer_optimizeQuery>): Promise<ResponseType<typeof api_db_performance_optimizer_optimizeQuery>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "query_text":   params["query_text"],
+                "service_name": params["service_name"],
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/optimize-query`, {query, method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_optimizer_optimizeQuery>
+        }
+
+        public async resolveAlert(params: { alert_id: number }): Promise<ResponseType<typeof api_db_performance_slow_query_detector_resolveAlert>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/alerts/${encodeURIComponent(params.alert_id)}/resolve`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_slow_query_detector_resolveAlert>
+        }
+
+        public async runSlowQueryDetection(): Promise<ResponseType<typeof api_db_performance_slow_query_detector_runSlowQueryDetection>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/db-performance/run-detection`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_db_performance_slow_query_detector_runSlowQueryDetection>
         }
     }
 }
