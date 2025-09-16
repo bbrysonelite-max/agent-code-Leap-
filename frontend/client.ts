@@ -41,6 +41,7 @@ export class Client {
     public readonly prospect: prospect.ServiceClient
     public readonly rate_limiting: rate_limiting.ServiceClient
     public readonly realtime: realtime.ServiceClient
+    public readonly reporting: reporting.ServiceClient
     public readonly salesforce: salesforce.ServiceClient
     public readonly scoring: scoring.ServiceClient
     private readonly options: ClientOptions
@@ -65,6 +66,7 @@ export class Client {
         this.prospect = new prospect.ServiceClient(base)
         this.rate_limiting = new rate_limiting.ServiceClient(base)
         this.realtime = new realtime.ServiceClient(base)
+        this.reporting = new reporting.ServiceClient(base)
         this.salesforce = new salesforce.ServiceClient(base)
         this.scoring = new scoring.ServiceClient(base)
     }
@@ -1258,6 +1260,260 @@ export namespace realtime {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/realtime/clients`, {method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_realtime_websocket_getConnectedClients>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    drillDown as api_reporting_analytics_drillDown,
+    getMetricSummary as api_reporting_analytics_getMetricSummary
+} from "~backend/reporting/analytics";
+import {
+    createDashboard as api_reporting_dashboards_createDashboard,
+    getDashboard as api_reporting_dashboards_getDashboard,
+    listDashboards as api_reporting_dashboards_listDashboards,
+    removeDashboard as api_reporting_dashboards_removeDashboard,
+    updateDashboard as api_reporting_dashboards_updateDashboard
+} from "~backend/reporting/dashboards";
+import {
+    downloadReport as api_reporting_exports_downloadReport,
+    getDownload as api_reporting_exports_getDownload
+} from "~backend/reporting/exports";
+import {
+    createReport as api_reporting_reports_createReport,
+    generateReport as api_reporting_reports_generateReport,
+    getReport as api_reporting_reports_getReport,
+    listReports as api_reporting_reports_listReports,
+    removeReport as api_reporting_reports_removeReport,
+    updateReport as api_reporting_reports_updateReport
+} from "~backend/reporting/reports";
+import {
+    getReportExecutions as api_reporting_scheduler_getReportExecutions,
+    getScheduledReports as api_reporting_scheduler_getScheduledReports,
+    toggleReportSchedule as api_reporting_scheduler_toggleReportSchedule
+} from "~backend/reporting/scheduler";
+import {
+    createWidget as api_reporting_widgets_createWidget,
+    getWidget as api_reporting_widgets_getWidget,
+    getWidgetData as api_reporting_widgets_getWidgetData,
+    listWidgets as api_reporting_widgets_listWidgets,
+    removeWidget as api_reporting_widgets_removeWidget,
+    updateWidget as api_reporting_widgets_updateWidget
+} from "~backend/reporting/widgets";
+
+export namespace reporting {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.createDashboard = this.createDashboard.bind(this)
+            this.createReport = this.createReport.bind(this)
+            this.createWidget = this.createWidget.bind(this)
+            this.downloadReport = this.downloadReport.bind(this)
+            this.drillDown = this.drillDown.bind(this)
+            this.generateReport = this.generateReport.bind(this)
+            this.getDashboard = this.getDashboard.bind(this)
+            this.getDownload = this.getDownload.bind(this)
+            this.getMetricSummary = this.getMetricSummary.bind(this)
+            this.getReport = this.getReport.bind(this)
+            this.getReportExecutions = this.getReportExecutions.bind(this)
+            this.getScheduledReports = this.getScheduledReports.bind(this)
+            this.getWidget = this.getWidget.bind(this)
+            this.getWidgetData = this.getWidgetData.bind(this)
+            this.listDashboards = this.listDashboards.bind(this)
+            this.listReports = this.listReports.bind(this)
+            this.listWidgets = this.listWidgets.bind(this)
+            this.removeDashboard = this.removeDashboard.bind(this)
+            this.removeReport = this.removeReport.bind(this)
+            this.removeWidget = this.removeWidget.bind(this)
+            this.toggleReportSchedule = this.toggleReportSchedule.bind(this)
+            this.updateDashboard = this.updateDashboard.bind(this)
+            this.updateReport = this.updateReport.bind(this)
+            this.updateWidget = this.updateWidget.bind(this)
+        }
+
+        public async createDashboard(params: RequestType<typeof api_reporting_dashboards_createDashboard>): Promise<ResponseType<typeof api_reporting_dashboards_createDashboard>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/dashboards`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_createDashboard>
+        }
+
+        public async createReport(params: RequestType<typeof api_reporting_reports_createReport>): Promise<ResponseType<typeof api_reporting_reports_createReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_createReport>
+        }
+
+        public async createWidget(params: RequestType<typeof api_reporting_widgets_createWidget>): Promise<ResponseType<typeof api_reporting_widgets_createWidget>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/widgets`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_createWidget>
+        }
+
+        public async downloadReport(params: RequestType<typeof api_reporting_exports_downloadReport>): Promise<ResponseType<typeof api_reporting_exports_downloadReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/export`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_exports_downloadReport>
+        }
+
+        public async drillDown(params: RequestType<typeof api_reporting_analytics_drillDown>): Promise<ResponseType<typeof api_reporting_analytics_drillDown>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/analytics/drill-down`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_analytics_drillDown>
+        }
+
+        public async generateReport(params: { id: string }): Promise<ResponseType<typeof api_reporting_reports_generateReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}/generate`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_generateReport>
+        }
+
+        public async getDashboard(params: { id: string }): Promise<ResponseType<typeof api_reporting_dashboards_getDashboard>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/dashboards/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_getDashboard>
+        }
+
+        public async getDownload(params: { executionId: string }): Promise<ResponseType<typeof api_reporting_exports_getDownload>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/download/${encodeURIComponent(params.executionId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_exports_getDownload>
+        }
+
+        public async getMetricSummary(params: RequestType<typeof api_reporting_analytics_getMetricSummary>): Promise<ResponseType<typeof api_reporting_analytics_getMetricSummary>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/analytics/summary`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_analytics_getMetricSummary>
+        }
+
+        public async getReport(params: { id: string }): Promise<ResponseType<typeof api_reporting_reports_getReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_getReport>
+        }
+
+        public async getReportExecutions(params: { id: string }): Promise<ResponseType<typeof api_reporting_scheduler_getReportExecutions>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}/executions`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_getReportExecutions>
+        }
+
+        public async getScheduledReports(): Promise<ResponseType<typeof api_reporting_scheduler_getScheduledReports>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/scheduled`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_getScheduledReports>
+        }
+
+        public async getWidget(params: { id: string }): Promise<ResponseType<typeof api_reporting_widgets_getWidget>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_getWidget>
+        }
+
+        public async getWidgetData(params: { id: string }): Promise<ResponseType<typeof api_reporting_widgets_getWidgetData>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}/data`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_getWidgetData>
+        }
+
+        public async listDashboards(): Promise<ResponseType<typeof api_reporting_dashboards_listDashboards>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/dashboards`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_listDashboards>
+        }
+
+        public async listReports(): Promise<ResponseType<typeof api_reporting_reports_listReports>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_listReports>
+        }
+
+        public async listWidgets(params: { dashboardId: string }): Promise<ResponseType<typeof api_reporting_widgets_listWidgets>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/widgets/dashboard/${encodeURIComponent(params.dashboardId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_listWidgets>
+        }
+
+        public async removeDashboard(params: { id: string }): Promise<ResponseType<typeof api_reporting_dashboards_removeDashboard>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/dashboards/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_removeDashboard>
+        }
+
+        public async removeReport(params: { id: string }): Promise<ResponseType<typeof api_reporting_reports_removeReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_removeReport>
+        }
+
+        public async removeWidget(params: { id: string }): Promise<ResponseType<typeof api_reporting_widgets_removeWidget>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_removeWidget>
+        }
+
+        public async toggleReportSchedule(params: RequestType<typeof api_reporting_scheduler_toggleReportSchedule>): Promise<ResponseType<typeof api_reporting_scheduler_toggleReportSchedule>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                enabled: params.enabled,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}/toggle-schedule`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_toggleReportSchedule>
+        }
+
+        public async updateDashboard(params: RequestType<typeof api_reporting_dashboards_updateDashboard>): Promise<ResponseType<typeof api_reporting_dashboards_updateDashboard>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                description:  params.description,
+                "is_default": params["is_default"],
+                "is_public":  params["is_public"],
+                layout:       params.layout,
+                name:         params.name,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/dashboards/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_updateDashboard>
+        }
+
+        public async updateReport(params: RequestType<typeof api_reporting_reports_updateReport>): Promise<ResponseType<typeof api_reporting_reports_updateReport>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                config:            params.config,
+                description:       params.description,
+                filters:           params.filters,
+                name:              params.name,
+                "schedule_config": params["schedule_config"],
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_updateReport>
+        }
+
+        public async updateWidget(params: RequestType<typeof api_reporting_widgets_updateWidget>): Promise<ResponseType<typeof api_reporting_widgets_updateWidget>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                config:        params.config,
+                "data_source": params["data_source"],
+                height:        params.height,
+                "position_x":  params["position_x"],
+                "position_y":  params["position_y"],
+                title:         params.title,
+                "widget_type": params["widget_type"],
+                width:         params.width,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_updateWidget>
         }
     }
 }

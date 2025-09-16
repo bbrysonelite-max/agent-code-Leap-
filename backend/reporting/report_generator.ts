@@ -1,7 +1,7 @@
-import { db as prospectDb } from "../prospect/db";
-import { db as agentDb } from "../agent/db";
-import { db as emailDb } from "../email/db";
-import { db as crmDb } from "../ai_crm/db";
+import { prospectDB as prospectDb } from "../prospect/db";
+import { agentDB as agentDb } from "../agent/db";
+import { emailDB as emailDb } from "../email/db";
+import { CRM as crmDb } from "../ai_crm/db";
 import { Report, ReportType } from "./db";
 import { ReportData, ChartData, DateRange, ReportFilters } from "./types";
 
@@ -38,7 +38,7 @@ async function generateProspectReport(config: any, filters: ReportFilters): Prom
   
   if (filters.score_range) {
     whereClause += ` AND score >= $${++paramIndex} AND score <= $${++paramIndex}`;
-    params.push(filters.score_range[0], filters.score_range[1]);
+    params.push(filters.score_range.min, filters.score_range.max);
   }
   
   const query = `

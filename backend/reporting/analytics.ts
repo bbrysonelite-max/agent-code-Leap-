@@ -1,9 +1,9 @@
 import { api } from "encore.dev/api";
 import { getAuthData } from "~encore/auth";
-import { db as prospectDb } from "../prospect/db";
-import { db as agentDb } from "../agent/db";
-import { db as emailDb } from "../email/db";
-import { db as crmDb } from "../ai_crm/db";
+import { prospectDB as prospectDb } from "../prospect/db";
+import { agentDB as agentDb } from "../agent/db";
+import { emailDB as emailDb } from "../email/db";
+import { CRM as crmDb } from "../ai_crm/db";
 import { DrillDownRequest, DrillDownResponse, MetricSummaryResponse, DateRange, ReportFilters } from "./types";
 
 export const drillDown = api(
@@ -402,7 +402,7 @@ async function getProspectSummary(dateRange: DateRange, filters?: ReportFilters)
     qualification_rate: result.total_prospects > 0 ? result.qualified_prospects / result.total_prospects : 0,
     contact_rate: result.total_prospects > 0 ? result.contacted_prospects / result.total_prospects : 0,
     avg_score: parseFloat(result.avg_score || 0),
-    score_range: [parseFloat(result.min_score || 0), parseFloat(result.max_score || 0)]
+    score_range: { min: parseFloat(result.min_score || 0), max: parseFloat(result.max_score || 0) }
   };
 }
 

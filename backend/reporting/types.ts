@@ -39,13 +39,18 @@ export interface ReportConfig {
   segments?: string[];
 }
 
+export interface ScoreRange {
+  min: number;
+  max: number;
+}
+
 export interface ReportFilters {
   agent_ids?: string[];
   campaign_ids?: string[];
   prospect_statuses?: string[];
   deal_stages?: string[];
   activity_types?: string[];
-  score_range?: [number, number];
+  score_range?: ScoreRange;
   custom_filters?: Record<string, any>;
 }
 
@@ -160,11 +165,47 @@ export interface DrillDownResponse {
 }
 
 export interface MetricSummaryResponse {
-  [key: string]: any;
+  total_prospects?: number;
+  qualified_prospects?: number;
+  contacted_prospects?: number;
+  qualification_rate?: number;
+  contact_rate?: number;
+  avg_score?: number;
+  score_range?: ScoreRange;
+  total_campaigns?: number;
+  total_sent?: number;
+  total_opened?: number;
+  total_clicked?: number;
+  total_replied?: number;
+  avg_open_rate?: number;
+  avg_click_rate?: number;
+  avg_reply_rate?: number;
+  total_agents?: number;
+  active_agents?: number;
+  paused_agents?: number;
+  avg_daily_limit?: number;
+  total_current_count?: number;
+  utilization_rate?: number;
+  total_deals?: number;
+  total_value?: number;
+  won_deals?: number;
+  won_value?: number;
+  avg_deal_value?: number;
+  avg_probability?: number;
+  win_rate?: number;
+  conversion_value?: number;
+  total_activities?: number;
+  email_activities?: number;
+  call_activities?: number;
+  meeting_activities?: number;
+  successful_activities?: number;
+  success_rate?: number;
 }
 
 export interface WidgetDataResponse {
-  [key: string]: any;
+  data: any[];
+  labels?: string[];
+  datasets?: any[];
 }
 
 export interface DashboardListResponse {
