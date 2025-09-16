@@ -21,6 +21,7 @@ import CRMIntegration from './components/CRMIntegration';
 import RateLimitDashboard from './components/RateLimitDashboard';
 import RateLimitManagement from './components/RateLimitManagement';
 import { ReportingDashboard } from './components/ReportingDashboard';
+import { ComplianceDashboard } from './components/ComplianceDashboard';
 
 const PUBLISHABLE_KEY = "pk_test_Y2xlYXItZmluY2gtMS5jbGVyay5hY2NvdW50cy5kZXYk";
 
@@ -50,6 +51,7 @@ function AppInner() {
                     <Route path="/rate-limits" element={<RateLimitDashboard />} />
                     <Route path="/rate-limits/management" element={<RateLimitManagement />} />
                     <Route path="/reporting" element={<ReportingDashboard />} />
+                    <Route path="/compliance" element={<ComplianceDashboard />} />
                   </Routes>
                 </ErrorBoundary>
               </main>

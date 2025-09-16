@@ -1,0 +1,23 @@
+CREATE TABLE audit_logs (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255),
+  session_id VARCHAR(255),
+  action VARCHAR(100) NOT NULL,
+  resource_type VARCHAR(100) NOT NULL,
+  resource_id VARCHAR(255),
+  old_values JSONB,
+  new_values JSONB,
+  ip_address INET,
+  user_agent TEXT,
+  service_name VARCHAR(100) NOT NULL,
+  endpoint VARCHAR(255),
+  request_id VARCHAR(255),
+  compliance_relevant BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  INDEX idx_audit_user_id (user_id),
+  INDEX idx_audit_resource (resource_type, resource_id),
+  INDEX idx_audit_action (action),
+  INDEX idx_audit_created_at (created_at),
+  INDEX idx_audit_compliance (compliance_relevant),
+  INDEX idx_audit_service (service_name)
+);

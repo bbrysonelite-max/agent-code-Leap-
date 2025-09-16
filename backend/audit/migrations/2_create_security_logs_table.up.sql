@@ -1,0 +1,22 @@
+CREATE TABLE security_logs (
+  id SERIAL PRIMARY KEY,
+  event_type VARCHAR(100) NOT NULL,
+  severity VARCHAR(20) NOT NULL DEFAULT 'INFO',
+  user_id VARCHAR(255),
+  session_id VARCHAR(255),
+  ip_address INET,
+  user_agent TEXT,
+  success BOOLEAN,
+  failure_reason TEXT,
+  metadata JSONB,
+  service_name VARCHAR(100) NOT NULL,
+  endpoint VARCHAR(255),
+  request_id VARCHAR(255),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  INDEX idx_security_event_type (event_type),
+  INDEX idx_security_user_id (user_id),
+  INDEX idx_security_severity (severity),
+  INDEX idx_security_success (success),
+  INDEX idx_security_created_at (created_at),
+  INDEX idx_security_service (service_name)
+);

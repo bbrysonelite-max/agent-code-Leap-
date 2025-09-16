@@ -8,6 +8,7 @@ import { validateEmailContent, sanitizeHtml, logSecurityEvent } from "../shared/
 import { checkAdvancedRateLimit } from "../shared/advanced-rate-limiting";
 import { broadcastMessage } from "../realtime/websocket";
 import type { EmailProgressData } from "../realtime/types";
+import { auditDataChange, auditSecurityEvent } from "../audit/logger";
 
 export interface SendEmailRequest {
   prospect_id: number;
@@ -15,6 +16,7 @@ export interface SendEmailRequest {
   agent_name?: string;
   userTier?: string;
   agentId?: string;
+  userId?: string;
 }
 
 export interface SendEmailResponse {
@@ -76,6 +78,22 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
         template_id: req.template_id,
         error: error instanceof Error ? error.message : "Unknown error"
       });
+      
+      await auditSecurityEvent(
+        'email_content_validation_failed',
+        false,
+        req.userId,
+        'email',
+        'WARN',
+        {
+          prospect_id: req.prospect_id,
+          template_id: req.template_id,
+          prospect_email: prospect.email,
+          validation_error: error instanceof Error ? error.message : "Unknown error"
+        },
+        'Email content failed security validation'
+      );
+      
       throw error;
     }
     
@@ -122,6 +140,40 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
         RETURNING *
       `,
       "email campaign"
+    );
+    
+    // Audit the email sending
+    await auditDataChange(
+      'create',
+      'email_campaign',
+      campaign.id.toString(),
+      null,
+      {
+        prospect_id: req.prospect_id,
+        prospect_email: prospect.email,
+        template_id: req.template_id,
+        subject: personalizedSubject,
+        status: 'sent'
+      },
+      req.userId,
+      'email',
+      true // Email campaigns are compliance relevant
+    );
+    
+    // Log the sensitive operation
+    await auditSecurityEvent(
+      'email_sent',
+      true,
+      req.userId,
+      'email',
+      'INFO',
+      {
+        prospect_id: req.prospect_id,
+        prospect_email: prospect.email,
+        template_id: req.template_id,
+        campaign_id: campaign.id,
+        agent_name: agentName
+      }
     );
 
     // Broadcast email sent

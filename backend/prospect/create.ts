@@ -6,6 +6,7 @@ import { insertRow } from "../shared/database";
 import { wrapAsync } from "../shared/errors";
 import { validateProspectData, logSecurityEvent } from "../shared/security";
 import { checkAdvancedRateLimit } from "../shared/advanced-rate-limiting";
+import { auditDataChange, auditSecurityEvent } from "../audit/logger";
 
 export interface CreateProspectRequest {
   agent_id: number;
@@ -62,9 +63,24 @@ export const create = api<CreateProspectRequest, Prospect>(
         email: req.email,
         error: error instanceof Error ? error.message : "Unknown error"
       });
+      
+      await auditSecurityEvent(
+        'data_validation_failed',
+        false,
+        req.userId,
+        'prospect',
+        'WARN',
+        {
+          resource_type: 'prospect',
+          validation_error: error instanceof Error ? error.message : "Unknown error",
+          attempted_data: { name: req.name, email: req.email }
+        },
+        'Prospect data validation failed'
+      );
+      
       throw error;
     }
-    return await insertRow(
+    const result = await insertRow(
       () => prospectDB.queryRow<Prospect>`
         INSERT INTO prospects (
           agent_id, name, email, linkedin_profile, company, position, classification, notes
@@ -76,5 +92,26 @@ export const create = api<CreateProspectRequest, Prospect>(
       `,
       "prospect"
     );
+    
+    // Audit the prospect creation
+    await auditDataChange(
+      'create',
+      'prospect',
+      result.id.toString(),
+      null,
+      {
+        agent_id: req.agent_id,
+        name: req.name,
+        email: req.email,
+        company: req.company,
+        position: req.position,
+        classification: req.classification
+      },
+      req.userId,
+      'prospect',
+      true // Prospect data is compliance relevant
+    );
+    
+    return result;
   })
 );
