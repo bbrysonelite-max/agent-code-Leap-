@@ -20,6 +20,7 @@ import DealsManagement from './components/DealsManagement';
 import CRMIntegration from './components/CRMIntegration';
 import RateLimitDashboard from './components/RateLimitDashboard';
 import RateLimitManagement from './components/RateLimitManagement';
+import { ReportingDashboard } from './components/ReportingDashboard';
 
 const PUBLISHABLE_KEY = "pk_test_Y2xlYXItZmluY2gtMS5jbGVyay5hY2NvdW50cy5kZXYk";
 
@@ -48,6 +49,7 @@ function AppInner() {
                     <Route path="/ai-crm/integration" element={<CRMIntegration />} />
                     <Route path="/rate-limits" element={<RateLimitDashboard />} />
                     <Route path="/rate-limits/management" element={<RateLimitManagement />} />
+                    <Route path="/reporting" element={<ReportingDashboard />} />
                   </Routes>
                 </ErrorBoundary>
               </main>
