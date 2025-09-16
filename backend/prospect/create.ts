@@ -5,7 +5,7 @@ import { validateField, Rules } from "../shared/validation";
 import { insertRow } from "../shared/database";
 import { wrapAsync } from "../shared/errors";
 import { validateProspectData, logSecurityEvent } from "../shared/security";
-import { checkRateLimit, prospectCreationRateLimiter } from "../shared/rate-limiting";
+import { checkAdvancedRateLimit } from "../shared/advanced-rate-limiting";
 
 export interface CreateProspectRequest {
   agent_id: number;
@@ -16,6 +16,8 @@ export interface CreateProspectRequest {
   position?: string;
   classification: ProspectClassification;
   notes?: string;
+  userTier?: string;
+  userId?: string;
 }
 
 const validClassifications: ProspectClassification[] = ['business_builder', 'product_customer', 'unqualified'];
@@ -24,8 +26,9 @@ const validClassifications: ProspectClassification[] = ['business_builder', 'pro
 export const create = api<CreateProspectRequest, Prospect>(
   { expose: true, method: "POST", path: "/prospects" },
   wrapAsync(async (req) => {
-    // Rate limiting
-    checkRateLimit(prospectCreationRateLimiter, `agent_${req.agent_id}`);
+    // Advanced rate limiting
+    const identifier = req.userId || `agent_${req.agent_id}`;
+    await checkAdvancedRateLimit(identifier, "/prospects", "POST", req.userTier || "basic");
     
     // Validate input
     validateField(req.agent_id, "agent_id", [Rules.required(), Rules.positive(), Rules.integer()]);

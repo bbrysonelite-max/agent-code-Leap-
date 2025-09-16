@@ -38,6 +38,7 @@ export class Client {
     public readonly analytics: analytics.ServiceClient
     public readonly email: email.ServiceClient
     public readonly prospect: prospect.ServiceClient
+    public readonly rate_limiting: rate_limiting.ServiceClient
     public readonly realtime: realtime.ServiceClient
     public readonly salesforce: salesforce.ServiceClient
     public readonly scoring: scoring.ServiceClient
@@ -60,6 +61,7 @@ export class Client {
         this.analytics = new analytics.ServiceClient(base)
         this.email = new email.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
+        this.rate_limiting = new rate_limiting.ServiceClient(base)
         this.realtime = new realtime.ServiceClient(base)
         this.salesforce = new salesforce.ServiceClient(base)
         this.scoring = new scoring.ServiceClient(base)
@@ -925,6 +927,257 @@ export namespace prospect {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_prospect_update_update>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    generateAnalytics as api_rate_limiting_analytics_generateAnalytics,
+    getAnalytics as api_rate_limiting_analytics_getAnalytics,
+    getIdentifierStats as api_rate_limiting_analytics_getIdentifierStats,
+    getRealTimeUsage as api_rate_limiting_analytics_getRealTimeUsage,
+    getTopViolators as api_rate_limiting_analytics_getTopViolators,
+    getUserQuotaUsage as api_rate_limiting_analytics_getUserQuotaUsage
+} from "~backend/rate_limiting/analytics";
+import {
+    bulkUpdateQuotasByTier as api_rate_limiting_config_bulkUpdateQuotasByTier,
+    createRule as api_rate_limiting_config_createRule,
+    createUserQuota as api_rate_limiting_config_createUserQuota,
+    deleteRule as api_rate_limiting_config_deleteRule,
+    deleteUserQuota as api_rate_limiting_config_deleteUserQuota,
+    getRulesByEndpoint as api_rate_limiting_config_getRulesByEndpoint,
+    getUserQuota as api_rate_limiting_config_getUserQuota,
+    updateRule as api_rate_limiting_config_updateRule,
+    updateUserQuota as api_rate_limiting_config_updateUserQuota
+} from "~backend/rate_limiting/config";
+
+export namespace rate_limiting {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.bulkUpdateQuotasByTier = this.bulkUpdateQuotasByTier.bind(this)
+            this.checkAlerts = this.checkAlerts.bind(this)
+            this.createRule = this.createRule.bind(this)
+            this.createUserQuota = this.createUserQuota.bind(this)
+            this.deleteRule = this.deleteRule.bind(this)
+            this.deleteUserQuota = this.deleteUserQuota.bind(this)
+            this.generateAnalytics = this.generateAnalytics.bind(this)
+            this.getAnalytics = this.getAnalytics.bind(this)
+            this.getHealthScore = this.getHealthScore.bind(this)
+            this.getIdentifierStats = this.getIdentifierStats.bind(this)
+            this.getRealTimeUsage = this.getRealTimeUsage.bind(this)
+            this.getRules = this.getRules.bind(this)
+            this.getRulesByEndpoint = this.getRulesByEndpoint.bind(this)
+            this.getTopViolators = this.getTopViolators.bind(this)
+            this.getUserQuota = this.getUserQuota.bind(this)
+            this.getUserQuotaUsage = this.getUserQuotaUsage.bind(this)
+            this.getUserQuotas = this.getUserQuotas.bind(this)
+            this.updateRule = this.updateRule.bind(this)
+            this.updateUserQuota = this.updateUserQuota.bind(this)
+        }
+
+        /**
+         * Bulk update quotas by tier
+         */
+        public async bulkUpdateQuotasByTier(params: RequestType<typeof api_rate_limiting_config_bulkUpdateQuotasByTier>): Promise<ResponseType<typeof api_rate_limiting_config_bulkUpdateQuotasByTier>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                dailyQuota:   params.dailyQuota,
+                monthlyQuota: params.monthlyQuota,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quotas/bulk/${encodeURIComponent(params.tier)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_bulkUpdateQuotasByTier>
+        }
+
+        /**
+         * Check current alert conditions
+         */
+        public async checkAlerts(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/alerts/check`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Create new rate limit rule
+         */
+        public async createRule(params: RequestType<typeof api_rate_limiting_config_createRule>): Promise<ResponseType<typeof api_rate_limiting_config_createRule>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/rules`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_createRule>
+        }
+
+        /**
+         * Create user quota
+         */
+        public async createUserQuota(params: RequestType<typeof api_rate_limiting_config_createUserQuota>): Promise<ResponseType<typeof api_rate_limiting_config_createUserQuota>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quotas`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_createUserQuota>
+        }
+
+        /**
+         * Delete rate limit rule
+         */
+        public async deleteRule(params: { id: number }): Promise<ResponseType<typeof api_rate_limiting_config_deleteRule>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/rules/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_deleteRule>
+        }
+
+        /**
+         * Delete user quota
+         */
+        public async deleteUserQuota(params: { userId: string }): Promise<ResponseType<typeof api_rate_limiting_config_deleteUserQuota>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quotas/${encodeURIComponent(params.userId)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_deleteUserQuota>
+        }
+
+        /**
+         * Trigger manual analytics generation
+         */
+        public async generateAnalytics(params: RequestType<typeof api_rate_limiting_analytics_generateAnalytics>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/analytics/generate`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Get rate limiting analytics for date range
+         */
+        public async getAnalytics(params: RequestType<typeof api_rate_limiting_analytics_getAnalytics>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                endDate:   params.endDate,
+                endpoint:  params.endpoint,
+                startDate: params.startDate,
+                tier:      params.tier,
+            })
+
+            await this.baseClient.callTypedAPI(`/rate-limiting/analytics`, {query, method: "GET", body: undefined})
+        }
+
+        /**
+         * Get rate limiting health score
+         */
+        public async getHealthScore(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/health`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get rate limit statistics for specific identifier
+         */
+        public async getIdentifierStats(params: RequestType<typeof api_rate_limiting_analytics_getIdentifierStats>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                endpoint: params.endpoint,
+            })
+
+            await this.baseClient.callTypedAPI(`/rate-limiting/stats/${encodeURIComponent(params.identifier)}`, {query, method: "GET", body: undefined})
+        }
+
+        /**
+         * Get real-time usage statistics
+         */
+        public async getRealTimeUsage(params: RequestType<typeof api_rate_limiting_analytics_getRealTimeUsage>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                timeWindowMinutes: params.timeWindowMinutes === undefined ? undefined : String(params.timeWindowMinutes),
+            })
+
+            await this.baseClient.callTypedAPI(`/rate-limiting/usage/realtime`, {query, method: "GET", body: undefined})
+        }
+
+        /**
+         * Get all rate limit rules
+         */
+        public async getRules(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/rules`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get rate limit rules for specific endpoint
+         */
+        public async getRulesByEndpoint(params: { endpoint: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/rules/${encodeURIComponent(params.endpoint)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get top violators
+         */
+        public async getTopViolators(params: RequestType<typeof api_rate_limiting_analytics_getTopViolators>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/rate-limiting/violators`, {query, method: "GET", body: undefined})
+        }
+
+        /**
+         * Get user quota by user ID
+         */
+        public async getUserQuota(params: { userId: string }): Promise<ResponseType<typeof api_rate_limiting_config_getUserQuota>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quotas/${encodeURIComponent(params.userId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_getUserQuota>
+        }
+
+        /**
+         * Get user quota usage
+         */
+        public async getUserQuotaUsage(params: RequestType<typeof api_rate_limiting_analytics_getUserQuotaUsage>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                userId: params.userId,
+            })
+
+            await this.baseClient.callTypedAPI(`/rate-limiting/usage/quotas`, {query, method: "GET", body: undefined})
+        }
+
+        /**
+         * Get user quotas
+         */
+        public async getUserQuotas(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/quotas`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Update rate limit rule
+         */
+        public async updateRule(params: RequestType<typeof api_rate_limiting_config_updateRule>): Promise<ResponseType<typeof api_rate_limiting_config_updateRule>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                burstLimit:    params.burstLimit,
+                enabled:       params.enabled,
+                maxRequests:   params.maxRequests,
+                windowSeconds: params.windowSeconds,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/rules/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_updateRule>
+        }
+
+        /**
+         * Update user quota
+         */
+        public async updateUserQuota(params: RequestType<typeof api_rate_limiting_config_updateUserQuota>): Promise<ResponseType<typeof api_rate_limiting_config_updateUserQuota>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                dailyQuota:   params.dailyQuota,
+                monthlyQuota: params.monthlyQuota,
+                tier:         params.tier,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quotas/${encodeURIComponent(params.userId)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_updateUserQuota>
         }
     }
 }

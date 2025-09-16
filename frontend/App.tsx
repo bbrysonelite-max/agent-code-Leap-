@@ -17,6 +17,8 @@ import AICRMDashboard from './components/AICRMDashboard';
 import LeadsManagement from './components/LeadsManagement';
 import DealsManagement from './components/DealsManagement';
 import CRMIntegration from './components/CRMIntegration';
+import RateLimitDashboard from './components/RateLimitDashboard';
+import RateLimitManagement from './components/RateLimitManagement';
 
 export default function App() {
   return (
@@ -40,6 +42,8 @@ export default function App() {
                   <Route path="/ai-crm/leads" element={<LeadsManagement />} />
                   <Route path="/ai-crm/deals" element={<DealsManagement />} />
                   <Route path="/ai-crm/integration" element={<CRMIntegration />} />
+                  <Route path="/rate-limits" element={<RateLimitDashboard />} />
+                  <Route path="/rate-limits/management" element={<RateLimitManagement />} />
                 </Routes>
               </ErrorBoundary>
             </main>

@@ -5,7 +5,7 @@ import { validateField, Rules } from "../shared/validation";
 import { requireRow, executeQuery, insertRow } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
 import { validateEmailContent, sanitizeHtml, logSecurityEvent } from "../shared/security";
-import { checkRateLimit, emailRateLimiter } from "../shared/rate-limiting";
+import { checkAdvancedRateLimit } from "../shared/advanced-rate-limiting";
 import { broadcastMessage } from "../realtime/websocket";
 import type { EmailProgressData } from "../realtime/types";
 
@@ -13,6 +13,8 @@ export interface SendEmailRequest {
   prospect_id: number;
   template_id: number;
   agent_name?: string;
+  userTier?: string;
+  agentId?: string;
 }
 
 export interface SendEmailResponse {
@@ -24,6 +26,10 @@ export interface SendEmailResponse {
 export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
   { expose: true, method: "POST", path: "/email/send" },
   wrapAsync(async (req) => {
+    // Rate limiting check
+    const identifier = req.agentId || "anonymous";
+    await checkAdvancedRateLimit(identifier, "/email/send", "POST", req.userTier || "basic");
+    
     // Validate input
     validateField(req.prospect_id, "prospect_id", [Rules.required(), Rules.positive(), Rules.integer()]);
     validateField(req.template_id, "template_id", [Rules.required(), Rules.positive(), Rules.integer()]);
