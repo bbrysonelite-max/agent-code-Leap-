@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import backend from '~backend/client';
+import { useBackend } from './useBackend';
 
 export function useMetrics() {
+  const backend = useBackend();
+  
   return useQuery({
     queryKey: ['metrics'],
     queryFn: () => backend.analytics.getMetrics({}),

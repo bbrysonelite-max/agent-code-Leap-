@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Users, Mail, Activity, Settings, Bot, Link, Target, Brain, Handshake, DollarSign, Shield } from 'lucide-react';
+import { BarChart3, Users, Mail, Activity, Settings, Bot, Link, Target, Brain, Handshake, DollarSign, Shield, LogOut } from 'lucide-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -23,6 +24,52 @@ const rateLimitNavigation = [
   { name: 'Rate Limit Monitor', href: '/rate-limits', icon: Shield },
   { name: 'Rate Limit Config', href: '/rate-limits/management', icon: Settings },
 ];
+
+function UserProfile() {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  if (!user) return null;
+
+  return (
+    <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center min-w-0 flex-1">
+          <div className="flex-shrink-0">
+            {user.imageUrl ? (
+              <img
+                className="h-8 w-8 rounded-full"
+                src={user.imageUrl}
+                alt={user.fullName || 'User'}
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {user.firstName?.[0] || user.emailAddresses[0]?.emailAddress[0]?.toUpperCase() || 'U'}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="ml-3 min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
+              {user.fullName || user.emailAddresses[0]?.emailAddress}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              AI CRM User
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => signOut()}
+          className="ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+          title="Sign out"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Sidebar() {
   return (
@@ -105,23 +152,7 @@ export default function Sidebar() {
         </div>
       </nav>
       
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">NS</span>
-            </div>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-              Nu Skin Partner
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Prospecting Agent
-            </p>
-          </div>
-        </div>
-      </div>
+      <UserProfile />
     </div>
   );
 }

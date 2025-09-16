@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import backend from '~backend/client';
+import { useBackend } from './useBackend';
 import { invalidateQueries } from '../lib/react-query';
 import type { CampaignStatus } from '~backend/agent/types';
 
@@ -10,6 +10,8 @@ interface UseCampaignsFilters {
 }
 
 export function useCampaigns(filters: UseCampaignsFilters = {}) {
+  const backend = useBackend();
+  
   return useQuery({
     queryKey: ['campaigns', filters.status, filters.limit],
     queryFn: () => backend.email.listCampaigns({
@@ -21,6 +23,8 @@ export function useCampaigns(filters: UseCampaignsFilters = {}) {
 }
 
 export function useEmailTemplates(activeOnly = true) {
+  const backend = useBackend();
+  
   return useQuery({
     queryKey: ['templates', activeOnly],
     queryFn: () => backend.email.listTemplates({ 
@@ -31,6 +35,7 @@ export function useEmailTemplates(activeOnly = true) {
 }
 
 export function useCreateTemplate() {
+  const backend = useBackend();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -56,6 +61,7 @@ export function useCreateTemplate() {
 }
 
 export function useSendEmail() {
+  const backend = useBackend();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

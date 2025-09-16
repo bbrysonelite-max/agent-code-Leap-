@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import backend from '~backend/client';
+import { useBackend } from './useBackend';
 import { invalidateQueries, optimisticUpdates } from '../lib/react-query';
 import type { ProspectClassification, ProspectStatus } from '~backend/agent/types';
 
@@ -12,6 +12,8 @@ interface UseProspectsFilters {
 }
 
 export function useProspects(filters: UseProspectsFilters = {}) {
+  const backend = useBackend();
+  
   return useQuery({
     queryKey: ['prospects', filters.search, filters.classification, filters.status, filters.limit],
     queryFn: () => backend.prospect.list({
@@ -26,6 +28,8 @@ export function useProspects(filters: UseProspectsFilters = {}) {
 }
 
 export function useRecentProspects(limit = 5) {
+  const backend = useBackend();
+  
   return useQuery({
     queryKey: ['recent-prospects', limit],
     queryFn: () => backend.prospect.list({ limit }),
@@ -34,6 +38,7 @@ export function useRecentProspects(limit = 5) {
 }
 
 export function useCreateProspect() {
+  const backend = useBackend();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -78,6 +83,7 @@ export function useCreateProspect() {
 }
 
 export function useUpdateProspect() {
+  const backend = useBackend();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -116,6 +122,7 @@ export function useUpdateProspect() {
 }
 
 export function useSimulateSearch() {
+  const backend = useBackend();
   const { toast } = useToast();
 
   return useMutation({
