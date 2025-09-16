@@ -12,11 +12,12 @@ CREATE TABLE security_logs (
   service_name VARCHAR(100) NOT NULL,
   endpoint VARCHAR(255),
   request_id VARCHAR(255),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  INDEX idx_security_event_type (event_type),
-  INDEX idx_security_user_id (user_id),
-  INDEX idx_security_severity (severity),
-  INDEX idx_security_success (success),
-  INDEX idx_security_created_at (created_at),
-  INDEX idx_security_service (service_name)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_security_event_type ON security_logs (event_type);
+CREATE INDEX idx_security_user_id ON security_logs (user_id);
+CREATE INDEX idx_security_severity ON security_logs (severity);
+CREATE INDEX idx_security_success ON security_logs (success);
+CREATE INDEX idx_security_created_at ON security_logs (created_at);
+CREATE INDEX idx_security_service ON security_logs (service_name);
