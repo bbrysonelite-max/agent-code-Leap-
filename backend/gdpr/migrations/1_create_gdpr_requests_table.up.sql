@@ -16,9 +16,10 @@ CREATE TABLE gdpr_requests (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
-  expires_at TIMESTAMPTZ, -- For temporary export links
-  INDEX idx_gdpr_user_id (user_id),
-  INDEX idx_gdpr_request_type (request_type),
-  INDEX idx_gdpr_status (status),
-  INDEX idx_gdpr_created_at (created_at)
+  expires_at TIMESTAMPTZ -- For temporary export links
 );
+
+CREATE INDEX idx_gdpr_user_id ON gdpr_requests (user_id);
+CREATE INDEX idx_gdpr_request_type ON gdpr_requests (request_type);
+CREATE INDEX idx_gdpr_status ON gdpr_requests (status);
+CREATE INDEX idx_gdpr_created_at ON gdpr_requests (created_at);
