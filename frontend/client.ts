@@ -36,8 +36,10 @@ export class Client {
     public readonly agent: agent.ServiceClient
     public readonly ai_crm: ai_crm.ServiceClient
     public readonly analytics: analytics.ServiceClient
+    public readonly audit: audit.ServiceClient
     public readonly auth: auth.ServiceClient
     public readonly email: email.ServiceClient
+    public readonly gdpr: gdpr.ServiceClient
     public readonly prospect: prospect.ServiceClient
     public readonly rate_limiting: rate_limiting.ServiceClient
     public readonly realtime: realtime.ServiceClient
@@ -61,8 +63,10 @@ export class Client {
         this.agent = new agent.ServiceClient(base)
         this.ai_crm = new ai_crm.ServiceClient(base)
         this.analytics = new analytics.ServiceClient(base)
+        this.audit = new audit.ServiceClient(base)
         this.auth = new auth.ServiceClient(base)
         this.email = new email.ServiceClient(base)
+        this.gdpr = new gdpr.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
         this.rate_limiting = new rate_limiting.ServiceClient(base)
         this.realtime = new realtime.ServiceClient(base)
@@ -789,6 +793,73 @@ export namespace analytics {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
+import {
+    getAuditLogs as api_audit_analytics_getAuditLogs,
+    getAuditStats as api_audit_analytics_getAuditStats,
+    getComplianceReport as api_audit_analytics_getComplianceReport,
+    getSecurityLogs as api_audit_analytics_getSecurityLogs
+} from "~backend/audit/analytics";
+import {
+    logAuditEvent as api_audit_logger_logAuditEvent,
+    logSecurityEvent as api_audit_logger_logSecurityEvent
+} from "~backend/audit/logger";
+
+export namespace audit {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.getAuditLogs = this.getAuditLogs.bind(this)
+            this.getAuditStats = this.getAuditStats.bind(this)
+            this.getComplianceReport = this.getComplianceReport.bind(this)
+            this.getSecurityLogs = this.getSecurityLogs.bind(this)
+            this.logAuditEvent = this.logAuditEvent.bind(this)
+            this.logSecurityEvent = this.logSecurityEvent.bind(this)
+        }
+
+        public async getAuditLogs(params: RequestType<typeof api_audit_analytics_getAuditLogs>): Promise<ResponseType<typeof api_audit_analytics_getAuditLogs>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/audit/logs`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_audit_analytics_getAuditLogs>
+        }
+
+        public async getAuditStats(): Promise<ResponseType<typeof api_audit_analytics_getAuditStats>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/audit/stats`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_audit_analytics_getAuditStats>
+        }
+
+        public async getComplianceReport(params: { period: string }): Promise<ResponseType<typeof api_audit_analytics_getComplianceReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/audit/compliance/${encodeURIComponent(params.period)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_audit_analytics_getComplianceReport>
+        }
+
+        public async getSecurityLogs(params: RequestType<typeof api_audit_analytics_getSecurityLogs>): Promise<ResponseType<typeof api_audit_analytics_getSecurityLogs>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/audit/security-logs`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_audit_analytics_getSecurityLogs>
+        }
+
+        public async logAuditEvent(params: RequestType<typeof api_audit_logger_logAuditEvent>): Promise<ResponseType<typeof api_audit_logger_logAuditEvent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/audit/log`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_audit_logger_logAuditEvent>
+        }
+
+        public async logSecurityEvent(params: RequestType<typeof api_audit_logger_logSecurityEvent>): Promise<ResponseType<typeof api_audit_logger_logSecurityEvent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/audit/security`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_audit_logger_logSecurityEvent>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
 import { getUserInfo as api_auth_user_getUserInfo } from "~backend/auth/user";
 
 export namespace auth {
@@ -895,6 +966,65 @@ export namespace email {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
+import {
+    getDataDeletionStatus as api_gdpr_data_deletion_getDataDeletionStatus,
+    requestDataDeletion as api_gdpr_data_deletion_requestDataDeletion
+} from "~backend/gdpr/data_deletion";
+import {
+    getDataExport as api_gdpr_data_export_getDataExport,
+    getUserDataSummary as api_gdpr_data_export_getUserDataSummary,
+    requestDataExport as api_gdpr_data_export_requestDataExport
+} from "~backend/gdpr/data_export";
+
+export namespace gdpr {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.getDataDeletionStatus = this.getDataDeletionStatus.bind(this)
+            this.getDataExport = this.getDataExport.bind(this)
+            this.getUserDataSummary = this.getUserDataSummary.bind(this)
+            this.requestDataDeletion = this.requestDataDeletion.bind(this)
+            this.requestDataExport = this.requestDataExport.bind(this)
+        }
+
+        public async getDataDeletionStatus(params: { request_id: string }): Promise<ResponseType<typeof api_gdpr_data_deletion_getDataDeletionStatus>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/gdpr/delete/${encodeURIComponent(params.request_id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_gdpr_data_deletion_getDataDeletionStatus>
+        }
+
+        public async getDataExport(params: { request_id: string }): Promise<ResponseType<typeof api_gdpr_data_export_getDataExport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/gdpr/export/${encodeURIComponent(params.request_id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_gdpr_data_export_getDataExport>
+        }
+
+        public async getUserDataSummary(params: { user_id: string }): Promise<ResponseType<typeof api_gdpr_data_export_getUserDataSummary>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/gdpr/summary/${encodeURIComponent(params.user_id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_gdpr_data_export_getUserDataSummary>
+        }
+
+        public async requestDataDeletion(params: RequestType<typeof api_gdpr_data_deletion_requestDataDeletion>): Promise<ResponseType<typeof api_gdpr_data_deletion_requestDataDeletion>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/gdpr/delete`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_gdpr_data_deletion_requestDataDeletion>
+        }
+
+        public async requestDataExport(params: RequestType<typeof api_gdpr_data_export_requestDataExport>): Promise<ResponseType<typeof api_gdpr_data_export_requestDataExport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/gdpr/export`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_gdpr_data_export_requestDataExport>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
 import { create as api_prospect_create_create } from "~backend/prospect/create";
 import { list as api_prospect_list_list } from "~backend/prospect/list";
 import { simulateSearch as api_prospect_simulate_search_simulateSearch } from "~backend/prospect/simulate_search";
@@ -961,6 +1091,7 @@ export namespace prospect {
                 classification: params.classification,
                 notes:          params.notes,
                 status:         params.status,
+                userId:         params.userId,
             }
 
             // Now make the actual call to the API

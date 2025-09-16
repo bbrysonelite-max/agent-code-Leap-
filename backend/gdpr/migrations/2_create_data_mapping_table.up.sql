@@ -11,11 +11,13 @@ CREATE TABLE data_mapping (
   is_exportable BOOLEAN DEFAULT true,
   export_name VARCHAR(255), -- Human readable name for exports
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(service_name, table_name, column_name),
-  INDEX idx_data_mapping_service (service_name),
-  INDEX idx_data_mapping_category (data_category),
-  INDEX idx_data_mapping_user_id (is_user_identifier)
+  UNIQUE(service_name, table_name, column_name)
 );
+
+-- Create indexes for better query performance
+CREATE INDEX idx_data_mapping_service ON data_mapping (service_name);
+CREATE INDEX idx_data_mapping_category ON data_mapping (data_category);
+CREATE INDEX idx_data_mapping_user_id ON data_mapping (is_user_identifier);
 
 -- Default data mappings for existing services
 INSERT INTO data_mapping (service_name, table_name, column_name, data_category, data_type, is_user_identifier, export_name, anonymization_method) VALUES
