@@ -7,13 +7,11 @@ export const trackBehavior = api(
   async (req: CreateBehaviorRequest): Promise<ProspectBehavior> => {
     const score = calculateBehaviorScore(req.eventType, req.eventData);
     
-    const result = await db.exec`
+    const behavior = await db.queryRow`
       INSERT INTO prospect_behaviors (prospect_id, event_type, event_data, ip_address, user_agent, source, score)
       VALUES (${req.prospectId}, ${req.eventType}, ${JSON.stringify(req.eventData)}, ${req.ipAddress}, ${req.userAgent}, ${req.source}, ${score})
       RETURNING id, prospect_id, event_type, event_data, timestamp, ip_address, user_agent, source, score
     `;
-
-    const behavior = result.rows[0];
     
     // Update engagement patterns asynchronously
     updateEngagementPattern(req.prospectId);
@@ -60,7 +58,7 @@ export const getProspectBehaviors = api(
 export const getEngagementPattern = api(
   { method: "GET", path: "/prospects/:prospectId/engagement-pattern", expose: true },
   async ({ prospectId }: { prospectId: string }) => {
-    const result = await db.exec`
+    const row = await db.queryRow`
       SELECT prospect_id, total_engagements, avg_time_between_engagements, 
              preferred_contact_times, preferred_channels, response_rate, 
              last_engagement, engagement_trend, peak_engagement_days
@@ -68,11 +66,9 @@ export const getEngagementPattern = api(
       WHERE prospect_id = ${prospectId}
     `;
 
-    if (result.rows.length === 0) {
+    if (!row) {
       return null;
     }
-
-    const row = result.rows[0];
     return {
       prospectId: row.prospect_id,
       totalEngagements: row.total_engagements,

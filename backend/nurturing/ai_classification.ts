@@ -6,7 +6,7 @@ export const classifyProspect = api(
   { method: "POST", path: "/prospects/:prospectId/classify", expose: true },
   async ({ prospectId }: { prospectId: string }): Promise<ProspectClassification> => {
     // Get prospect behaviors and engagement patterns
-    const behaviors = await db.exec`
+    const behaviors = await db.queryAll`
       SELECT event_type, score, timestamp, event_data
       FROM prospect_behaviors
       WHERE prospect_id = ${prospectId}
@@ -14,7 +14,7 @@ export const classifyProspect = api(
       LIMIT 50
     `;
 
-    const engagement = await db.exec`
+    const engagement = await db.queryRow`
       SELECT *
       FROM engagement_patterns
       WHERE prospect_id = ${prospectId}
@@ -24,7 +24,7 @@ export const classifyProspect = api(
     const prospectData = await getProspectData(prospectId);
     
     // Perform AI classification
-    const classification = await performAIClassification(prospectId, behaviors.rows, engagement.rows[0], prospectData);
+    const classification = await performAIClassification(prospectId, behaviors, engagement, prospectData);
     
     // Store classification
     await db.exec`
@@ -56,18 +56,16 @@ export const classifyProspect = api(
 export const getProspectClassification = api(
   { method: "GET", path: "/prospects/:prospectId/classification", expose: true },
   async ({ prospectId }: { prospectId: string }) => {
-    const result = await db.exec`
+    const row = await db.queryRow`
       SELECT id, prospect_id, classification, confidence, factors, stage,
              buying_signals, pain_points, interests, last_updated
       FROM prospect_classifications
       WHERE prospect_id = ${prospectId}
     `;
 
-    if (result.rows.length === 0) {
+    if (!row) {
       return null;
     }
-
-    const row = result.rows[0];
     return {
       id: row.id,
       prospectId: row.prospect_id,

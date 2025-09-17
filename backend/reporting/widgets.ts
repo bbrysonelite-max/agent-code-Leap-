@@ -10,7 +10,7 @@ export const createWidget = api(
     const userID = auth.userID;
     
     // Verify user owns the dashboard
-    const dashboard = await db.queryAllRow`
+    const dashboard = await db.queryRow`
       SELECT id FROM dashboards 
       WHERE id = ${req.dashboard_id} AND user_id = ${userID}
     `;
@@ -19,7 +19,7 @@ export const createWidget = api(
       throw new Error("Dashboard not found or access denied");
     }
     
-    const result = await db.queryAllRow`
+    const result = await db.queryRow`
       INSERT INTO dashboard_widgets (
         dashboard_id, widget_type, title, config, data_source,
         position_x, position_y, width, height
@@ -47,7 +47,7 @@ export const listWidgets = api(
     const userID = auth.userID;
     
     // Verify user has access to the dashboard
-    const dashboard = await db.queryAllRow`
+    const dashboard = await db.queryRow`
       SELECT id FROM dashboards 
       WHERE id = ${dashboardId} AND (user_id = ${userID} OR is_public = true)
     `;
@@ -77,7 +77,7 @@ export const getWidget = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryAllRow`
+    const result = await db.queryRow`
       SELECT w.*, d.user_id 
       FROM dashboard_widgets w
       JOIN dashboards d ON w.dashboard_id = d.id
@@ -102,7 +102,7 @@ export const updateWidget = api(
     const userID = auth.userID;
     
     // Verify user owns the widget's dashboard
-    const widget = await db.queryAllRow`
+    const widget = await db.queryRow`
       SELECT w.*, d.user_id 
       FROM dashboard_widgets w
       JOIN dashboards d ON w.dashboard_id = d.id
@@ -192,7 +192,7 @@ export const getWidgetData = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const widget = await db.queryAllRow`
+    const widget = await db.queryRow`
       SELECT w.*, d.user_id 
       FROM dashboard_widgets w
       JOIN dashboards d ON w.dashboard_id = d.id

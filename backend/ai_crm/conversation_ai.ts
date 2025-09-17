@@ -163,7 +163,7 @@ export const getSentimentTrends = api(
 
     query += ` GROUP BY ai_sentiment, DATE(created_at) ORDER BY date DESC`;
 
-    const trends = await CRM.queryAll(query, ...params);
+    const trends = await CRM.rawQueryAll(query, ...params);
     return trends;
   }
 );

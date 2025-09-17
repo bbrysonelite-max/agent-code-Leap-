@@ -9,7 +9,7 @@ export const createDashboard = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryAllRow`
+    const result = await db.queryRow`
       INSERT INTO dashboards (user_id, name, description, layout, is_default, is_public)
       VALUES (${userID}, ${req.name}, ${req.description || null}, ${JSON.stringify(req.layout || [])}, 
               ${req.is_default || false}, ${req.is_public || false})
@@ -50,7 +50,7 @@ export const getDashboard = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryAllRow`
+    const result = await db.queryRow`
       SELECT * FROM dashboards 
       WHERE id = ${id} AND (user_id = ${userID} OR is_public = true)
     `;

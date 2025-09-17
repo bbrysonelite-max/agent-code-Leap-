@@ -95,7 +95,7 @@ export const getProspectScore = api<{ prospectId: string }, ProspectScoreRespons
   wrapAsync(async ({ prospectId }) => {
     validateField(prospectId, "prospectId", [Rules.required()]);
 
-    const result = await db.queryAllRow`
+    const result = await db.queryRow`
       SELECT 
         ps.prospect_id,
         p.name,

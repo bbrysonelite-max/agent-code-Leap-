@@ -221,7 +221,7 @@ async function drillDownAgents(
     LIMIT 100
   `;
   
-  const results = await agentDb.query(query, ...params);
+  const results = await agentDb.rawQuery(query, ...params);
   
   return {
     dimension,

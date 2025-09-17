@@ -45,7 +45,7 @@ export interface DeletionStatusResponse {
 export const getDataDeletionStatus = api(
   { method: "GET", path: "/gdpr/delete/:request_id", expose: true },
   async ({ request_id }: { request_id: string }): Promise<DeletionStatusResponse> => {
-    const request = await DB.queryAllRow`
+    const request = await DB.queryRow`
       SELECT * FROM gdpr_requests 
       WHERE request_id = ${request_id} AND request_type = 'delete'
     `;
@@ -75,7 +75,7 @@ async function processDataDeletion(requestId: string): Promise<void> {
       WHERE request_id = ${requestId}
     `;
 
-    const request = await DB.queryAllRow`
+    const request = await DB.queryRow`
       SELECT * FROM gdpr_requests WHERE request_id = ${requestId}
     `;
 

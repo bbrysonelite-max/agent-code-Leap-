@@ -39,7 +39,7 @@ export const requestDataExport = api(
 export const getDataExport = api(
   { method: "GET", path: "/gdpr/export/:request_id", expose: true },
   async ({ request_id }: { request_id: string }): Promise<DataExportResponse> => {
-    const request = await DB.queryAllRow`
+    const request = await DB.queryRow`
       SELECT * FROM gdpr_requests 
       WHERE request_id = ${request_id} AND request_type = 'export'
     `;
@@ -113,7 +113,7 @@ async function processDataExport(requestId: string): Promise<void> {
       WHERE request_id = ${requestId}
     `;
 
-    const request = await DB.queryAllRow`
+    const request = await DB.queryRow`
       SELECT * FROM gdpr_requests WHERE request_id = ${requestId}
     `;
 

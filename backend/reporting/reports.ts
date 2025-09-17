@@ -10,7 +10,7 @@ export const createReport = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryAllRow`
+    const result = await db.queryRow`
       INSERT INTO reports (user_id, name, description, type, config, filters, schedule_config, is_scheduled)
       VALUES (${userID}, ${req.name}, ${req.description || null}, ${req.type}, 
               ${JSON.stringify(req.config)}, ${JSON.stringify(req.filters || {})},
@@ -56,7 +56,7 @@ export const getReport = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const result = await db.queryAllRow`
+    const result = await db.queryRow`
       SELECT * FROM reports 
       WHERE id = ${id} AND user_id = ${userID}
     `;
@@ -137,7 +137,7 @@ export const generateReport = api(
     const auth = getAuthData()!;
     const userID = auth.userID;
     
-    const report = await db.queryAllRow`
+    const report = await db.queryRow`
       SELECT * FROM reports 
       WHERE id = ${id} AND user_id = ${userID}
     `;
