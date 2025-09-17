@@ -13,11 +13,12 @@ import { PriorityProspects } from './components/PriorityProspects';
 import EmailCampaigns from './components/EmailCampaigns';
 import Analytics from './components/Analytics';
 import AgentControls from './components/AgentControls';
-import SalesforceIntegration from './components/SalesforceIntegration';
+
 import AICRMDashboard from './components/AICRMDashboard';
 import LeadsManagement from './components/LeadsManagement';
 import DealsManagement from './components/DealsManagement';
 import CRMIntegration from './components/CRMIntegration';
+import HubSpotIntegration from './components/HubSpotIntegration';
 import RateLimitDashboard from './components/RateLimitDashboard';
 import RateLimitManagement from './components/RateLimitManagement';
 import { ReportingDashboard } from './components/ReportingDashboard';
@@ -44,11 +45,12 @@ function AppInner() {
                     <Route path="/campaigns" element={<EmailCampaigns />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/agent" element={<AgentControls />} />
-                    <Route path="/salesforce" element={<SalesforceIntegration />} />
+
                     <Route path="/ai-crm" element={<AICRMDashboard />} />
                     <Route path="/ai-crm/leads" element={<LeadsManagement />} />
                     <Route path="/ai-crm/deals" element={<DealsManagement />} />
                     <Route path="/ai-crm/integration" element={<CRMIntegration />} />
+                    <Route path="/hubspot" element={<HubSpotIntegration />} />
                     <Route path="/rate-limits" element={<RateLimitDashboard />} />
                     <Route path="/rate-limits/management" element={<RateLimitManagement />} />
                     <Route path="/reporting" element={<ReportingDashboard />} />

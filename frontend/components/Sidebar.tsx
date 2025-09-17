@@ -11,7 +11,7 @@ const navigation = [
   { name: 'AI Nurturing', href: '/nurturing', icon: Wand2 },
   { name: 'Analytics', href: '/analytics', icon: Activity },
   { name: 'Agent Controls', href: '/agent', icon: Settings },
-  { name: 'Salesforce CRM', href: '/salesforce', icon: Link },
+  { name: 'HubSpot AI CRM', href: '/hubspot', icon: Link },
 ];
 
 const aiCRMNavigation = [
