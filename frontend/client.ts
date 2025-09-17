@@ -41,6 +41,7 @@ export class Client {
     public readonly db_performance: db_performance.ServiceClient
     public readonly email: email.ServiceClient
     public readonly gdpr: gdpr.ServiceClient
+    public readonly nurturing: nurturing.ServiceClient
     public readonly prospect: prospect.ServiceClient
     public readonly rate_limiting: rate_limiting.ServiceClient
     public readonly realtime: realtime.ServiceClient
@@ -69,6 +70,7 @@ export class Client {
         this.db_performance = new db_performance.ServiceClient(base)
         this.email = new email.ServiceClient(base)
         this.gdpr = new gdpr.ServiceClient(base)
+        this.nurturing = new nurturing.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
         this.rate_limiting = new rate_limiting.ServiceClient(base)
         this.realtime = new realtime.ServiceClient(base)
@@ -1152,6 +1154,381 @@ export namespace gdpr {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/gdpr/export`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_gdpr_data_export_requestDataExport>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    classifyProspect as api_nurturing_ai_classification_classifyProspect,
+    generateAIInsights as api_nurturing_ai_classification_generateAIInsights,
+    getAIInsights as api_nurturing_ai_classification_getAIInsights,
+    getProspectClassification as api_nurturing_ai_classification_getProspectClassification
+} from "~backend/nurturing/ai_classification";
+import {
+    getEngagementPattern as api_nurturing_behavior_tracking_getEngagementPattern,
+    getProspectBehaviors as api_nurturing_behavior_tracking_getProspectBehaviors,
+    trackBehavior as api_nurturing_behavior_tracking_trackBehavior
+} from "~backend/nurturing/behavior_tracking";
+import {
+    bulkEnrollProspects as api_nurturing_campaign_management_bulkEnrollProspects,
+    deleteSequence as api_nurturing_campaign_management_deleteSequence,
+    duplicateSequence as api_nurturing_campaign_management_duplicateSequence,
+    getBulkEnrollmentCandidates as api_nurturing_campaign_management_getBulkEnrollmentCandidates,
+    getSequence as api_nurturing_campaign_management_getSequence,
+    getSequenceAnalytics as api_nurturing_campaign_management_getSequenceAnalytics,
+    getSequenceEnrollments as api_nurturing_campaign_management_getSequenceEnrollments,
+    optimizeSequence as api_nurturing_campaign_management_optimizeSequence,
+    updateSequence as api_nurturing_campaign_management_updateSequence
+} from "~backend/nurturing/campaign_management";
+import {
+    createContentTemplate as api_nurturing_content_generator_createContentTemplate,
+    generateAIContent as api_nurturing_content_generator_generateAIContent,
+    generatePersonalizedContent as api_nurturing_content_generator_generatePersonalizedContent,
+    getContentTemplates as api_nurturing_content_generator_getContentTemplates
+} from "~backend/nurturing/content_generator";
+import {
+    handleEmailClicked as api_nurturing_email_integration_handleEmailClicked,
+    handleEmailOpened as api_nurturing_email_integration_handleEmailOpened,
+    handleEmailReplied as api_nurturing_email_integration_handleEmailReplied,
+    handleEmailUnsubscribed as api_nurturing_email_integration_handleEmailUnsubscribed
+} from "~backend/nurturing/email_integration";
+import {
+    getRecentNurturingEvents as api_nurturing_realtime_notifications_getRecentNurturingEvents,
+    markAllNotificationsAsRead as api_nurturing_realtime_notifications_markAllNotificationsAsRead,
+    markNotificationAsRead as api_nurturing_realtime_notifications_markNotificationAsRead,
+    subscribeToNurturingEvents as api_nurturing_realtime_notifications_subscribeToNurturingEvents,
+    unsubscribeFromNurturingEvents as api_nurturing_realtime_notifications_unsubscribeFromNurturingEvents
+} from "~backend/nurturing/realtime_notifications";
+import {
+    createSequence as api_nurturing_sequence_scheduler_createSequence,
+    enrollProspect as api_nurturing_sequence_scheduler_enrollProspect,
+    executeStep as api_nurturing_sequence_scheduler_executeStep,
+    pauseEnrollment as api_nurturing_sequence_scheduler_pauseEnrollment,
+    resumeEnrollment as api_nurturing_sequence_scheduler_resumeEnrollment
+} from "~backend/nurturing/sequence_scheduler";
+
+export namespace nurturing {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.bulkEnrollProspects = this.bulkEnrollProspects.bind(this)
+            this.classifyProspect = this.classifyProspect.bind(this)
+            this.createContentTemplate = this.createContentTemplate.bind(this)
+            this.createSequence = this.createSequence.bind(this)
+            this.deleteSequence = this.deleteSequence.bind(this)
+            this.duplicateSequence = this.duplicateSequence.bind(this)
+            this.enrollProspect = this.enrollProspect.bind(this)
+            this.executeStep = this.executeStep.bind(this)
+            this.generateAIContent = this.generateAIContent.bind(this)
+            this.generateAIInsights = this.generateAIInsights.bind(this)
+            this.generatePersonalizedContent = this.generatePersonalizedContent.bind(this)
+            this.getAIInsights = this.getAIInsights.bind(this)
+            this.getActiveEnrollments = this.getActiveEnrollments.bind(this)
+            this.getBulkEnrollmentCandidates = this.getBulkEnrollmentCandidates.bind(this)
+            this.getContentTemplates = this.getContentTemplates.bind(this)
+            this.getEngagementPattern = this.getEngagementPattern.bind(this)
+            this.getProspectBehaviors = this.getProspectBehaviors.bind(this)
+            this.getProspectClassification = this.getProspectClassification.bind(this)
+            this.getRecentNurturingEvents = this.getRecentNurturingEvents.bind(this)
+            this.getSequence = this.getSequence.bind(this)
+            this.getSequenceAnalytics = this.getSequenceAnalytics.bind(this)
+            this.getSequenceEnrollments = this.getSequenceEnrollments.bind(this)
+            this.getSequences = this.getSequences.bind(this)
+            this.handleEmailClicked = this.handleEmailClicked.bind(this)
+            this.handleEmailOpened = this.handleEmailOpened.bind(this)
+            this.handleEmailReplied = this.handleEmailReplied.bind(this)
+            this.handleEmailUnsubscribed = this.handleEmailUnsubscribed.bind(this)
+            this.markAllNotificationsAsRead = this.markAllNotificationsAsRead.bind(this)
+            this.markNotificationAsRead = this.markNotificationAsRead.bind(this)
+            this.optimizeSequence = this.optimizeSequence.bind(this)
+            this.pauseEnrollment = this.pauseEnrollment.bind(this)
+            this.resumeEnrollment = this.resumeEnrollment.bind(this)
+            this.subscribeToNurturingEvents = this.subscribeToNurturingEvents.bind(this)
+            this.trackBehavior = this.trackBehavior.bind(this)
+            this.unsubscribeFromNurturingEvents = this.unsubscribeFromNurturingEvents.bind(this)
+            this.updateSequence = this.updateSequence.bind(this)
+        }
+
+        public async bulkEnrollProspects(params: RequestType<typeof api_nurturing_campaign_management_bulkEnrollProspects>): Promise<ResponseType<typeof api_nurturing_campaign_management_bulkEnrollProspects>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                prospectIds: params.prospectIds,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/bulk-enroll`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_campaign_management_bulkEnrollProspects>
+        }
+
+        public async classifyProspect(params: { prospectId: string }): Promise<ResponseType<typeof api_nurturing_ai_classification_classifyProspect>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/classify`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_ai_classification_classifyProspect>
+        }
+
+        public async createContentTemplate(params: RequestType<typeof api_nurturing_content_generator_createContentTemplate>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/content/templates`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        public async createSequence(params: RequestType<typeof api_nurturing_sequence_scheduler_createSequence>): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_createSequence>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_sequence_scheduler_createSequence>
+        }
+
+        public async deleteSequence(params: { sequenceId: string }): Promise<ResponseType<typeof api_nurturing_campaign_management_deleteSequence>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_campaign_management_deleteSequence>
+        }
+
+        public async duplicateSequence(params: RequestType<typeof api_nurturing_campaign_management_duplicateSequence>): Promise<ResponseType<typeof api_nurturing_campaign_management_duplicateSequence>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                name: params.name,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/duplicate`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_campaign_management_duplicateSequence>
+        }
+
+        public async enrollProspect(params: RequestType<typeof api_nurturing_sequence_scheduler_enrollProspect>): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_enrollProspect>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                metadata:   params.metadata,
+                prospectId: params.prospectId,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/enroll`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_sequence_scheduler_enrollProspect>
+        }
+
+        public async executeStep(params: { enrollmentId: string }): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_executeStep>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/enrollments/${encodeURIComponent(params.enrollmentId)}/execute`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_sequence_scheduler_executeStep>
+        }
+
+        public async generateAIContent(params: RequestType<typeof api_nurturing_content_generator_generateAIContent>): Promise<ResponseType<typeof api_nurturing_content_generator_generateAIContent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/content/ai-generate`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_content_generator_generateAIContent>
+        }
+
+        public async generateAIInsights(params: { prospectId: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/ai-insights`, {method: "POST", body: undefined})
+        }
+
+        public async generatePersonalizedContent(params: RequestType<typeof api_nurturing_content_generator_generatePersonalizedContent>): Promise<ResponseType<typeof api_nurturing_content_generator_generatePersonalizedContent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/content/generate`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_content_generator_generatePersonalizedContent>
+        }
+
+        public async getAIInsights(params: { prospectId: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/insights`, {method: "GET", body: undefined})
+        }
+
+        public async getActiveEnrollments(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/enrollments/active`, {method: "GET", body: undefined})
+        }
+
+        public async getBulkEnrollmentCandidates(params: RequestType<typeof api_nurturing_campaign_management_getBulkEnrollmentCandidates>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit: params.limit === undefined ? undefined : String(params.limit),
+            })
+
+            await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/enrollment-candidates`, {query, method: "GET", body: undefined})
+        }
+
+        public async getContentTemplates(params: RequestType<typeof api_nurturing_content_generator_getContentTemplates>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                classification: params.classification,
+                industry:       params.industry,
+                persona:        params.persona,
+                stage:          params.stage,
+                type:           params.type,
+            })
+
+            await this.baseClient.callTypedAPI(`/content/templates`, {query, method: "GET", body: undefined})
+        }
+
+        public async getEngagementPattern(params: { prospectId: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/engagement-pattern`, {method: "GET", body: undefined})
+        }
+
+        public async getProspectBehaviors(params: { prospectId: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/behaviors`, {method: "GET", body: undefined})
+        }
+
+        public async getProspectClassification(params: { prospectId: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/classification`, {method: "GET", body: undefined})
+        }
+
+        public async getRecentNurturingEvents(params: RequestType<typeof api_nurturing_realtime_notifications_getRecentNurturingEvents>): Promise<ResponseType<typeof api_nurturing_realtime_notifications_getRecentNurturingEvents>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                eventTypes: params.eventTypes?.map((v) => v),
+                limit:      params.limit === undefined ? undefined : String(params.limit),
+                offset:     params.offset === undefined ? undefined : String(params.offset),
+                userId:     params.userId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/notifications/recent`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_realtime_notifications_getRecentNurturingEvents>
+        }
+
+        public async getSequence(params: { sequenceId: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}`, {method: "GET", body: undefined})
+        }
+
+        public async getSequenceAnalytics(params: RequestType<typeof api_nurturing_campaign_management_getSequenceAnalytics>): Promise<ResponseType<typeof api_nurturing_campaign_management_getSequenceAnalytics>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                days: params.days === undefined ? undefined : String(params.days),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/analytics`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_campaign_management_getSequenceAnalytics>
+        }
+
+        public async getSequenceEnrollments(params: RequestType<typeof api_nurturing_campaign_management_getSequenceEnrollments>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                limit:  params.limit === undefined ? undefined : String(params.limit),
+                offset: params.offset === undefined ? undefined : String(params.offset),
+                status: params.status,
+            })
+
+            await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/enrollments`, {query, method: "GET", body: undefined})
+        }
+
+        public async getSequences(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/sequences`, {method: "GET", body: undefined})
+        }
+
+        public async handleEmailClicked(params: RequestType<typeof api_nurturing_email_integration_handleEmailClicked>): Promise<ResponseType<typeof api_nurturing_email_integration_handleEmailClicked>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/email/webhook/clicked`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_email_integration_handleEmailClicked>
+        }
+
+        /**
+         * Email event webhook handlers
+         */
+        public async handleEmailOpened(params: RequestType<typeof api_nurturing_email_integration_handleEmailOpened>): Promise<ResponseType<typeof api_nurturing_email_integration_handleEmailOpened>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/email/webhook/opened`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_email_integration_handleEmailOpened>
+        }
+
+        public async handleEmailReplied(params: RequestType<typeof api_nurturing_email_integration_handleEmailReplied>): Promise<ResponseType<typeof api_nurturing_email_integration_handleEmailReplied>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/email/webhook/replied`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_email_integration_handleEmailReplied>
+        }
+
+        public async handleEmailUnsubscribed(params: RequestType<typeof api_nurturing_email_integration_handleEmailUnsubscribed>): Promise<ResponseType<typeof api_nurturing_email_integration_handleEmailUnsubscribed>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/email/webhook/unsubscribed`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_email_integration_handleEmailUnsubscribed>
+        }
+
+        public async markAllNotificationsAsRead(params: RequestType<typeof api_nurturing_realtime_notifications_markAllNotificationsAsRead>): Promise<ResponseType<typeof api_nurturing_realtime_notifications_markAllNotificationsAsRead>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/notifications/read-all`, {method: "PUT", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_realtime_notifications_markAllNotificationsAsRead>
+        }
+
+        public async markNotificationAsRead(params: RequestType<typeof api_nurturing_realtime_notifications_markNotificationAsRead>): Promise<ResponseType<typeof api_nurturing_realtime_notifications_markNotificationAsRead>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                userId: params.userId,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/notifications/${encodeURIComponent(params.notificationId)}/read`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_realtime_notifications_markNotificationAsRead>
+        }
+
+        public async optimizeSequence(params: RequestType<typeof api_nurturing_campaign_management_optimizeSequence>): Promise<ResponseType<typeof api_nurturing_campaign_management_optimizeSequence>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                optimizationGoal: params.optimizationGoal,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/optimize`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_campaign_management_optimizeSequence>
+        }
+
+        public async pauseEnrollment(params: { enrollmentId: string }): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_pauseEnrollment>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/enrollments/${encodeURIComponent(params.enrollmentId)}/pause`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_sequence_scheduler_pauseEnrollment>
+        }
+
+        public async resumeEnrollment(params: { enrollmentId: string }): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_resumeEnrollment>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/enrollments/${encodeURIComponent(params.enrollmentId)}/resume`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_sequence_scheduler_resumeEnrollment>
+        }
+
+        /**
+         * Real-time notification APIs
+         */
+        public async subscribeToNurturingEvents(params: RequestType<typeof api_nurturing_realtime_notifications_subscribeToNurturingEvents>): Promise<ResponseType<typeof api_nurturing_realtime_notifications_subscribeToNurturingEvents>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/notifications/subscribe`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_realtime_notifications_subscribeToNurturingEvents>
+        }
+
+        public async trackBehavior(params: RequestType<typeof api_nurturing_behavior_tracking_trackBehavior>): Promise<ResponseType<typeof api_nurturing_behavior_tracking_trackBehavior>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/behaviors`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_behavior_tracking_trackBehavior>
+        }
+
+        public async unsubscribeFromNurturingEvents(params: RequestType<typeof api_nurturing_realtime_notifications_unsubscribeFromNurturingEvents>): Promise<ResponseType<typeof api_nurturing_realtime_notifications_unsubscribeFromNurturingEvents>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                userId: params.userId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/notifications/unsubscribe`, {query, method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_realtime_notifications_unsubscribeFromNurturingEvents>
+        }
+
+        public async updateSequence(params: RequestType<typeof api_nurturing_campaign_management_updateSequence>): Promise<ResponseType<typeof api_nurturing_campaign_management_updateSequence>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                createdAt:            params.createdAt,
+                description:          params.description,
+                id:                   params.id,
+                isActive:             params.isActive,
+                name:                 params.name,
+                steps:                params.steps,
+                targetClassification: params.targetClassification,
+                targetStages:         params.targetStages,
+                updatedAt:            params.updatedAt,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_campaign_management_updateSequence>
         }
     }
 }

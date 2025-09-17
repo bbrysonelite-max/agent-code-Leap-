@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, Users, Mail, Activity, Settings, Bot, Link, Target, Brain, Handshake, DollarSign, Shield, LogOut, FileBarChart, Lock, Database } from 'lucide-react';
+import { BarChart3, Users, Mail, Activity, Settings, Bot, Link, Target, Brain, Handshake, DollarSign, Shield, LogOut, FileBarChart, Lock, Database, Wand2 } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ const navigation = [
   { name: 'Prospects', href: '/prospects', icon: Users },
   { name: 'Priority Leads', href: '/priority', icon: Target },
   { name: 'Campaigns', href: '/campaigns', icon: Mail },
+  { name: 'AI Nurturing', href: '/nurturing', icon: Wand2 },
   { name: 'Analytics', href: '/analytics', icon: Activity },
   { name: 'Agent Controls', href: '/agent', icon: Settings },
   { name: 'Salesforce CRM', href: '/salesforce', icon: Link },
