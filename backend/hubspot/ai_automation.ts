@@ -2,6 +2,7 @@ import { api } from "encore.dev/api";
 import { hubspotDB } from "./db";
 import { HubSpotClient } from "./client";
 import { AIDecision, AIActionRequest, AutomationRule } from "./types";
+import * as ai from "../ai/openai";
 
 export const executeAIAction = api(
   { method: "POST", path: "/ai-action", expose: true },
@@ -59,31 +60,89 @@ export const executeAIAction = api(
 );
 
 async function makeAIDecision(rule: AutomationRule, triggerData: Record<string, any>, context?: Record<string, any>): Promise<AIDecision> {
-  // This is where you'd integrate with an AI service like OpenAI
-  // For now, we'll simulate intelligent decision making
-  
   const prompt = `
-    ${rule.ai_prompt}
-    
-    Trigger Data: ${JSON.stringify(triggerData)}
-    Context: ${JSON.stringify(context || {})}
-    
-    Based on the above information, decide what action to take and provide:
-    1. The specific action (create_contact, update_contact, create_deal, update_deal, send_email, schedule_task, move_deal_stage)
-    2. Confidence level (0-1)
-    3. Reasoning for the decision
-    4. Data needed for the action
+You are an intelligent CRM automation system. Based on the following information, decide what action to take:
+
+Automation Rule: ${rule.ai_prompt || 'Standard automation rule'}
+Trigger Data: ${JSON.stringify(triggerData)}
+Context: ${JSON.stringify(context || {})}
+
+Available actions:
+- create_contact: Create a new contact
+- update_contact: Update existing contact
+- create_deal: Create a new deal/opportunity
+- update_deal: Update existing deal
+- move_deal_stage: Move deal to next stage
+- send_email: Send follow-up email
+- schedule_task: Schedule a task
+
+Please respond with:
+ACTION: [one of the actions above]
+CONFIDENCE: [0.0 to 1.0]
+REASONING: [explanation of why this action was chosen]
+DATA: [JSON object with data needed for the action]
   `;
 
-  // Simulate AI decision - replace with actual AI service call
-  const decision: AIDecision = {
-    action: determineAction(triggerData, rule),
-    confidence: calculateConfidence(triggerData, rule),
-    reasoning: generateReasoning(triggerData, rule),
-    data: generateActionData(triggerData, rule)
-  };
+  try {
+    const aiResponse = await ai.generateText({
+      prompt,
+      maxTokens: 400,
+      temperature: 0.3 // Lower temperature for more consistent decisions
+    });
 
-  return decision;
+    return parseAIDecision(aiResponse.content, triggerData, rule);
+  } catch (error) {
+    console.error('AI decision error:', error);
+    // Fallback to rule-based decision
+    return {
+      action: determineAction(triggerData, rule),
+      confidence: calculateConfidence(triggerData, rule),
+      reasoning: `Fallback decision (AI error: ${(error as Error).message})`,
+      data: generateActionData(triggerData, rule)
+    };
+  }
+}
+
+function parseAIDecision(aiResponse: string, triggerData: Record<string, any>, rule: AutomationRule): AIDecision {
+  const lines = aiResponse.split('\n');
+  let action = 'update_contact';
+  let confidence = 0.5;
+  let reasoning = 'AI-generated decision';
+  let data = {};
+
+  for (const line of lines) {
+    if (line.startsWith('ACTION:')) {
+      const actionStr = line.replace('ACTION:', '').trim().toLowerCase();
+      if (['create_contact', 'update_contact', 'create_deal', 'update_deal', 'move_deal_stage', 'send_email', 'schedule_task'].includes(actionStr)) {
+        action = actionStr as AIDecision['action'];
+      }
+    } else if (line.startsWith('CONFIDENCE:')) {
+      const conf = parseFloat(line.replace('CONFIDENCE:', '').trim());
+      if (!isNaN(conf) && conf >= 0 && conf <= 1) {
+        confidence = conf;
+      }
+    } else if (line.startsWith('REASONING:')) {
+      reasoning = line.replace('REASONING:', '').trim();
+    } else if (line.startsWith('DATA:')) {
+      try {
+        data = JSON.parse(line.replace('DATA:', '').trim());
+      } catch {
+        data = generateActionData(triggerData, rule);
+      }
+    }
+  }
+
+  // If no valid data was parsed, generate fallback data
+  if (Object.keys(data).length === 0) {
+    data = generateActionData(triggerData, rule);
+  }
+
+  return {
+    action: action as AIDecision['action'],
+    confidence,
+    reasoning,
+    data
+  };
 }
 
 function determineAction(triggerData: Record<string, any>, rule: AutomationRule): AIDecision['action'] {

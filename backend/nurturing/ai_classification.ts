@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
 import { ProspectClassification, AIInsight, AnalyzeBehaviorRequest } from "./types";
+import * as ai from "../ai/openai";
 
 export const classifyProspect = api(
   { method: "POST", path: "/prospects/:prospectId/classify", expose: true },

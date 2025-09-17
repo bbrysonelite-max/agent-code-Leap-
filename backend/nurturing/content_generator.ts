@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
+import * as ai from "../ai/openai";
 import { ContentTemplate, GenerateContentRequest, PersonalizationRule } from "./types";
 
 export const generatePersonalizedContent = api(
@@ -181,15 +182,18 @@ export const generateAIContent = api(
     const aiInsights = await getAIInsights(prospectId);
     const engagement = await getEngagementPattern(prospectId);
 
-    return await generateAIBasedContent(
-      contentType,
-      classification,
-      stage,
-      prospectData,
-      aiInsights,
-      engagement,
-      context || {}
-    );
+    // Use the centralized AI service for content generation
+    return await ai.generateContent({
+      type: contentType,
+      classification: classification as any,
+      stage: stage as any,
+      prospectData: {
+        ...prospectData,
+        aiInsights,
+        engagement
+      },
+      context
+    });
   }
 );
 
