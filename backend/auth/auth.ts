@@ -85,7 +85,7 @@ export const auth = authHandler<AuthParams, AuthData>(
           reason: 'invalid_token', 
           ip_address: ipAddress, 
           user_agent: userAgent,
-          error: err.message 
+          error: (err as Error).message 
         },
         'Invalid authentication token'
       );

@@ -26,7 +26,10 @@ export const executeAIAction = api(
     `;
 
     // Convert to array and find matching rule
-    const rulesArray = Array.from(rules);
+    const rulesArray: any[] = [];
+    for await (const rule of rules) {
+      rulesArray.push(rule);
+    }
     const matchingRule = rulesArray.find((rule: any) => {
       // Simple condition matching - can be enhanced with more complex logic
       const conditions = rule.conditions || {};
@@ -200,7 +203,7 @@ async function executeDecision(client: HubSpotClient, decision: AIDecision): Pro
     case 'create_deal':
       const deal = await client.createDeal(decision.data);
       if (decision.contact_id) {
-        await client.associateContactWithDeal(decision.contact_id, deal.id);
+        await client.associateContactWithDeal(decision.contact_id, (deal as any).id);
       }
       break;
       

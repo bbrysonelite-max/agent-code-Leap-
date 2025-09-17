@@ -13,6 +13,10 @@ export const trackBehavior = api(
       RETURNING id, prospect_id, event_type, event_data, timestamp, ip_address, user_agent, source, score
     `;
     
+    if (!behavior) {
+      throw new Error("Failed to create behavior record");
+    }
+    
     // Update engagement patterns asynchronously
     updateEngagementPattern(req.prospectId);
     
@@ -33,7 +37,7 @@ export const trackBehavior = api(
 export const getProspectBehaviors = api(
   { method: "GET", path: "/prospects/:prospectId/behaviors", expose: true },
   async ({ prospectId }: { prospectId: string }) => {
-    const result = await db.exec`
+    const result = await db.query`
       SELECT id, prospect_id, event_type, event_data, timestamp, ip_address, user_agent, source, score
       FROM prospect_behaviors
       WHERE prospect_id = ${prospectId}
@@ -41,7 +45,12 @@ export const getProspectBehaviors = api(
       LIMIT 100
     `;
 
-    return result.rows.map(row => ({
+    const rows: any[] = [];
+    for await (const row of result) {
+      rows.push(row);
+    }
+
+    return rows.map((row: any) => ({
       id: row.id,
       prospectId: row.prospect_id,
       eventType: row.event_type,

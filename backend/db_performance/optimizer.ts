@@ -166,7 +166,7 @@ async function analyzeIndexUsage(): Promise<void> {
   for (const index of unusedIndexes) {
     await createOptimizationSuggestion({
       type: 'index',
-      priority: index.impact === 'high' ? 'high' : 'medium',
+      priority: index.impact === 'high' ? 'high' : (index.impact === 'medium' ? 'medium' : 'low'),
       title: `Remove unused index: ${index.index_name}`,
       description: `Index ${index.index_name} on ${index.table_name} appears to be unused and consumes ${index.size_mb}MB of storage`,
       impact_estimate: `${index.size_mb}MB storage savings, reduced write overhead`,

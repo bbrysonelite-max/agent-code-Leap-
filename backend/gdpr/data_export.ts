@@ -171,7 +171,7 @@ async function processDataExport(requestId: string): Promise<void> {
     
     await DB.exec`
       UPDATE gdpr_requests 
-      SET status = 'failed', failure_reason = ${error.message}, updated_at = NOW()
+      SET status = 'failed', failure_reason = ${(error as Error).message}, updated_at = NOW()
       WHERE request_id = ${requestId}
     `;
   }

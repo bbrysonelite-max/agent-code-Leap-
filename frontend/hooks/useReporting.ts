@@ -29,7 +29,7 @@ export function useReporting() {
     error: dashboardsError
   } = useQuery({
     queryKey: ['dashboards'],
-    queryFn: () => backend.reporting.list(),
+    queryFn: () => backend.reporting.listDashboards(),
   });
 
   const {
@@ -38,7 +38,7 @@ export function useReporting() {
     error: widgetsError
   } = useQuery({
     queryKey: ['widgets', currentDashboard?.id],
-    queryFn: () => currentDashboard ? backend.reporting.list({ dashboardId: currentDashboard.id }) : Promise.resolve([]),
+    queryFn: () => currentDashboard ? backend.reporting.listWidgets({ dashboardId: currentDashboard.id }) : Promise.resolve([]),
     enabled: !!currentDashboard?.id,
   });
 
@@ -49,7 +49,7 @@ export function useReporting() {
     error: reportsError
   } = useQuery({
     queryKey: ['reports'],
-    queryFn: () => backend.reporting.list(),
+    queryFn: () => backend.reporting.listReports(),
   });
 
   const {
@@ -58,7 +58,7 @@ export function useReporting() {
     error: scheduledReportsError
   } = useQuery({
     queryKey: ['scheduledReports'],
-    queryFn: () => backend.reporting.getScheduledReports(),
+    queryFn: () => backend.reporting.listScheduledReports(),
   });
 
   const {
@@ -73,7 +73,7 @@ export function useReporting() {
 
   // Mutations
   const createDashboardMutation = useMutation({
-    mutationFn: (data: CreateDashboardRequest) => backend.reporting.create(data),
+    mutationFn: (data: CreateDashboardRequest) => backend.reporting.createDashboard(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
       toast({
@@ -93,7 +93,7 @@ export function useReporting() {
 
   const updateDashboardMutation = useMutation({
     mutationFn: ({ id, ...data }: { id: string } & UpdateDashboardRequest) => 
-      backend.reporting.update({ id, ...data }),
+      backend.reporting.updateDashboard({ id, ...data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
       toast({
@@ -112,7 +112,7 @@ export function useReporting() {
   });
 
   const deleteDashboardMutation = useMutation({
-    mutationFn: (id: string) => backend.reporting.remove({ id }),
+    mutationFn: (id: string) => backend.reporting.removeDashboard({ id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
       if (currentDashboard?.id) {
@@ -134,7 +134,7 @@ export function useReporting() {
   });
 
   const createReportMutation = useMutation({
-    mutationFn: (data: CreateReportRequest) => backend.reporting.create(data),
+    mutationFn: (data: CreateReportRequest) => backend.reporting.createReport(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['scheduledReports'] });
@@ -154,7 +154,7 @@ export function useReporting() {
   });
 
   const generateReportMutation = useMutation({
-    mutationFn: (id: string) => backend.reporting.generate({ id }),
+    mutationFn: (id: string) => backend.reporting.generateReport({ id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       toast({
@@ -173,7 +173,7 @@ export function useReporting() {
   });
 
   const createWidgetMutation = useMutation({
-    mutationFn: (data: CreateWidgetRequest) => backend.reporting.create(data),
+    mutationFn: (data: CreateWidgetRequest) => backend.reporting.createWidget(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['widgets', currentDashboard?.id] });
       toast({
@@ -193,7 +193,7 @@ export function useReporting() {
 
   const updateWidgetMutation = useMutation({
     mutationFn: ({ id, ...data }: { id: string } & UpdateWidgetRequest) => 
-      backend.reporting.update({ id, ...data }),
+      backend.reporting.updateWidget({ id, ...data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['widgets', currentDashboard?.id] });
       toast({
@@ -212,7 +212,7 @@ export function useReporting() {
   });
 
   const deleteWidgetMutation = useMutation({
-    mutationFn: (id: string) => backend.reporting.remove({ id }),
+    mutationFn: (id: string) => backend.reporting.removeWidget({ id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['widgets', currentDashboard?.id] });
       toast({

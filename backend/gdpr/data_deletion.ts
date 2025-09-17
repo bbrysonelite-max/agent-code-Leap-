@@ -101,7 +101,7 @@ async function processDataDeletion(requestId: string): Promise<void> {
     for (const [serviceName, serviceMappings] of Object.entries(serviceGroups)) {
       try {
         // Group by table
-        const tableGroups = serviceMappings.reduce((acc, mapping) => {
+        const tableGroups = serviceMappings.reduce((acc: Record<string, any[]>, mapping: any) => {
           if (!acc[mapping.table_name]) acc[mapping.table_name] = [];
           acc[mapping.table_name].push(mapping);
           return acc;
@@ -109,12 +109,12 @@ async function processDataDeletion(requestId: string): Promise<void> {
 
         for (const [tableName, tableMappings] of Object.entries(tableGroups)) {
           // Find user identifier columns
-          const userIdColumns = tableMappings.filter(m => m.is_user_identifier);
+          const userIdColumns = (tableMappings as any[]).filter((m: any) => m.is_user_identifier);
           
           if (userIdColumns.length === 0) continue;
 
           // For each table, determine deletion strategy
-          const hasDeleteMethod = tableMappings.some(m => m.anonymization_method === 'delete');
+          const hasDeleteMethod = (tableMappings as any[]).some((m: any) => m.anonymization_method === 'delete');
           
           if (hasDeleteMethod) {
             // Delete entire records
@@ -135,7 +135,7 @@ async function processDataDeletion(requestId: string): Promise<void> {
             }
           } else {
             // Anonymize specific columns
-            const anonymizeColumns = tableMappings.filter(m => 
+            const anonymizeColumns = (tableMappings as any[]).filter((m: any) => 
               m.anonymization_method && m.anonymization_method !== 'delete'
             );
 
@@ -199,7 +199,7 @@ async function processDataDeletion(requestId: string): Promise<void> {
     
     await DB.exec`
       UPDATE gdpr_requests 
-      SET status = 'failed', failure_reason = ${error.message}, updated_at = NOW()
+      SET status = 'failed', failure_reason = ${(error as Error).message}, updated_at = NOW()
       WHERE request_id = ${requestId}
     `;
   }

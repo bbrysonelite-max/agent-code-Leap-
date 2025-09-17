@@ -24,7 +24,7 @@ export const syncContacts = api(
 
     while (hasMore) {
       try {
-        const response = await client.getContacts(100, after);
+        const response = await client.getContacts(100, after) as any;
         
         for (const contact of response.results) {
           try {
@@ -40,7 +40,7 @@ export const syncContacts = api(
                   firstname: contact.firstname,
                   lastname: contact.lastname,
                   company_name: contact.company,
-                  hubspot_id: contact.id,
+                  hubspot_id: (contact as any).id,
                   contact_exists: false
                 }
               });
@@ -53,14 +53,14 @@ export const syncContacts = api(
             
             await hubspotDB.exec`
               INSERT INTO hubspot_sync_logs (connection_id, operation, hubspot_id, status)
-              VALUES (${connectionId}, 'sync_contact', ${contact.id}, 'success')
+              VALUES (${connectionId}, 'sync_contact', ${(contact as any).id}, 'success')
             `;
             
           } catch (error) {
             errors++;
             await hubspotDB.exec`
               INSERT INTO hubspot_sync_logs (connection_id, operation, hubspot_id, status, error_message)
-              VALUES (${connectionId}, 'sync_contact', ${contact.id}, 'error', ${error.message})
+              VALUES (${connectionId}, 'sync_contact', ${(contact as any).id}, 'error', ${(error as Error).message})
             `;
           }
         }
@@ -113,7 +113,7 @@ export const syncDeals = api(
                   deal_name: deal.dealname,
                   amount: deal.amount,
                   stage: deal.dealstage,
-                  hubspot_deal_id: deal.id,
+                  hubspot_deal_id: (deal as any).id,
                   deal_exists: false
                 }
               });
@@ -126,20 +126,20 @@ export const syncDeals = api(
             
             await hubspotDB.exec`
               INSERT INTO hubspot_sync_logs (connection_id, operation, hubspot_id, status)
-              VALUES (${connectionId}, 'sync_deal', ${deal.id}, 'success')
+              VALUES (${connectionId}, 'sync_deal', ${(deal as any).id}, 'success')
             `;
             
           } catch (error) {
             errors++;
             await hubspotDB.exec`
               INSERT INTO hubspot_sync_logs (connection_id, operation, hubspot_id, status, error_message)
-              VALUES (${connectionId}, 'sync_deal', ${deal.id}, 'error', ${error.message})
+              VALUES (${connectionId}, 'sync_deal', ${(deal as any).id}, 'error', ${(error as Error).message})
             `;
           }
         }
 
-        hasMore = !!response.paging?.next;
-        after = response.paging?.next?.after;
+        hasMore = !!(response as any).paging?.next;
+        after = (response as any).paging?.next?.after;
         
       } catch (error) {
         console.error('Error syncing deals:', error);

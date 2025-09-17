@@ -34,6 +34,7 @@ const BROWSER = typeof globalThis === "object" && ("window" in globalThis);
  */
 export class Client {
     public readonly agent: agent.ServiceClient
+    public readonly ai: ai.ServiceClient
     public readonly ai_crm: ai_crm.ServiceClient
     public readonly analytics: analytics.ServiceClient
     public readonly audit: audit.ServiceClient
@@ -63,6 +64,7 @@ export class Client {
         this.options = options ?? {}
         const base = new BaseClient(this.target, this.options)
         this.agent = new agent.ServiceClient(base)
+        this.ai = new ai.ServiceClient(base)
         this.ai_crm = new ai_crm.ServiceClient(base)
         this.analytics = new analytics.ServiceClient(base)
         this.audit = new audit.ServiceClient(base)
@@ -168,6 +170,39 @@ export namespace agent {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/agents/${encodeURIComponent(params.id)}/status`, {method: "PUT", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_agent_control_updateStatus>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    generateContent as api_ai_openai_generateContent,
+    generateText as api_ai_openai_generateText
+} from "~backend/ai/openai";
+
+export namespace ai {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.generateContent = this.generateContent.bind(this)
+            this.generateText = this.generateText.bind(this)
+        }
+
+        public async generateContent(params: RequestType<typeof api_ai_openai_generateContent>): Promise<ResponseType<typeof api_ai_openai_generateContent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/generate-content`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateContent>
+        }
+
+        public async generateText(params: RequestType<typeof api_ai_openai_generateText>): Promise<ResponseType<typeof api_ai_openai_generateText>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/generate-text`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateText>
         }
     }
 }

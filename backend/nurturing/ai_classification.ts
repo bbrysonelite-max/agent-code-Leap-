@@ -84,7 +84,7 @@ export const getProspectClassification = api(
 export const generateAIInsights = api(
   { method: "POST", path: "/prospects/:prospectId/ai-insights", expose: true },
   async ({ prospectId }: { prospectId: string }) => {
-    const behaviors = await db.exec`
+    const behaviorQuery = await db.query`
       SELECT event_type, score, timestamp, event_data
       FROM prospect_behaviors
       WHERE prospect_id = ${prospectId}
@@ -92,12 +92,22 @@ export const generateAIInsights = api(
       LIMIT 100
     `;
 
+    const behaviorRows: any[] = [];
+    for await (const row of behaviorQuery) {
+      behaviorRows.push(row);
+    }
+
     const classification = await getProspectClassification({ prospectId });
-    const engagement = await db.exec`
+    const engagementQuery = await db.query`
       SELECT * FROM engagement_patterns WHERE prospect_id = ${prospectId}
     `;
 
-    const insights = await generateInsights(prospectId, behaviors.rows, classification, engagement.rows[0]);
+    const engagementRows: any[] = [];
+    for await (const row of engagementQuery) {
+      engagementRows.push(row);
+    }
+
+    const insights = await generateInsights(prospectId, behaviorRows, classification, engagementRows[0]);
     
     // Store insights
     for (const insight of insights) {
@@ -115,7 +125,7 @@ export const generateAIInsights = api(
 export const getAIInsights = api(
   { method: "GET", path: "/prospects/:prospectId/insights", expose: true },
   async ({ prospectId }: { prospectId: string }) => {
-    const result = await db.exec`
+    const result = await db.query`
       SELECT id, prospect_id, type, insight, confidence, data, actionable, created_at, applied_at
       FROM ai_insights
       WHERE prospect_id = ${prospectId}
@@ -123,7 +133,12 @@ export const getAIInsights = api(
       LIMIT 20
     `;
 
-    return result.rows.map(row => ({
+    const rows: any[] = [];
+    for await (const row of result) {
+      rows.push(row);
+    }
+
+    return rows.map((row: any) => ({
       id: row.id,
       prospectId: row.prospect_id,
       type: row.type,
@@ -169,29 +184,29 @@ async function performAIClassification(
     classification = 'hot';
     confidence = 0.9;
     factors.push('High recent engagement', 'Meeting activity');
-    stage = 'intent';
+    stage = 'intent' as 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
     buyingSignals.push('Scheduled meetings', 'High engagement');
   } else if (recentScore >= 50 || avgScore >= 15) {
     classification = 'warm';
     confidence = 0.8;
     factors.push('Moderate engagement', 'Consistent activity');
-    stage = 'consideration';
+    stage = 'consideration' as 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
     buyingSignals.push('Content engagement', 'Website visits');
   } else if (totalScore >= 30 && behaviors.length >= 5) {
     classification = 'nurture';
     confidence = 0.7;
     factors.push('Some engagement', 'Multiple touchpoints');
-    stage = 'interest';
+    stage = 'interest' as 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
   } else if (totalScore < 10 || behaviors.length < 3) {
     classification = 'cold';
     confidence = 0.8;
     factors.push('Low engagement', 'Minimal activity');
-    stage = 'awareness';
+    stage = 'awareness' as 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
   } else {
     classification = 'unqualified';
     confidence = 0.6;
     factors.push('Inconsistent patterns');
-    stage = 'awareness';
+    stage = 'awareness' as 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
   }
 
   // Analyze behavior patterns for insights
@@ -232,7 +247,7 @@ async function performAIClassification(
 
   // Industry-specific insights
   if (prospectData?.industry) {
-    interests.push(prospectData.industry);
+    interests.push(prospectData.industry as string);
     painPoints.push(`${prospectData.industry} challenges`);
   }
 
@@ -240,7 +255,7 @@ async function performAIClassification(
   if (prospectData?.companySize) {
     if (prospectData.companySize === 'enterprise') {
       painPoints.push('Scalability concerns', 'Complex integration needs');
-      stage = stage === 'awareness' ? 'interest' : stage;
+      stage = (stage === 'awareness' ? 'interest' : stage) as 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
     } else if (prospectData.companySize === 'startup') {
       painPoints.push('Budget constraints', 'Fast growth needs');
     }
