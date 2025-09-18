@@ -15,9 +15,9 @@ UPDATE prospects SET
 -- Set prospect_type as NOT NULL after migration
 ALTER TABLE prospects ALTER COLUMN prospect_type SET NOT NULL;
 
--- Add foreign key constraint
-ALTER TABLE prospects ADD CONSTRAINT fk_prospects_client_id 
-    FOREIGN KEY (client_id) REFERENCES client_configurations(id) ON DELETE SET NULL;
+-- Note: Foreign key constraint to client_configurations cannot be added 
+-- because client_configurations is in a different database (client) 
+-- Application logic must ensure referential integrity
 
 -- Add indexes for performance
 CREATE INDEX idx_prospects_client_id ON prospects(client_id);
