@@ -388,8 +388,8 @@ SELECT
     id,
     'Business Hours Boost',
     '[1,2,3,4,5]',
-    TIME('09:00:00'),
-    TIME('17:00:00'),
+    '09:00:00'::TIME,
+    '17:00:00'::TIME,
     'UTC',
     1.5
 FROM endpoint_rate_limits 
@@ -401,8 +401,8 @@ SELECT
     id,
     'Off Hours Restriction',
     '[0,6]',
-    TIME('00:00:00'),
-    TIME('23:59:00'),
+    '00:00:00'::TIME,
+    '23:59:59'::TIME,
     'UTC',
     0.7
 FROM endpoint_rate_limits 
