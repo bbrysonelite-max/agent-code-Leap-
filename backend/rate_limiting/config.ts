@@ -121,7 +121,7 @@ export const createRule = api(
                 enabled
     `;
 
-    return result[0];
+    return result[0] as RateLimitRule;
   }
 );
 
@@ -186,7 +186,7 @@ export const updateRule = api(
       throw new ValidationError("Rate limit rule not found", "not_found");
     }
 
-    return result[0];
+    return result[0] as RateLimitRule;
   }
 );
 
@@ -237,7 +237,7 @@ export const getUserQuota = api(
       throw new ValidationError("User quota not found", "not_found");
     }
 
-    return result[0];
+    return result[0] as any;
   }
 );
 
@@ -261,7 +261,7 @@ export const createUserQuota = api(
                 monthly_quota as "monthlyQuota"
     `;
 
-    return result[0];
+    return result[0] as any;
   }
 );
 
@@ -319,7 +319,7 @@ export const updateUserQuota = api(
       throw new ValidationError("User quota not found", "not_found");
     }
 
-    return result[0];
+    return result[0] as any;
   }
 );
 
