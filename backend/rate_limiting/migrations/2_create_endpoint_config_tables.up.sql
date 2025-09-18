@@ -35,7 +35,7 @@ CREATE TABLE endpoint_time_limits (
     id SERIAL PRIMARY KEY,
     config_id INTEGER NOT NULL REFERENCES endpoint_rate_limits(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    days_of_week INTEGER[] NOT NULL, -- Array of day numbers (0=Sunday)
+    days_of_week TEXT NOT NULL, -- JSON array of day numbers (0=Sunday)
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     timezone VARCHAR(50) NOT NULL DEFAULT 'UTC',
@@ -177,7 +177,7 @@ CREATE TABLE rate_limit_violations (
     penalty_applied BOOLEAN NOT NULL DEFAULT false,
     penalty_duration_seconds INTEGER,
     user_agent TEXT,
-    ip_address INET,
+    ip_address VARCHAR(45), -- Support both IPv4 and IPv6
     geographic_location VARCHAR(10), -- Country code
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -194,10 +194,9 @@ CREATE TABLE endpoint_discovery_results (
     avg_requests_per_window DECIMAL(10,3),
     peak_requests INTEGER,
     unique_users INTEGER,
-    analysis_reasoning TEXT[],
-    suggested_limits JSONB,
-    discovered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(endpoint, method, discovered_at::date)
+    analysis_reasoning TEXT,
+    suggested_limits TEXT,
+    discovered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Bulk configuration change audit log
@@ -248,11 +247,10 @@ CREATE INDEX idx_endpoint_discovery_service ON endpoint_discovery_results(servic
 CREATE INDEX idx_endpoint_discovery_category ON endpoint_discovery_results(estimated_category);
 CREATE INDEX idx_endpoint_discovery_discovered_at ON endpoint_discovery_results(discovered_at);
 
--- Create GIN indexes for JSONB columns
-CREATE INDEX idx_conditional_limits_conditions ON endpoint_conditional_limits USING GIN(conditions);
-CREATE INDEX idx_discovery_suggested_limits ON endpoint_discovery_results USING GIN(suggested_limits);
-CREATE INDEX idx_config_audit_filter ON config_change_audit USING GIN(filter_criteria);
-CREATE INDEX idx_config_audit_changes ON config_change_audit USING GIN(changes_applied);
+-- Create indexes for JSONB columns
+CREATE INDEX idx_conditional_limits_conditions ON endpoint_conditional_limits(conditions);
+CREATE INDEX idx_config_audit_filter ON config_change_audit(filter_criteria);
+CREATE INDEX idx_config_audit_changes ON config_change_audit(changes_applied);
 
 -- Insert comprehensive default endpoint configurations
 INSERT INTO endpoint_rate_limits (endpoint, method, service_name, category, priority, description) VALUES
@@ -301,32 +299,33 @@ INSERT INTO endpoint_rate_limits (endpoint, method, service_name, category, prio
 -- Insert tier-specific limits for each endpoint
 INSERT INTO endpoint_tier_limits (config_id, tier, window_seconds, max_requests, burst_limit, concurrent_limit) 
 SELECT 
-    id,
-    tier,
+    erl.id,
+    t.tier,
+    60 as window_seconds,
     CASE 
-        WHEN category = 'critical' THEN 
-            CASE tier
+        WHEN erl.category = 'critical' THEN 
+            CASE t.tier
                 WHEN 'enterprise' THEN 300
                 WHEN 'premium' THEN 200
                 WHEN 'basic' THEN 100
                 ELSE 50
             END
-        WHEN category = 'standard' THEN
-            CASE tier
+        WHEN erl.category = 'standard' THEN
+            CASE t.tier
                 WHEN 'enterprise' THEN 1000
                 WHEN 'premium' THEN 500
                 WHEN 'basic' THEN 200
                 ELSE 100
             END
-        WHEN category = 'background' THEN
-            CASE tier
+        WHEN erl.category = 'background' THEN
+            CASE t.tier
                 WHEN 'enterprise' THEN 2000
                 WHEN 'premium' THEN 1000
                 WHEN 'basic' THEN 300
                 ELSE 150
             END
         ELSE -- public
-            CASE tier
+            CASE t.tier
                 WHEN 'enterprise' THEN 5000
                 WHEN 'premium' THEN 3000
                 WHEN 'basic' THEN 1000
@@ -334,29 +333,29 @@ SELECT
             END
     END as max_requests,
     CASE 
-        WHEN category = 'critical' THEN 
-            CASE tier
+        WHEN erl.category = 'critical' THEN 
+            CASE t.tier
                 WHEN 'enterprise' THEN 450
                 WHEN 'premium' THEN 300
                 WHEN 'basic' THEN 150
                 ELSE 75
             END
-        WHEN category = 'standard' THEN
-            CASE tier
+        WHEN erl.category = 'standard' THEN
+            CASE t.tier
                 WHEN 'enterprise' THEN 1500
                 WHEN 'premium' THEN 750
                 WHEN 'basic' THEN 300
                 ELSE 150
             END
-        WHEN category = 'background' THEN
-            CASE tier
+        WHEN erl.category = 'background' THEN
+            CASE t.tier
                 WHEN 'enterprise' THEN 3000
                 WHEN 'premium' THEN 1500
                 WHEN 'basic' THEN 450
                 ELSE 225
             END
         ELSE -- public
-            CASE tier
+            CASE t.tier
                 WHEN 'enterprise' THEN 7500
                 WHEN 'premium' THEN 4500
                 WHEN 'basic' THEN 1500
@@ -364,15 +363,15 @@ SELECT
             END
     END as burst_limit,
     CASE 
-        WHEN category = 'critical' THEN 
-            CASE tier
+        WHEN erl.category = 'critical' THEN 
+            CASE t.tier
                 WHEN 'enterprise' THEN 50
                 WHEN 'premium' THEN 30
                 WHEN 'basic' THEN 15
                 ELSE 10
             END
-        WHEN category = 'standard' THEN
-            CASE tier
+        WHEN erl.category = 'standard' THEN
+            CASE t.tier
                 WHEN 'enterprise' THEN 100
                 WHEN 'premium' THEN 60
                 WHEN 'basic' THEN 25
@@ -380,7 +379,7 @@ SELECT
             END
         ELSE NULL
     END as concurrent_limit
-FROM endpoint_rate_limits
+FROM endpoint_rate_limits erl
 CROSS JOIN (VALUES ('enterprise'), ('premium'), ('basic'), ('free')) AS t(tier);
 
 -- Insert sample time-based limits (business hours)
@@ -388,9 +387,9 @@ INSERT INTO endpoint_time_limits (config_id, name, days_of_week, start_time, end
 SELECT 
     id,
     'Business Hours Boost',
-    ARRAY[1,2,3,4,5], -- Monday to Friday
-    '09:00'::time,
-    '17:00'::time,
+    '[1,2,3,4,5]',
+    TIME('09:00:00'),
+    TIME('17:00:00'),
     'UTC',
     1.5
 FROM endpoint_rate_limits 
@@ -401,9 +400,9 @@ INSERT INTO endpoint_time_limits (config_id, name, days_of_week, start_time, end
 SELECT 
     id,
     'Off Hours Restriction',
-    ARRAY[0,6], -- Weekend
-    '00:00'::time,
-    '23:59'::time,
+    '[0,6]',
+    TIME('00:00:00'),
+    TIME('23:59:00'),
     'UTC',
     0.7
 FROM endpoint_rate_limits 

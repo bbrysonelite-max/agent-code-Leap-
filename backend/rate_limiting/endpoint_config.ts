@@ -455,14 +455,15 @@ class EndpointConfigManager {
 
   private async storeTierLimits(configId: number, tiers: any): Promise<void> {
     for (const [tier, limits] of Object.entries(tiers)) {
+      const tierLimits = limits as any;
       await db.queryAll`
         INSERT INTO endpoint_tier_limits (
           config_id, tier, window_seconds, max_requests, burst_limit, 
           concurrent_limit, cooldown_seconds
         ) VALUES (
-          ${configId}, ${tier}, ${limits.windowSeconds}, ${limits.maxRequests},
-          ${limits.burstLimit}, ${limits.concurrentLimit || null}, 
-          ${limits.cooldownSeconds || null}
+          ${configId}, ${tier}, ${tierLimits.windowSeconds}, ${tierLimits.maxRequests},
+          ${tierLimits.burstLimit}, ${tierLimits.concurrentLimit || null}, 
+          ${tierLimits.cooldownSeconds || null}
         )
       `;
     }
@@ -550,7 +551,7 @@ class EndpointConfigManager {
       };
     }
 
-    return config;
+    return config as EndpointRateLimitConfig;
   }
 
   private getDefaultLimits(tier: string): any {

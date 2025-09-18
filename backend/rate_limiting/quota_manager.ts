@@ -547,7 +547,7 @@ class QuotaManager {
       FROM user_quotas 
       WHERE current_daily_usage > 0 OR current_monthly_usage > 0
     `;
-    return result;
+    return result as { userId: string }[];
   }
 
   private async checkQuotaAlerts(breakdown: QuotaUsageBreakdown, forecast: UsageForecast): Promise<QuotaAlert[]> {
