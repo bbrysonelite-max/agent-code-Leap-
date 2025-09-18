@@ -124,7 +124,7 @@ function calculateBehaviorScore(eventType: string, eventData: Record<string, any
 
 async function updateEngagementPattern(prospectId: string): Promise<void> {
   try {
-    const behaviors = await db.exec`
+    const behaviorsQuery = db.query`
       SELECT event_type, timestamp, event_data
       FROM prospect_behaviors
       WHERE prospect_id = ${prospectId}
@@ -132,24 +132,29 @@ async function updateEngagementPattern(prospectId: string): Promise<void> {
       LIMIT 50
     `;
 
-    if (behaviors.rows.length === 0) return;
+    const behaviors = [];
+    for await (const row of behaviorsQuery) {
+      behaviors.push(row);
+    }
 
-    const totalEngagements = behaviors.rows.length;
-    const lastEngagement = behaviors.rows[0].timestamp;
+    if (behaviors.length === 0) return;
+
+    const totalEngagements = behaviors.length;
+    const lastEngagement = behaviors[0].timestamp;
     
     // Calculate average time between engagements
     let totalTimeDiff = 0;
-    for (let i = 1; i < behaviors.rows.length; i++) {
-      const diff = new Date(behaviors.rows[i-1].timestamp).getTime() - new Date(behaviors.rows[i].timestamp).getTime();
+    for (let i = 1; i < behaviors.length; i++) {
+      const diff = new Date(behaviors[i-1].timestamp).getTime() - new Date(behaviors[i].timestamp).getTime();
       totalTimeDiff += diff;
     }
-    const avgTimeBetweenEngagements = behaviors.rows.length > 1 
-      ? Math.round(totalTimeDiff / (behaviors.rows.length - 1) / 1000) + ' seconds'
+    const avgTimeBetweenEngagements = behaviors.length > 1 
+      ? Math.round(totalTimeDiff / (behaviors.length - 1) / 1000) + ' seconds'
       : null;
 
     // Analyze preferred contact times
     const hourCounts: Record<number, number> = {};
-    behaviors.rows.forEach(row => {
+    behaviors.forEach((row: any) => {
       const hour = new Date(row.timestamp).getHours();
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
     });
@@ -161,7 +166,7 @@ async function updateEngagementPattern(prospectId: string): Promise<void> {
 
     // Analyze preferred channels
     const channelCounts: Record<string, number> = {};
-    behaviors.rows.forEach(row => {
+    behaviors.forEach((row: any) => {
       const source = row.event_data?.source || 'unknown';
       channelCounts[source] = (channelCounts[source] || 0) + 1;
     });
@@ -172,14 +177,14 @@ async function updateEngagementPattern(prospectId: string): Promise<void> {
       .map(([channel]) => channel);
 
     // Calculate response rate (simplified)
-    const responseEvents = behaviors.rows.filter(row => 
+    const responseEvents = behaviors.filter((row: any) => 
       ['form_submit', 'meeting_scheduled', 'email_click'].includes(row.event_type)
     ).length;
     const responseRate = totalEngagements > 0 ? responseEvents / totalEngagements : 0;
 
     // Determine engagement trend
-    const recentEngagements = behaviors.rows.slice(0, 10).length;
-    const olderEngagements = behaviors.rows.slice(10, 20).length;
+    const recentEngagements = behaviors.slice(0, 10).length;
+    const olderEngagements = behaviors.slice(10, 20).length;
     let engagementTrend: 'increasing' | 'decreasing' | 'stable' = 'stable';
     
     if (recentEngagements > olderEngagements * 1.2) {
@@ -190,7 +195,7 @@ async function updateEngagementPattern(prospectId: string): Promise<void> {
 
     // Analyze peak engagement days
     const dayCounts: Record<number, number> = {};
-    behaviors.rows.forEach(row => {
+    behaviors.forEach((row: any) => {
       const day = new Date(row.timestamp).getDay();
       dayCounts[day] = (dayCounts[day] || 0) + 1;
     });

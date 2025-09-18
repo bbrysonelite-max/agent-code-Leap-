@@ -186,9 +186,9 @@ export function withSecurityLogging<T extends (...args: any[]) => Promise<any>>(
       return result;
     } catch (error) {
       if (operationType === 'authentication') {
-        await securityLogger.logAuthentication(false, operationType, error.message);
+        await securityLogger.logAuthentication(false, operationType, (error as Error).message);
       } else if (operationType === 'authorization') {
-        await securityLogger.logAuthorization(false, 'unknown', 'unknown', error.message);
+        await securityLogger.logAuthorization(false, 'unknown', 'unknown', (error as Error).message);
       } else {
         await securityLogger.logSecurityIncident(
           `API error in ${serviceName}`,

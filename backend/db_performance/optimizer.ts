@@ -152,14 +152,21 @@ async function analyzeIndexUsage(): Promise<void> {
   console.log("Analyzing index usage patterns...");
   
   // Simulate finding unused indexes
-  const unusedIndexes = [
+  const unusedIndexes: Array<{
+    database_name: string;
+    table_name: string;
+    index_name: string;
+    size_mb: number;
+    last_used: Date | null;
+    impact: 'low' | 'medium' | 'high';
+  }> = [
     {
       database_name: 'ai_crm',
       table_name: 'leads',
       index_name: 'idx_leads_old_status',
       size_mb: 15.2,
       last_used: null,
-      impact: 'medium' as const
+      impact: 'medium'
     }
   ];
 

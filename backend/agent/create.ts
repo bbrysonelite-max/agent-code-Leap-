@@ -20,7 +20,7 @@ export const create = api<CreateAgentRequest, Agent>(
     
     // Verify client exists and is active
     const clientExists = await executeQuery(
-      () => agentDB.queryRow<{ exists: boolean } | undefined>`
+      () => agentDB.queryRow<{ exists: boolean }>`
         SELECT EXISTS(SELECT 1 FROM client_configurations WHERE id = ${req.client_id} AND is_active = true) as exists
       `,
       "check client exists"

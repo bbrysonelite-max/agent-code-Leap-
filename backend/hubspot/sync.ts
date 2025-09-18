@@ -3,6 +3,7 @@ import { api } from "encore.dev/api";
 import { hubspotDB } from "./db";
 import { HubSpotClient } from "./client";
 import { executeAIAction } from "./ai_automation";
+import { HubSpotContact, HubSpotDeal } from "./types";
 
 export const syncContacts = api(
   { method: "POST", path: "/sync/contacts/:connectionId", expose: true },
@@ -26,7 +27,7 @@ export const syncContacts = api(
       try {
         const response = await client.getContacts(100, after) as any;
         
-        for (const contact of response.results) {
+        for (const contact of (response.results || []) as HubSpotContact[]) {
           try {
             // Check if contact exists in our AI CRM
             const existingContact = await checkContactExists(contact.email);
@@ -53,7 +54,7 @@ export const syncContacts = api(
             
             await hubspotDB.exec`
               INSERT INTO hubspot_sync_logs (connection_id, operation, hubspot_id, status)
-              VALUES (${connectionId}, 'sync_contact', ${(contact as any).id}, 'success')
+              VALUES (${connectionId}, 'sync_contact', ${contact.id}, 'success')
             `;
             
           } catch (error) {
@@ -98,9 +99,9 @@ export const syncDeals = api(
 
     while (hasMore) {
       try {
-        const response = await client.getDeals(100, after);
+        const response = await client.getDeals(100, after) as any;
         
-        for (const deal of response.results) {
+        for (const deal of (response.results || []) as HubSpotDeal[]) {
           try {
             // Check if deal exists in our AI CRM
             const existingDeal = await checkDealExists(deal.id);
@@ -113,7 +114,7 @@ export const syncDeals = api(
                   deal_name: deal.dealname,
                   amount: deal.amount,
                   stage: deal.dealstage,
-                  hubspot_deal_id: (deal as any).id,
+                  hubspot_deal_id: deal.id,
                   deal_exists: false
                 }
               });
@@ -126,7 +127,7 @@ export const syncDeals = api(
             
             await hubspotDB.exec`
               INSERT INTO hubspot_sync_logs (connection_id, operation, hubspot_id, status)
-              VALUES (${connectionId}, 'sync_deal', ${(deal as any).id}, 'success')
+              VALUES (${connectionId}, 'sync_deal', ${deal.id}, 'success')
             `;
             
           } catch (error) {
@@ -176,13 +177,13 @@ export const syncDeals = api(
 // });
 
 // Helper functions to check existing records in AI CRM
-async function checkContactExists(email: string) {
+async function checkContactExists(email: string): Promise<{ id: string } | null> {
   // This would check against your existing AI CRM contacts table
   // For now, we'll simulate this check
   return null;
 }
 
-async function checkDealExists(hubspotDealId: string) {
+async function checkDealExists(hubspotDealId: string): Promise<{ id: string } | null> {
   // This would check against your existing AI CRM deals table
   // For now, we'll simulate this check
   return null;

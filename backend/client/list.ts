@@ -1,7 +1,7 @@
 import { api } from "encore.dev/api";
 import { clientDB } from "./db";
 import type { ClientConfiguration } from "./types";
-import { executeQuery } from "../shared/database";
+import { executeQuery, handleDatabaseError } from "../shared/database";
 import { wrapAsync } from "../shared/errors";
 
 export interface ListClientsRequest {
@@ -46,21 +46,22 @@ export const list = api<ListClientsRequest, ListClientsResponse>(
     );
     
     // Get clients with pagination  
-    const clientsResult = await executeQuery(
-      () => clientDB.query<ClientConfiguration>`
+    const clients: ClientConfiguration[] = [];
+    try {
+      const clientsResult = clientDB.query<ClientConfiguration>`
         SELECT * 
         FROM client_configurations 
         ${whereClause}
         ORDER BY created_at DESC
         LIMIT ${limit} OFFSET ${offset}
-      `,
-      "list clients"
-    );
-    
-    // Convert async generator to array
-    const clients: ClientConfiguration[] = [];
-    for await (const client of clientsResult) {
-      clients.push(client);
+      `;
+      
+      // Convert async generator to array
+      for await (const client of clientsResult) {
+        clients.push(client);
+      }
+    } catch (error) {
+      handleDatabaseError(error, "list clients");
     }
     
     return {
