@@ -28,10 +28,10 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            NuScan Dashboard
+            AI Prospect Agent Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Monitor your Nu Skin prospecting performance
+            Monitor your intelligent prospecting performance across all clients
           </p>
         </div>
         <div className="flex items-center space-x-2">

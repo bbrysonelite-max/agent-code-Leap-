@@ -1,6 +1,6 @@
 import { api } from "encore.dev/api";
 import { prospectDB } from "./db";
-import type { Prospect } from "../agent/types";
+import type { Prospect, ClientConfiguration } from "../client/types";
 import { validateField, Rules } from "../shared/validation";
 import { executeQuery, insertRow } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
@@ -17,7 +17,7 @@ export interface SimulateSearchResponse {
   message: string;
 }
 
-// Simulates LinkedIn-style prospect search and adds them to the database.
+// Simulates prospect search based on client configuration and adds them to the database.
 export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>(
   { expose: true, method: "POST", path: "/prospects/simulate-search" },
   wrapAsync(async (req) => {
@@ -28,73 +28,79 @@ export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>
     }
     const count = req.count || 5;
     
-    // Simulate prospect data
-    const mockProspects = [
-      {
-        name: "Sarah Johnson",
-        email: "sarah.johnson@techcorp.com",
-        linkedin_profile: "https://linkedin.com/in/sarahjohnson",
-        company: "TechCorp Solutions",
-        position: "Marketing Director",
-        classification: "business_builder" as const,
-      },
-      {
-        name: "Michael Chen",
-        email: "m.chen@innovate.co",
-        linkedin_profile: "https://linkedin.com/in/michaelchen",
-        company: "Innovate Co",
-        position: "Sales Manager",
-        classification: "business_builder" as const,
-      },
-      {
-        name: "Emily Rodriguez",
-        email: "emily.r@wellness.com",
-        linkedin_profile: "https://linkedin.com/in/emilyrodriguez",
-        company: "Wellness First",
-        position: "Wellness Coach",
-        classification: "product_customer" as const,
-      },
-      {
-        name: "David Thompson",
-        email: "david@startup.io",
-        linkedin_profile: "https://linkedin.com/in/davidthompson",
-        company: "Startup IO",
-        position: "Founder & CEO",
-        classification: "business_builder" as const,
-      },
-      {
-        name: "Lisa Park",
-        email: "lisa.park@beauty.com",
-        linkedin_profile: "https://linkedin.com/in/lisapark",
-        company: "Beauty Brands",
-        position: "Brand Manager",
-        classification: "product_customer" as const,
-      },
-      {
-        name: "Robert Williams",
-        email: "rob@consulting.biz",
-        linkedin_profile: "https://linkedin.com/in/robertwilliams",
-        company: "Business Consulting Group",
-        position: "Senior Consultant",
-        classification: "business_builder" as const,
-      },
-      {
-        name: "Jennifer Lee",
-        email: "jen.lee@healthco.com",
-        linkedin_profile: "https://linkedin.com/in/jenniferlee",
-        company: "HealthCo",
-        position: "Product Manager",
-        classification: "product_customer" as const,
-      },
-      {
-        name: "Mark Anderson",
-        email: "mark@growth.agency",
-        linkedin_profile: "https://linkedin.com/in/markanderson",
-        company: "Growth Agency",
-        position: "Growth Manager",
-        classification: "business_builder" as const,
-      },
-    ];
+    // Get agent and client configuration
+    const agentInfo = await executeQuery(
+      () => prospectDB.queryRow<{ client_id: number }>`
+        SELECT client_id FROM agents WHERE id = ${req.agent_id}
+      `,
+      "get agent client"
+    );
+    
+    if (!agentInfo) {
+      throw new BusinessLogicError("Agent not found");
+    }
+    
+    const clientConfig = await executeQuery(
+      () => prospectDB.queryRow<ClientConfiguration>`
+        SELECT * FROM client_configurations 
+        WHERE id = ${agentInfo.client_id} AND is_active = true
+      `,
+      "get client config"
+    );
+    
+    if (!clientConfig) {
+      throw new BusinessLogicError("Client configuration not found or inactive");
+    }
+    
+    // Generate dynamic prospect data based on client configuration
+    const generateMockProspects = (config: ClientConfiguration) => {
+      const baseProspects = [
+        { name: "Sarah Johnson", email: "sarah.johnson@techcorp.com", company: "TechCorp Solutions", position: "Marketing Director" },
+        { name: "Michael Chen", email: "m.chen@innovate.co", company: "Innovate Co", position: "Sales Manager" },
+        { name: "Emily Rodriguez", email: "emily.r@wellness.com", company: "Wellness First", position: "Wellness Coach" },
+        { name: "David Thompson", email: "david@startup.io", company: "Startup IO", position: "Founder & CEO" },
+        { name: "Lisa Park", email: "lisa.park@beauty.com", company: "Beauty Brands", position: "Brand Manager" },
+        { name: "Robert Williams", email: "rob@consulting.biz", company: "Business Consulting Group", position: "Senior Consultant" },
+        { name: "Jennifer Lee", email: "jen.lee@healthco.com", company: "HealthCo", position: "Product Manager" },
+        { name: "Mark Anderson", email: "mark@growth.agency", company: "Growth Agency", position: "Growth Manager" },
+        { name: "Amanda Davis", email: "amanda@realtygroup.com", company: "Premier Realty", position: "Real Estate Agent" },
+        { name: "Kevin Miller", email: "kevin@insurancepro.com", company: "Insurance Pro", position: "Insurance Broker" },
+      ];
+      
+      const prospectTypes = config.enabled_prospect_types;
+      const businessType = config.business_type;
+      
+      return baseProspects.map((prospect, index) => {
+        // Cycle through enabled prospect types
+        const prospectType = prospectTypes[index % prospectTypes.length];
+        
+        // Adjust company/position based on business type and prospect type
+        let adjustedCompany = prospect.company;
+        let adjustedPosition = prospect.position;
+        
+        if (businessType === 'network_marketing' || businessType === 'direct_sales') {
+          if (prospectType === 'distributor' || prospectType === 'business_builder') {
+            adjustedPosition = Math.random() > 0.5 ? "Entrepreneur" : "Sales Professional";
+          }
+        } else if (businessType === 'real_estate') {
+          if (prospectType === 'customer') {
+            adjustedPosition = "Homebuyer";
+          } else if (prospectType === 'partners') {
+            adjustedPosition = "Real Estate Agent";
+          }
+        }
+        
+        return {
+          ...prospect,
+          company: adjustedCompany,
+          position: adjustedPosition,
+          linkedin_profile: `https://linkedin.com/in/${prospect.name.toLowerCase().replace(' ', '')}`,
+          prospect_type: prospectType,
+        };
+      });
+    };
+    
+    const mockProspects = generateMockProspects(clientConfig);
 
     const prospects: Prospect[] = [];
     const searchId = `search_${Date.now()}_${req.agent_id}`;
@@ -117,11 +123,11 @@ export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>
         const row = await insertRow(
           () => prospectDB.queryRow<Prospect>`
             INSERT INTO prospects (
-              agent_id, name, email, linkedin_profile, company, position, classification
+              agent_id, client_id, name, email, linkedin_profile, company, position, prospect_type
             ) VALUES (
-              ${req.agent_id}, ${mockData.name}, ${mockData.email}, 
+              ${req.agent_id}, ${agentInfo.client_id}, ${mockData.name}, ${mockData.email}, 
               ${mockData.linkedin_profile}, ${mockData.company}, 
-              ${mockData.position}, ${mockData.classification}
+              ${mockData.position}, ${mockData.prospect_type}
             )
             RETURNING *
           `,
@@ -171,7 +177,7 @@ export const simulateSearch = api<SimulateSearchRequest, SimulateSearchResponse>
 
     return {
       prospects,
-      message: `Found ${prospects.length} new prospects from LinkedIn search simulation`,
+      message: `Found ${prospects.length} new ${clientConfig.messaging_config.primary_goal} prospects for ${clientConfig.messaging_config.brand_name}`,
     };
   })
 );

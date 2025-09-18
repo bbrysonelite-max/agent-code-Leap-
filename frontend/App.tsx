@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import NetworkStatus from './components/NetworkStatus';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import ClientManagement from './components/ClientManagement';
 import ProspectManagement from './components/ProspectManagement';
 import { PriorityProspects } from './components/PriorityProspects';
 import EmailCampaigns from './components/EmailCampaigns';
@@ -43,6 +44,7 @@ function AppInner() {
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/clients" element={<ClientManagement />} />
                     <Route path="/prospects" element={<ProspectManagement />} />
                     <Route path="/priority" element={<PriorityProspects />} />
                     <Route path="/campaigns" element={<EmailCampaigns />} />

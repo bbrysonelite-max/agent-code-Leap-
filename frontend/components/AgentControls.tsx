@@ -5,28 +5,45 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import LoadingSpinner from './LoadingSpinner';
 import AgentStatusCard from './AgentStatusCard';
 import { useAgents, useCreateAgent, useControlAgent } from '../hooks/useAgents';
+import { useClients } from '../hooks/useClients';
 
 export default function AgentControls() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
 
   const { toast } = useToast();
   const { data: agents, isLoading } = useAgents();
+  const { data: clients, isLoading: clientsLoading } = useClients();
   
   const createAgentMutation = useCreateAgent();
   const controlAgentMutation = useControlAgent();
   
   // Override onSuccess for create agent to handle UI state
   const handleCreateAgent = () => {
-    createAgentMutation.mutate({ name: newAgentName }, {
+    if (!selectedClientId) {
+      toast({
+        title: 'Error',
+        description: 'Please select a client for the agent.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    createAgentMutation.mutate({ 
+      name: newAgentName, 
+      client_id: parseInt(selectedClientId)
+    }, {
       onSuccess: () => {
         setShowCreateDialog(false);
         setNewAgentName('');
+        setSelectedClientId('');
       },
     });
   };
@@ -37,6 +54,14 @@ export default function AgentControls() {
       toast({
         title: 'Error',
         description: 'Please enter a name for the agent.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!selectedClientId) {
+      toast({
+        title: 'Error',
+        description: 'Please select a client for the agent.',
         variant: 'destructive',
       });
       return;
@@ -78,7 +103,7 @@ export default function AgentControls() {
             <DialogHeader>
               <DialogTitle>Create New Agent</DialogTitle>
               <DialogDescription>
-                Create a new Nu Skin prospecting agent to start finding qualified prospects.
+                Create a new AI prospecting agent for a specific client to start finding qualified prospects.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateAgentForm}>
@@ -91,6 +116,27 @@ export default function AgentControls() {
                     onChange={(e) => setNewAgentName(e.target.value)}
                     placeholder="Enter agent name..."
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="clientSelect">Client</Label>
+                  <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a client..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientsLoading ? (
+                        <SelectItem value="loading" disabled>Loading clients...</SelectItem>
+                      ) : clients && clients.length > 0 ? (
+                        clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id.toString()}>
+                            {client.messaging_config.brand_name} ({client.business_type})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-clients" disabled>No clients available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>

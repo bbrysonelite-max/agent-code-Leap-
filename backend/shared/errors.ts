@@ -66,8 +66,14 @@ export class DatabaseError extends AppError {
 }
 
 export class BusinessLogicError extends AppError {
-  constructor(message: string, code: string, statusCode: number = 400, details?: ErrorDetails) {
+  constructor(message: string, code: string = "BUSINESS_LOGIC_ERROR", statusCode: number = 400, details?: ErrorDetails) {
     super(message, code, statusCode, details);
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(message: string, details?: ErrorDetails) {
+    super(message, "NOT_FOUND", 404, details);
   }
 }
 
