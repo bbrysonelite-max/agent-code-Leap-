@@ -1,801 +1,609 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
-import {
-  Brain,
-  Zap,
-  Plus,
-  Trash2,
-  Settings,
-  Clock,
-  Target,
-  MessageSquare,
-  Mail,
-  Phone,
-  Calendar,
-  BarChart3,
-  Lightbulb,
-  ArrowDown,
-  ArrowRight,
-  Play,
-  Save,
-  Eye,
-  Shuffle
-} from 'lucide-react';
-import backend from '~backend/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Bot, Zap, Lightbulb, Target, Clock } from 'lucide-react';
+import type { CreateSequenceRequest } from '~backend/nurturing/types';
 
-interface SequenceStep {
-  id: string;
-  stepNumber: number;
-  type: 'email' | 'sms' | 'call' | 'task' | 'wait' | 'ai_decision';
-  conditions: StepCondition[];
-  adaptiveContent: boolean;
-  dynamicTiming: boolean;
-  fallbackActions: FallbackAction[];
-  aiPersonalization: AIPersonalizationSettings;
-  branchingLogic: BranchingRule[];
-  content?: {
-    template: string;
-    subject?: string;
-    variables: string[];
-  };
-  timing?: {
-    delayDays: number;
-    delayHours: number;
-    dynamicOptimization: boolean;
-  };
+interface AISequenceBuilderProps {
+  onClose: () => void;
+  onSave: (sequence: CreateSequenceRequest) => Promise<void>;
 }
 
-interface StepCondition {
-  field: string;
-  operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains';
-  value: string;
-}
+export function AISequenceBuilder({ onClose, onSave }: AISequenceBuilderProps) {
+  const [step, setStep] = useState<'goals' | 'audience' | 'strategy' | 'generation' | 'review'>('goals');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  
+  const [goals, setGoals] = useState({
+    objective: '',
+    targetOutcome: '',
+    timeline: '',
+    industry: '',
+    productType: ''
+  });
 
-interface FallbackAction {
-  trigger: string;
-  action: 'retry' | 'skip' | 'escalate' | 'alternative_content';
-  delay: number;
-  maxAttempts: number;
-}
+  const [audience, setAudience] = useState({
+    persona: '',
+    painPoints: '',
+    decisionMakingProcess: '',
+    communicationPreferences: '',
+    currentFunnelStage: 'awareness'
+  });
 
-interface AIPersonalizationSettings {
-  enabled: boolean;
-  contentAdaptation: boolean;
-  timingOptimization: boolean;
-  channelSelection: boolean;
-  abTestVariants: boolean;
-}
+  const [strategy, setStrategy] = useState({
+    approach: '',
+    tone: '',
+    contentTypes: [] as string[],
+    sequenceLength: 5,
+    messagingFrequency: 'balanced'
+  });
 
-interface BranchingRule {
-  condition: string;
-  targetStepNumber?: number;
-  targetSequenceId?: string;
-  waitDays?: number;
-  action: 'continue' | 'skip' | 'branch' | 'exit';
-}
+  const [generatedSequence, setGeneratedSequence] = useState<CreateSequenceRequest | null>(null);
 
-interface SequenceTrigger {
-  type: 'behavior' | 'classification_change' | 'time_based' | 'manual' | 'ai_recommendation';
-  criteria: Record<string, any>;
-  priority: number;
-  active: boolean;
-}
-
-interface ExitCondition {
-  type: 'goal_achieved' | 'negative_response' | 'churn_risk' | 'manual' | 'ai_exit';
-  criteria: Record<string, any>;
-  action: 'pause' | 'complete' | 'transfer_sequence';
-  targetSequenceId?: string;
-}
-
-interface AIRecommendation {
-  type: 'content' | 'timing' | 'channel' | 'branching';
-  recommendation: string;
-  confidence: number;
-  reasoning: string;
-  impact: 'low' | 'medium' | 'high';
-}
-
-export default function AISequenceBuilder() {
-  const [sequenceName, setSequenceName] = useState('');
-  const [sequenceDescription, setSequenceDescription] = useState('');
-  const [aiOptimized, setAiOptimized] = useState(true);
-  const [adaptiveScheduling, setAdaptiveScheduling] = useState(true);
-  const [targetPersonas, setTargetPersonas] = useState<string[]>([]);
-  const [steps, setSteps] = useState<SequenceStep[]>([]);
-  const [entryTriggers, setEntryTriggers] = useState<SequenceTrigger[]>([]);
-  const [exitConditions, setExitConditions] = useState<ExitCondition[]>([]);
-  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    generateAIRecommendations();
-  }, [steps, targetPersonas]);
-
-  const generateAIRecommendations = async () => {
-    if (steps.length === 0 || !aiOptimized) return;
+  const generateSequence = async () => {
+    setIsGenerating(true);
+    setStep('generation');
+    setGenerationProgress(0);
 
     try {
-      // Simulate AI recommendations based on current sequence
-      const recommendations = await generateSequenceRecommendations();
-      setAiRecommendations(recommendations);
+      // Simulate AI generation progress
+      const progressSteps = [
+        { progress: 20, message: 'Analyzing goals and audience...' },
+        { progress: 40, message: 'Designing sequence strategy...' },
+        { progress: 60, message: 'Generating personalized content...' },
+        { progress: 80, message: 'Optimizing timing and flow...' },
+        { progress: 100, message: 'Finalizing sequence...' }
+      ];
+
+      for (const progressStep of progressSteps) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setGenerationProgress(progressStep.progress);
+      }
+
+      // Generate the actual sequence using AI
+      const sequence: CreateSequenceRequest = {
+        name: `AI-Generated: ${goals.objective}`,
+        description: `Automatically generated sequence targeting ${audience.persona} with ${strategy.approach} approach`,
+        clientId: 'default-client',
+        triggerConditions: {
+          events: ['lead_signup', 'content_download'],
+          behaviors: [
+            {
+              action: 'website_visit',
+              frequency: 1,
+              timeframe: '7d'
+            }
+          ],
+          demographics: [
+            {
+              field: 'industry',
+              operator: 'equals',
+              value: goals.industry
+            }
+          ],
+          engagement: {
+            minScore: 20
+          }
+        },
+        targetAudience: {
+          industries: [goals.industry],
+          roles: [audience.persona],
+          behaviorSegments: ['engaged_visitors']
+        },
+        steps: generateSteps()
+      };
+
+      setGeneratedSequence(sequence);
+      setStep('review');
     } catch (error) {
-      console.error('Failed to generate AI recommendations:', error);
+      console.error('Failed to generate sequence:', error);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const generateSequenceRecommendations = async (): Promise<AIRecommendation[]> => {
-    // Simulate AI analysis
-    return [
+  const generateSteps = () => {
+    const steps = [];
+    const stepTemplates = [
       {
-        type: 'timing',
-        recommendation: 'Add 2-day delay between email steps for optimal engagement',
-        confidence: 0.85,
-        reasoning: 'Analysis shows 23% higher response rates with this timing',
-        impact: 'high'
+        type: 'email' as const,
+        delayDays: 0,
+        delayHours: 1,
+        subject: `Welcome to ${goals.productType} - Let's solve ${audience.painPoints}`,
+        body: `Hi {{first_name}},
+
+Welcome! I noticed you're interested in ${goals.productType}. 
+
+Many ${audience.persona}s struggle with ${audience.painPoints}. You're not alone in this challenge.
+
+In this series, I'll share practical insights that can help you:
+• Overcome common obstacles
+• Implement proven strategies  
+• Achieve ${goals.targetOutcome}
+
+Looking forward to helping you succeed!
+
+Best regards,
+{{sender_name}}`
       },
       {
-        type: 'content',
-        recommendation: 'Include social proof in step 3 for enterprise personas',
-        confidence: 0.78,
-        reasoning: 'Enterprise prospects respond 31% better to case studies',
-        impact: 'medium'
+        type: 'email' as const,
+        delayDays: 2,
+        delayHours: 0,
+        subject: `Quick question about your ${goals.industry} challenges`,
+        body: `Hi {{first_name}},
+
+I'm curious - what's the biggest challenge you're facing with ${audience.painPoints} right now?
+
+I ask because I've worked with many ${audience.persona}s in ${goals.industry}, and the solution often depends on your specific situation.
+
+Could you hit reply and let me know? I'd love to share some targeted insights.
+
+Best,
+{{sender_name}}`
       },
       {
-        type: 'branching',
-        recommendation: 'Add AI decision point after step 2 based on engagement',
-        confidence: 0.92,
-        reasoning: 'Dynamic branching improves conversion by 18%',
-        impact: 'high'
+        type: 'email' as const,
+        delayDays: 4,
+        delayHours: 0,
+        subject: `Case study: How [Company] achieved ${goals.targetOutcome}`,
+        body: `Hi {{first_name}},
+
+I wanted to share a quick case study that might interest you.
+
+[Company Name], a ${goals.industry} company similar to {{company_name}}, was struggling with ${audience.painPoints}.
+
+Here's exactly what they did:
+1. [Strategy step 1]
+2. [Strategy step 2] 
+3. [Strategy step 3]
+
+Result: They achieved ${goals.targetOutcome} in ${goals.timeline}.
+
+Want to see if a similar approach could work for you?
+
+Best,
+{{sender_name}}`
       }
     ];
+
+    stepTemplates.slice(0, strategy.sequenceLength).forEach((template, index) => {
+      steps.push({
+        stepOrder: index,
+        stepType: template.type,
+        delayDays: template.delayDays,
+        delayHours: template.delayHours,
+        contentTemplate: {
+          type: template.type,
+          subject: template.subject,
+          body: template.body,
+          variables: ['first_name', 'company_name', 'sender_name'],
+          personalizationRules: [
+            {
+              placeholder: 'first_name',
+              source: 'prospect' as const,
+              field: 'first_name',
+              fallback: 'there'
+            },
+            {
+              placeholder: 'company_name',
+              source: 'company' as const,
+              field: 'name',
+              fallback: 'your company'
+            },
+            {
+              placeholder: 'sender_name',
+              source: 'prospect' as const,
+              field: 'assigned_rep',
+              fallback: 'The Team'
+            }
+          ],
+          dynamicContent: []
+        },
+        isActive: true
+      });
+    });
+
+    return steps;
   };
 
-  const addStep = (type: SequenceStep['type']) => {
-    const newStep: SequenceStep = {
-      id: `step_${Date.now()}`,
-      stepNumber: steps.length + 1,
-      type,
-      conditions: [],
-      adaptiveContent: aiOptimized,
-      dynamicTiming: adaptiveScheduling,
-      fallbackActions: [],
-      aiPersonalization: {
-        enabled: aiOptimized,
-        contentAdaptation: true,
-        timingOptimization: true,
-        channelSelection: false,
-        abTestVariants: aiOptimized
-      },
-      branchingLogic: [],
-      content: type !== 'wait' && type !== 'ai_decision' ? {
-        template: '',
-        subject: type === 'email' ? '' : undefined,
-        variables: []
-      } : undefined,
-      timing: {
-        delayDays: 1,
-        delayHours: 0,
-        dynamicOptimization: adaptiveScheduling
-      }
-    };
-
-    setSteps([...steps, newStep]);
-  };
-
-  const updateStep = (stepId: string, updates: Partial<SequenceStep>) => {
-    setSteps(steps.map(step => 
-      step.id === stepId ? { ...step, ...updates } : step
-    ));
-  };
-
-  const deleteStep = (stepId: string) => {
-    const newSteps = steps.filter(step => step.id !== stepId);
-    // Renumber steps
-    const renumberedSteps = newSteps.map((step, index) => ({
-      ...step,
-      stepNumber: index + 1
-    }));
-    setSteps(renumberedSteps);
-  };
-
-  const generateAIContent = async (stepId: string) => {
-    const step = steps.find(s => s.id === stepId);
-    if (!step) return;
-
-    setIsGeneratingAI(true);
+  const handleSave = async () => {
+    if (!generatedSequence) return;
+    
     try {
-      const content = await backend.nurturing.generateAIContent({
-        contentType: step.type as any,
-        classification: 'warm',
-        stage: 'consideration',
-        context: {
-          stepNumber: step.stepNumber,
-          sequenceName,
-          targetPersonas
-        }
-      });
-
-      updateStep(stepId, {
-        content: {
-          template: content.content,
-          subject: content.subject,
-          variables: extractVariables(content.content)
-        }
-      });
-
-      toast({
-        title: "AI Content Generated",
-        description: `Generated personalized content for step ${step.stepNumber}`
-      });
-    } catch (error) {
-      console.error('Failed to generate AI content:', error);
-      toast({
-        title: "Generation Failed",
-        description: "Could not generate AI content",
-        variant: "destructive"
-      });
-    } finally {
-      setIsGeneratingAI(false);
-    }
-  };
-
-  const optimizeSequenceTiming = async () => {
-    setIsGeneratingAI(true);
-    try {
-      // Simulate AI timing optimization
-      const optimizedSteps = steps.map(step => ({
-        ...step,
-        timing: {
-          ...step.timing!,
-          delayDays: Math.max(1, step.timing!.delayDays * 1.2), // AI recommends longer delays
-          dynamicOptimization: true
-        }
-      }));
-
-      setSteps(optimizedSteps);
-      
-      toast({
-        title: "Timing Optimized",
-        description: "AI has optimized sequence timing for better engagement"
-      });
-    } catch (error) {
-      console.error('Failed to optimize timing:', error);
-      toast({
-        title: "Optimization Failed",
-        description: "Could not optimize sequence timing",
-        variant: "destructive"
-      });
-    } finally {
-      setIsGeneratingAI(false);
-    }
-  };
-
-  const saveSequence = async () => {
-    if (!sequenceName.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide a sequence name",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (steps.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please add at least one step to the sequence",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await backend.nurturing.createIntelligentSequence({
-        name: sequenceName,
-        description: sequenceDescription,
-        targetPersonas,
-        steps: steps.map(({ id, ...step }) => step),
-        entryTriggers,
-        exitConditions,
-        aiOptimized
-      });
-
-      toast({
-        title: "Sequence Saved",
-        description: `${sequenceName} has been created successfully`
-      });
-
-      // Reset form
-      setSequenceName('');
-      setSequenceDescription('');
-      setSteps([]);
-      setTargetPersonas([]);
-      setEntryTriggers([]);
-      setExitConditions([]);
+      await onSave(generatedSequence);
+      onClose();
     } catch (error) {
       console.error('Failed to save sequence:', error);
-      toast({
-        title: "Save Failed",
-        description: "Could not save the sequence",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const extractVariables = (content: string): string[] => {
-    const matches = content.match(/{{(\w+)}}/g);
-    return matches ? matches.map(match => match.slice(2, -2)) : [];
-  };
-
-  const getStepIcon = (type: string) => {
-    switch (type) {
-      case 'email': return <Mail className="h-4 w-4" />;
-      case 'sms': return <MessageSquare className="h-4 w-4" />;
-      case 'call': return <Phone className="h-4 w-4" />;
-      case 'task': return <Calendar className="h-4 w-4" />;
-      case 'wait': return <Clock className="h-4 w-4" />;
-      case 'ai_decision': return <Brain className="h-4 w-4" />;
-      default: return <Target className="h-4 w-4" />;
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Brain className="h-8 w-8 text-primary" />
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5 text-blue-600" />
             AI Sequence Builder
-          </h1>
-          <p className="text-muted-foreground">
-            Create intelligent nurturing sequences powered by AI
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setPreviewMode(!previewMode)}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            {previewMode ? 'Edit' : 'Preview'}
-          </Button>
-          <Button onClick={saveSequence}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Sequence
-          </Button>
-        </div>
-      </div>
+          </DialogTitle>
+        </DialogHeader>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* AI Recommendations Sidebar */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5" />
-                AI Recommendations
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {aiRecommendations.map((rec, index) => (
-                <div key={index} className="p-3 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant={rec.impact === 'high' ? 'default' : 'secondary'}>
-                      {rec.type}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {Math.round(rec.confidence * 100)}% confidence
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium mb-1">{rec.recommendation}</p>
-                  <p className="text-xs text-muted-foreground">{rec.reasoning}</p>
-                  <Button size="sm" variant="outline" className="w-full mt-2">
-                    Apply
-                  </Button>
-                </div>
-              ))}
-
-              <div className="pt-4 space-y-2">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={optimizeSequenceTiming}
-                  disabled={isGeneratingAI}
+        <div className="space-y-6">
+          {/* Progress Indicator */}
+          <div className="flex items-center justify-between text-sm">
+            {['Goals', 'Audience', 'Strategy', 'Generate', 'Review'].map((stepName, index) => (
+              <div key={stepName} className="flex items-center">
+                <div 
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                    index <= ['goals', 'audience', 'strategy', 'generation', 'review'].indexOf(step)
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
                 >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Optimize Timing
-                </Button>
-                <Button size="sm" variant="outline" className="w-full">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Analyze Performance
-                </Button>
+                  {index + 1}
+                </div>
+                <span className="ml-2 hidden sm:inline">{stepName}</span>
+                {index < 4 && <div className="w-8 h-px bg-gray-300 mx-2" />}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ))}
+          </div>
 
-        {/* Main Builder */}
-        <div className="lg:col-span-3">
-          <Tabs defaultValue="setup" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="setup">Setup</TabsTrigger>
-              <TabsTrigger value="steps">Steps</TabsTrigger>
-              <TabsTrigger value="triggers">Triggers</TabsTrigger>
-              <TabsTrigger value="settings">AI Settings</TabsTrigger>
-            </TabsList>
+          {/* Goals Step */}
+          {step === 'goals' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Define Your Goals
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>What's your main objective?</Label>
+                  <Select value={goals.objective} onValueChange={(value) => setGoals(prev => ({ ...prev, objective: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select objective" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="generate_leads">Generate qualified leads</SelectItem>
+                      <SelectItem value="nurture_prospects">Nurture existing prospects</SelectItem>
+                      <SelectItem value="reactivate_dormant">Reactivate dormant leads</SelectItem>
+                      <SelectItem value="educate_market">Educate target market</SelectItem>
+                      <SelectItem value="accelerate_sales">Accelerate sales cycle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <TabsContent value="setup" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sequence Configuration</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Sequence Name</Label>
-                      <Input
-                        id="name"
-                        value={sequenceName}
-                        onChange={(e) => setSequenceName(e.target.value)}
-                        placeholder="Enter sequence name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="personas">Target Personas</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select personas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="enterprise">Enterprise CTO</SelectItem>
-                          <SelectItem value="startup">Startup Founder</SelectItem>
-                          <SelectItem value="marketing">Marketing Manager</SelectItem>
-                          <SelectItem value="sales">Sales Director</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                <div>
+                  <Label>Target outcome</Label>
+                  <Input
+                    value={goals.targetOutcome}
+                    onChange={(e) => setGoals(prev => ({ ...prev, targetOutcome: e.target.value }))}
+                    placeholder="e.g., Increase qualified demos by 30%"
+                  />
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={sequenceDescription}
-                      onChange={(e) => setSequenceDescription(e.target.value)}
-                      placeholder="Describe the sequence purpose and strategy"
-                      rows={3}
+                    <Label>Industry</Label>
+                    <Input
+                      value={goals.industry}
+                      onChange={(e) => setGoals(prev => ({ ...prev, industry: e.target.value }))}
+                      placeholder="e.g., SaaS, Healthcare, Manufacturing"
                     />
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="ai-optimized"
-                        checked={aiOptimized}
-                        onCheckedChange={setAiOptimized}
-                      />
-                      <Label htmlFor="ai-optimized">AI Optimization</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="adaptive-scheduling"
-                        checked={adaptiveScheduling}
-                        onCheckedChange={setAdaptiveScheduling}
-                      />
-                      <Label htmlFor="adaptive-scheduling">Adaptive Scheduling</Label>
-                    </div>
+                  <div>
+                    <Label>Product/Service Type</Label>
+                    <Input
+                      value={goals.productType}
+                      onChange={(e) => setGoals(prev => ({ ...prev, productType: e.target.value }))}
+                      placeholder="e.g., CRM software, Marketing automation"
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
 
-            <TabsContent value="steps" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Sequence Steps</CardTitle>
-                    <div className="flex gap-2">
-                      <Select onValueChange={(value) => addStep(value as any)}>
-                        <SelectTrigger className="w-48">
-                          <SelectValue placeholder="Add step" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="sms">SMS</SelectItem>
-                          <SelectItem value="call">Call Reminder</SelectItem>
-                          <SelectItem value="task">Task</SelectItem>
-                          <SelectItem value="wait">Wait/Delay</SelectItem>
-                          <SelectItem value="ai_decision">AI Decision</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                <div>
+                  <Label>Timeline</Label>
+                  <Select value={goals.timeline} onValueChange={(value) => setGoals(prev => ({ ...prev, timeline: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timeline" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30_days">30 days</SelectItem>
+                      <SelectItem value="60_days">60 days</SelectItem>
+                      <SelectItem value="90_days">90 days</SelectItem>
+                      <SelectItem value="6_months">6 months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button 
+                  onClick={() => setStep('audience')} 
+                  className="w-full"
+                  disabled={!goals.objective || !goals.industry}
+                >
+                  Next: Define Audience
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Audience Step */}
+          {step === 'audience' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Define Your Audience
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Target persona</Label>
+                  <Input
+                    value={audience.persona}
+                    onChange={(e) => setAudience(prev => ({ ...prev, persona: e.target.value }))}
+                    placeholder="e.g., Marketing Director, Sales Manager, CEO"
+                  />
+                </div>
+
+                <div>
+                  <Label>Main pain points</Label>
+                  <Textarea
+                    value={audience.painPoints}
+                    onChange={(e) => setAudience(prev => ({ ...prev, painPoints: e.target.value }))}
+                    placeholder="What challenges are they facing?"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label>Decision-making process</Label>
+                  <Textarea
+                    value={audience.decisionMakingProcess}
+                    onChange={(e) => setAudience(prev => ({ ...prev, decisionMakingProcess: e.target.value }))}
+                    placeholder="How do they make purchasing decisions?"
+                    rows={2}
+                  />
+                </div>
+
+                <div>
+                  <Label>Communication preferences</Label>
+                  <Select 
+                    value={audience.communicationPreferences} 
+                    onValueChange={(value) => setAudience(prev => ({ ...prev, communicationPreferences: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select preference" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="formal">Formal and professional</SelectItem>
+                      <SelectItem value="casual">Casual and friendly</SelectItem>
+                      <SelectItem value="technical">Technical and detailed</SelectItem>
+                      <SelectItem value="concise">Concise and direct</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep('goals')}>
+                    Back
+                  </Button>
+                  <Button 
+                    onClick={() => setStep('strategy')} 
+                    className="flex-1"
+                    disabled={!audience.persona || !audience.painPoints}
+                  >
+                    Next: Choose Strategy
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Strategy Step */}
+          {step === 'strategy' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5" />
+                  Choose Strategy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Nurturing approach</Label>
+                  <Select 
+                    value={strategy.approach} 
+                    onValueChange={(value) => setStrategy(prev => ({ ...prev, approach: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select approach" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="educational">Educational content series</SelectItem>
+                      <SelectItem value="value_driven">Value-driven insights</SelectItem>
+                      <SelectItem value="problem_solving">Problem-solving focused</SelectItem>
+                      <SelectItem value="social_proof">Social proof and case studies</SelectItem>
+                      <SelectItem value="consultative">Consultative approach</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Tone of voice</Label>
+                  <Select 
+                    value={strategy.tone} 
+                    onValueChange={(value) => setStrategy(prev => ({ ...prev, tone: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="professional">Professional</SelectItem>
+                      <SelectItem value="friendly">Friendly</SelectItem>
+                      <SelectItem value="authoritative">Authoritative</SelectItem>
+                      <SelectItem value="conversational">Conversational</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Sequence length</Label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="3"
+                      max="10"
+                      value={strategy.sequenceLength}
+                      onChange={(e) => setStrategy(prev => ({ ...prev, sequenceLength: parseInt(e.target.value) }))}
+                      className="flex-1"
+                    />
+                    <span className="w-16 text-center">{strategy.sequenceLength} steps</span>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {steps.map((step, index) => (
-                      <div key={step.id}>
-                        <Card>
-                          <CardHeader>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-medium">
-                                  {step.stepNumber}
-                                </div>
-                                {getStepIcon(step.type)}
-                                <div>
-                                  <h4 className="font-medium capitalize">{step.type}</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    Step {step.stepNumber}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {step.adaptiveContent && (
-                                  <Badge variant="secondary">
-                                    <Brain className="h-3 w-3 mr-1" />
-                                    AI Content
-                                  </Badge>
-                                )}
-                                {step.dynamicTiming && (
-                                  <Badge variant="secondary">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    Smart Timing
-                                  </Badge>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => deleteStep(step.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            {step.content && (
-                              <div className="space-y-3">
-                                {step.type === 'email' && (
-                                  <div>
-                                    <Label>Subject Line</Label>
-                                    <Input
-                                      value={step.content.subject || ''}
-                                      onChange={(e) => updateStep(step.id, {
-                                        content: { ...step.content!, subject: e.target.value }
-                                      })}
-                                      placeholder="Email subject line"
-                                    />
-                                  </div>
-                                )}
-                                <div>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <Label>Content Template</Label>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => generateAIContent(step.id)}
-                                      disabled={isGeneratingAI}
-                                    >
-                                      {isGeneratingAI ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                                      ) : (
-                                        <Brain className="h-4 w-4" />
-                                      )}
-                                      Generate AI Content
-                                    </Button>
-                                  </div>
-                                  <Textarea
-                                    value={step.content.template}
-                                    onChange={(e) => updateStep(step.id, {
-                                      content: { ...step.content!, template: e.target.value }
-                                    })}
-                                    placeholder="Enter content template with {{variables}}"
-                                    rows={4}
-                                  />
-                                </div>
-                                {step.content.variables.length > 0 && (
-                                  <div>
-                                    <Label>Variables</Label>
-                                    <div className="flex flex-wrap gap-2 mt-1">
-                                      {step.content.variables.map(variable => (
-                                        <Badge key={variable} variant="outline">
-                                          {variable}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                </div>
 
-                            {step.timing && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-accent rounded-lg">
-                                <div>
-                                  <Label>Delay Days</Label>
-                                  <Input
-                                    type="number"
-                                    value={step.timing.delayDays}
-                                    onChange={(e) => updateStep(step.id, {
-                                      timing: { ...step.timing!, delayDays: parseInt(e.target.value) || 0 }
-                                    })}
-                                    min="0"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Delay Hours</Label>
-                                  <Input
-                                    type="number"
-                                    value={step.timing.delayHours}
-                                    onChange={(e) => updateStep(step.id, {
-                                      timing: { ...step.timing!, delayHours: parseInt(e.target.value) || 0 }
-                                    })}
-                                    min="0"
-                                    max="23"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                        
-                        {index < steps.length - 1 && (
-                          <div className="flex justify-center py-2">
-                            <ArrowDown className="h-6 w-6 text-muted-foreground" />
+                <div>
+                  <Label>Messaging frequency</Label>
+                  <Select 
+                    value={strategy.messagingFrequency} 
+                    onValueChange={(value) => setStrategy(prev => ({ ...prev, messagingFrequency: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="aggressive">Aggressive (every 1-2 days)</SelectItem>
+                      <SelectItem value="balanced">Balanced (every 3-4 days)</SelectItem>
+                      <SelectItem value="conservative">Conservative (weekly)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep('audience')}>
+                    Back
+                  </Button>
+                  <Button 
+                    onClick={generateSequence} 
+                    className="flex-1 flex items-center gap-2"
+                    disabled={!strategy.approach || !strategy.tone}
+                  >
+                    <Zap className="h-4 w-4" />
+                    Generate Sequence
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Generation Step */}
+          {step === 'generation' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 animate-spin" />
+                  Generating Your Sequence
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="text-center">
+                  <Progress value={generationProgress} className="w-full mb-4" />
+                  <p className="text-sm text-gray-600">
+                    {generationProgress < 20 && 'Analyzing goals and audience...'}
+                    {generationProgress >= 20 && generationProgress < 40 && 'Designing sequence strategy...'}
+                    {generationProgress >= 40 && generationProgress < 60 && 'Generating personalized content...'}
+                    {generationProgress >= 60 && generationProgress < 80 && 'Optimizing timing and flow...'}
+                    {generationProgress >= 80 && 'Finalizing sequence...'}
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">What we're creating for you:</h4>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• Personalized email sequence with {strategy.sequenceLength} steps</li>
+                    <li>• {strategy.approach} messaging approach</li>
+                    <li>• {strategy.tone} tone of voice</li>
+                    <li>• Optimized timing based on {strategy.messagingFrequency} frequency</li>
+                    <li>• Dynamic personalization variables</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Review Step */}
+          {step === 'review' && generatedSequence && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Review Your Sequence
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-green-800 mb-2">✅ Sequence Generated Successfully!</h4>
+                  <p className="text-sm text-green-700">
+                    Your AI-powered nurturing sequence is ready. Review the details below and customize if needed.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label className="font-medium">Sequence Name</Label>
+                    <p className="text-sm text-gray-600">{generatedSequence.name}</p>
+                  </div>
+
+                  <div>
+                    <Label className="font-medium">Description</Label>
+                    <p className="text-sm text-gray-600">{generatedSequence.description}</p>
+                  </div>
+
+                  <div>
+                    <Label className="font-medium">Steps ({generatedSequence.steps.length})</Label>
+                    <div className="space-y-2 mt-2">
+                      {generatedSequence.steps.map((step, index) => (
+                        <div key={index} className="border rounded p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="secondary">Step {index + 1}</Badge>
+                            <Badge className="capitalize">{step.stepType}</Badge>
+                            <span className="text-sm text-gray-600">
+                              {step.delayDays > 0 && `${step.delayDays}d `}
+                              {step.delayHours > 0 && `${step.delayHours}h`}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {steps.length === 0 && (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No steps added yet. Use the dropdown above to add your first step.</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="triggers" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Entry Triggers & Exit Conditions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-medium mb-3">Entry Triggers</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-4 p-3 border rounded-lg">
-                        <Select>
-                          <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Trigger type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="behavior">Behavior</SelectItem>
-                            <SelectItem value="classification_change">Classification Change</SelectItem>
-                            <SelectItem value="time_based">Time Based</SelectItem>
-                            <SelectItem value="manual">Manual</SelectItem>
-                            <SelectItem value="ai_recommendation">AI Recommendation</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input placeholder="Trigger criteria" className="flex-1" />
-                        <Button size="sm">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
+                          <p className="font-medium text-sm">{step.contentTemplate.subject}</p>
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                            {step.contentTemplate.body.substring(0, 120)}...
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
+                </div>
 
-                  <div>
-                    <h4 className="font-medium mb-3">Exit Conditions</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-4 p-3 border rounded-lg">
-                        <Select>
-                          <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Exit condition" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="goal_achieved">Goal Achieved</SelectItem>
-                            <SelectItem value="negative_response">Negative Response</SelectItem>
-                            <SelectItem value="churn_risk">Churn Risk</SelectItem>
-                            <SelectItem value="manual">Manual</SelectItem>
-                            <SelectItem value="ai_exit">AI Exit</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input placeholder="Exit criteria" className="flex-1" />
-                        <Button size="sm">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="settings" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>AI Settings & Optimization</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Content AI</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Switch id="content-adaptation" defaultChecked={aiOptimized} />
-                          <Label htmlFor="content-adaptation">Content Adaptation</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="ab-testing" defaultChecked={aiOptimized} />
-                          <Label htmlFor="ab-testing">A/B Test Variants</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="personalization" defaultChecked={aiOptimized} />
-                          <Label htmlFor="personalization">Smart Personalization</Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Timing AI</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Switch id="timing-optimization" defaultChecked={adaptiveScheduling} />
-                          <Label htmlFor="timing-optimization">Timing Optimization</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="channel-selection" />
-                          <Label htmlFor="channel-selection">Channel Selection</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="send-time-optimization" defaultChecked={adaptiveScheduling} />
-                          <Label htmlFor="send-time-optimization">Send Time Optimization</Label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-3">Performance Monitoring</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-3 border rounded-lg text-center">
-                        <p className="text-2xl font-bold text-green-500">+23%</p>
-                        <p className="text-sm text-muted-foreground">Response Rate Lift</p>
-                      </div>
-                      <div className="p-3 border rounded-lg text-center">
-                        <p className="text-2xl font-bold text-blue-500">+31%</p>
-                        <p className="text-sm text-muted-foreground">Engagement Improvement</p>
-                      </div>
-                      <div className="p-3 border rounded-lg text-center">
-                        <p className="text-2xl font-bold text-purple-500">+18%</p>
-                        <p className="text-sm text-muted-foreground">Conversion Rate Boost</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep('strategy')}>
+                    Regenerate
+                  </Button>
+                  <Button onClick={handleSave} className="flex-1">
+                    Save Sequence
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

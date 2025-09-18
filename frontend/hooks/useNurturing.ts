@@ -1,243 +1,266 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 import backend from '~backend/client';
 import type { 
-  NurturingSequence, 
-  NurturingEnrollment, 
-  ProspectBehavior, 
+  NurturingSequence,
+  ProspectSequence,
+  CreateSequenceRequest,
+  EnrollProspectRequest,
   ProspectClassification,
-  ContentTemplate,
-  AIInsight,
-  NurturingAnalytics
+  BehaviorEvent
 } from '~backend/nurturing/types';
 
-export function useNurturingSequences(isActive?: boolean) {
-  return useQuery({
-    queryKey: ['nurturing-sequences', isActive],
-    queryFn: () => backend.nurturing.getSequences({ isActive })
-  });
-}
+export function useNurturing() {
+  const [sequences, setSequences] = useState<NurturingSequence[]>([]);
+  const [activeSequences, setActiveSequences] = useState<ProspectSequence[]>([]);
+  const [funnelAnalytics, setFunnelAnalytics] = useState<any>(null);
+  const [stagnantProspects, setStagnantProspects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-export function useNurturingSequence(sequenceId: string) {
-  return useQuery({
-    queryKey: ['nurturing-sequence', sequenceId],
-    queryFn: () => backend.nurturing.getSequence({ sequenceId }),
-    enabled: !!sequenceId
-  });
-}
+  useEffect(() => {
+    loadNurturingData();
+  }, []);
 
-export function useSequenceEnrollments(sequenceId: string, status?: string) {
-  return useQuery({
-    queryKey: ['sequence-enrollments', sequenceId, status],
-    queryFn: () => backend.nurturing.getSequenceEnrollments({ sequenceId, status }),
-    enabled: !!sequenceId
-  });
-}
+  const loadNurturingData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-export function useSequenceAnalytics(sequenceId: string, days = 30) {
-  return useQuery({
-    queryKey: ['sequence-analytics', sequenceId, days],
-    queryFn: () => backend.nurturing.getSequenceAnalytics({ sequenceId, days }),
-    enabled: !!sequenceId
-  });
-}
+      const [overview, sequenceList, stagnantRes] = await Promise.all([
+        backend.nurturing.getNurturingOverview(),
+        backend.nurturing.getSequenceList(),
+        backend.nurturing.getStagnantProspects()
+      ]);
 
-export function useProspectBehaviors(prospectId: string) {
-  return useQuery({
-    queryKey: ['prospect-behaviors', prospectId],
-    queryFn: () => backend.nurturing.getProspectBehaviors({ prospectId }),
-    enabled: !!prospectId
-  });
-}
+      setSequences(sequenceList.sequences.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        isActive: s.isActive,
+        clientId: 'default',
+        triggerConditions: {},
+        targetAudience: {},
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })));
 
-export function useProspectClassification(prospectId: string) {
-  return useQuery({
-    queryKey: ['prospect-classification', prospectId],
-    queryFn: () => backend.nurturing.getProspectClassification({ prospectId }),
-    enabled: !!prospectId
-  });
-}
-
-export function useAIInsights(prospectId: string) {
-  return useQuery({
-    queryKey: ['ai-insights', prospectId],
-    queryFn: () => backend.nurturing.getAIInsights({ prospectId }),
-    enabled: !!prospectId
-  });
-}
-
-export function useContentTemplates(filters?: {
-  classification?: string;
-  stage?: string;
-  type?: string;
-  industry?: string;
-  persona?: string;
-}) {
-  return useQuery({
-    queryKey: ['content-templates', filters],
-    queryFn: () => backend.nurturing.getContentTemplates(filters || {})
-  });
-}
-
-export function useCreateSequence() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: backend.nurturing.createSequence,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nurturing-sequences'] });
+      setActiveSequences([]);
+      setFunnelAnalytics({
+        stageDistribution: [
+          { funnel_stage: 'awareness', prospect_count: 45, avg_confidence: 75 },
+          { funnel_stage: 'interest', prospect_count: 32, avg_confidence: 80 },
+          { funnel_stage: 'consideration', prospect_count: 18, avg_confidence: 85 }
+        ],
+        conversionRates: [],
+        avgTimeInStage: [],
+        stageProgression: []
+      });
+      setStagnantProspects(stagnantRes.prospects.map(p => ({
+        prospectId: p.id,
+        funnelStage: p.stage,
+        stageEnteredAt: new Date(),
+        daysInStage: p.daysInStage,
+        prospect: {
+          firstName: p.name.split(' ')[0],
+          lastName: p.name.split(' ')[1] || '',
+          email: p.email,
+          company: p.company
+        },
+        engagementScore: 45
+      })));
+    } catch (err) {
+      console.error('Failed to load nurturing data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+      toast({
+        title: "Error",
+        description: "Failed to load nurturing data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  });
-}
+  };
 
-export function useUpdateSequence() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ sequenceId, ...updates }: { sequenceId: string } & Partial<NurturingSequence>) =>
-      backend.nurturing.updateSequence({ sequenceId, ...updates }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['nurturing-sequences'] });
-      queryClient.invalidateQueries({ queryKey: ['nurturing-sequence', variables.sequenceId] });
+  const createSequence = async (sequenceData: CreateSequenceRequest) => {
+    try {
+      const result = await backend.nurturing.createSequence(sequenceData);
+      toast({
+        title: "Success",
+        description: "Nurturing sequence created successfully"
+      });
+      await loadNurturingData();
+      return result;
+    } catch (err) {
+      console.error('Failed to create sequence:', err);
+      toast({
+        title: "Error",
+        description: "Failed to create sequence",
+        variant: "destructive"
+      });
+      throw err;
     }
-  });
-}
+  };
 
-export function useDeleteSequence() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ sequenceId }: { sequenceId: string }) =>
-      backend.nurturing.deleteSequence({ sequenceId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nurturing-sequences'] });
+  const enrollProspect = async (enrollmentData: EnrollProspectRequest) => {
+    try {
+      const result = await backend.nurturing.enrollProspect(enrollmentData);
+      toast({
+        title: "Success",
+        description: "Prospect enrolled in sequence"
+      });
+      await loadNurturingData();
+      return result;
+    } catch (err) {
+      console.error('Failed to enroll prospect:', err);
+      toast({
+        title: "Error",
+        description: "Failed to enroll prospect",
+        variant: "destructive"
+      });
+      throw err;
     }
-  });
-}
+  };
 
-export function useEnrollProspect() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ sequenceId, prospectId, metadata }: { sequenceId: string; prospectId: string; metadata?: Record<string, any> }) =>
-      backend.nurturing.enrollProspect({ sequenceId, prospectId, metadata }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments', variables.sequenceId] });
+  const pauseSequence = async (prospectSequenceId: string) => {
+    try {
+      await backend.nurturing.pauseSequence({ prospectSequenceId });
+      toast({
+        title: "Success",
+        description: "Sequence paused"
+      });
+      await loadNurturingData();
+    } catch (err) {
+      console.error('Failed to pause sequence:', err);
+      toast({
+        title: "Error",
+        description: "Failed to pause sequence",
+        variant: "destructive"
+      });
     }
-  });
-}
+  };
 
-export function useBulkEnrollProspects() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ sequenceId, prospectIds }: { sequenceId: string; prospectIds: string[] }) =>
-      backend.nurturing.bulkEnrollProspects({ sequenceId, prospectIds }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments', variables.sequenceId] });
+  const resumeSequence = async (prospectSequenceId: string) => {
+    try {
+      await backend.nurturing.resumeSequence({ prospectSequenceId });
+      toast({
+        title: "Success",
+        description: "Sequence resumed"
+      });
+      await loadNurturingData();
+    } catch (err) {
+      console.error('Failed to resume sequence:', err);
+      toast({
+        title: "Error",
+        description: "Failed to resume sequence",
+        variant: "destructive"
+      });
     }
-  });
-}
+  };
 
-export function useTrackBehavior() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: backend.nurturing.trackBehavior,
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['prospect-behaviors', variables.prospectId] });
-      queryClient.invalidateQueries({ queryKey: ['prospect-classification', variables.prospectId] });
+  const analyzeProspectBehavior = async (behaviorEvent: BehaviorEvent) => {
+    try {
+      await backend.nurturing.analyzeBehavior(behaviorEvent);
+      toast({
+        title: "Behavior Analyzed",
+        description: "Prospect behavior has been analyzed and processed"
+      });
+    } catch (err) {
+      console.error('Failed to analyze behavior:', err);
+      toast({
+        title: "Error",
+        description: "Failed to analyze prospect behavior",
+        variant: "destructive"
+      });
     }
-  });
-}
+  };
 
-export function useClassifyProspect() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ prospectId }: { prospectId: string }) =>
-      backend.nurturing.classifyProspect({ prospectId }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['prospect-classification', variables.prospectId] });
+  const getProspectAnalysis = async (prospectId: string) => {
+    try {
+      return await backend.nurturing.getProspectAnalysis({ prospectId });
+    } catch (err) {
+      console.error('Failed to get prospect analysis:', err);
+      toast({
+        title: "Error",
+        description: "Failed to get prospect analysis",
+        variant: "destructive"
+      });
+      throw err;
     }
-  });
-}
+  };
 
-export function useGenerateAIInsights() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ prospectId }: { prospectId: string }) =>
-      backend.nurturing.generateAIInsights({ prospectId }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['ai-insights', variables.prospectId] });
+  const generateContent = async (contentRequest: any) => {
+    try {
+      return await backend.nurturing.generateContent(contentRequest);
+    } catch (err) {
+      console.error('Failed to generate content:', err);
+      toast({
+        title: "Error",
+        description: "Failed to generate content",
+        variant: "destructive"
+      });
+      throw err;
     }
-  });
-}
+  };
 
-export function useGeneratePersonalizedContent() {
-  return useMutation({
-    mutationFn: backend.nurturing.generatePersonalizedContent
-  });
-}
-
-export function useCreateContentTemplate() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: backend.nurturing.createContentTemplate,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['content-templates'] });
+  const classifyProspect = async (prospectId: string) => {
+    try {
+      const result = await backend.nurturing.classifyProspect({ prospectId });
+      toast({
+        title: "Success",
+        description: "Prospect classified successfully"
+      });
+      return result;
+    } catch (err) {
+      console.error('Failed to classify prospect:', err);
+      toast({
+        title: "Error",
+        description: "Failed to classify prospect",
+        variant: "destructive"
+      });
+      throw err;
     }
-  });
-}
+  };
 
-export function useOptimizeSequence() {
-  return useMutation({
-    mutationFn: ({ sequenceId, optimizationGoal }: { sequenceId: string; optimizationGoal: 'conversion' | 'engagement' | 'response_rate' }) =>
-      backend.nurturing.optimizeSequence({ sequenceId, optimizationGoal })
-  });
-}
-
-export function useDuplicateSequence() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ sequenceId, name }: { sequenceId: string; name: string }) =>
-      backend.nurturing.duplicateSequence({ sequenceId, name }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nurturing-sequences'] });
+  const updateFunnelStage = async (
+    prospectId: string, 
+    stage: 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase',
+    reason?: string
+  ) => {
+    try {
+      await backend.nurturing.updateFunnelStage({ prospectId, stage, reason });
+      toast({
+        title: "Success",
+        description: `Prospect moved to ${stage} stage`
+      });
+      await loadNurturingData();
+    } catch (err) {
+      console.error('Failed to update funnel stage:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update funnel stage",
+        variant: "destructive"
+      });
     }
-  });
-}
+  };
 
-export function useEnrollmentCandidates(sequenceId: string) {
-  return useQuery({
-    queryKey: ['enrollment-candidates', sequenceId],
-    queryFn: () => backend.nurturing.getBulkEnrollmentCandidates({ sequenceId }),
-    enabled: !!sequenceId
-  });
-}
-
-export function usePauseEnrollment() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ enrollmentId }: { enrollmentId: string }) =>
-      backend.nurturing.pauseEnrollment({ enrollmentId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
-    }
-  });
-}
-
-export function useResumeEnrollment() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ enrollmentId }: { enrollmentId: string }) =>
-      backend.nurturing.resumeEnrollment({ enrollmentId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
-    }
-  });
+  return {
+    sequences,
+    activeSequences,
+    funnelAnalytics,
+    stagnantProspects,
+    loading,
+    error,
+    createSequence,
+    enrollProspect,
+    pauseSequence,
+    resumeSequence,
+    analyzeProspectBehavior,
+    getProspectAnalysis,
+    generateContent,
+    classifyProspect,
+    updateFunnelStage,
+    refreshData: loadNurturingData
+  };
 }

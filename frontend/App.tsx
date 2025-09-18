@@ -26,8 +26,8 @@ import RateLimitingDashboard from './components/RateLimitingDashboard';
 import { ReportingDashboard } from './components/ReportingDashboard';
 import { ComplianceDashboard } from './components/ComplianceDashboard';
 import NurturingDashboard from './components/NurturingDashboard';
-import IntelligentNurturingDashboard from './components/IntelligentNurturingDashboard';
-import AISequenceBuilder from './components/AISequenceBuilder';
+import { IntelligentNurturingDashboard } from './components/IntelligentNurturingDashboard';
+import { AISequenceBuilder } from './components/AISequenceBuilder';
 import RealTimeEngagementTracker from './components/RealTimeEngagementTracker';
 
 const PUBLISHABLE_KEY = "pk_test_Y2xlYXItZmluY2gtMS5jbGVyay5hY2NvdW50cy5kZXYk";

@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Users, Play, Pause, Plus, Search, Filter } from 'lucide-react';
-import { useSequenceEnrollments, useEnrollmentCandidates, useBulkEnrollProspects } from '../hooks/useNurturing';
+import { useNurturing } from '../hooks/useNurturing';
 import { useToast } from '@/components/ui/use-toast';
 import LoadingSpinner from './LoadingSpinner';
 

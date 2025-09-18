@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Mail, MessageSquare, Plus, Search, Filter, Edit, Copy, BarChart3 } from 'lucide-react';
-import { useContentTemplates, useCreateContentTemplate } from '../hooks/useNurturing';
+import { useNurturing } from '../hooks/useNurturing';
 import { useToast } from '@/components/ui/use-toast';
 import LoadingSpinner from './LoadingSpinner';
 

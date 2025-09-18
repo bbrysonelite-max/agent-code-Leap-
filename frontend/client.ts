@@ -42,13 +42,12 @@ export class Client {
     public readonly client: client.ServiceClient
     public readonly db_performance: db_performance.ServiceClient
     public readonly email: email.ServiceClient
-    public readonly forecasting: forecasting.ServiceClient
     public readonly gdpr: gdpr.ServiceClient
     public readonly hubspot: hubspot.ServiceClient
+    public readonly nurturing: nurturing.ServiceClient
     public readonly prospect: prospect.ServiceClient
     public readonly rate_limiting: rate_limiting.ServiceClient
     public readonly realtime: realtime.ServiceClient
-    public readonly reporting: reporting.ServiceClient
     public readonly scoring: scoring.ServiceClient
     private readonly options: ClientOptions
     private readonly target: string
@@ -73,13 +72,12 @@ export class Client {
         this.client = new client.ServiceClient(base)
         this.db_performance = new db_performance.ServiceClient(base)
         this.email = new email.ServiceClient(base)
-        this.forecasting = new forecasting.ServiceClient(base)
         this.gdpr = new gdpr.ServiceClient(base)
         this.hubspot = new hubspot.ServiceClient(base)
+        this.nurturing = new nurturing.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
         this.rate_limiting = new rate_limiting.ServiceClient(base)
         this.realtime = new realtime.ServiceClient(base)
-        this.reporting = new reporting.ServiceClient(base)
         this.scoring = new scoring.ServiceClient(base)
     }
 
@@ -127,7 +125,6 @@ export interface ClientOptions {
  * Import the endpoint handlers to derive the types for the client.
  */
 import { updateStatus as api_agent_control_updateStatus } from "~backend/agent/control";
-import { create as api_agent_create_create } from "~backend/agent/create";
 import { list as api_agent_list_list } from "~backend/agent/list";
 
 export namespace agent {
@@ -145,10 +142,8 @@ export namespace agent {
         /**
          * Creates a new prospecting agent for a specific client.
          */
-        public async create(params: RequestType<typeof api_agent_create_create>): Promise<ResponseType<typeof api_agent_create_create>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/agents`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_agent_create_create>
+        public async create(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/agents`, {method: "POST", body: undefined})
         }
 
         /**
@@ -1126,7 +1121,6 @@ export namespace db_performance {
  */
 import { listCampaigns as api_email_campaigns_listCampaigns } from "~backend/email/campaigns";
 import { trackResponse as api_email_response_tracking_trackResponse } from "~backend/email/response_tracking";
-import { sendEmail as api_email_send_sendEmail } from "~backend/email/send";
 import { listTemplates as api_email_templates_listTemplates } from "~backend/email/templates";
 
 export namespace email {
@@ -1180,10 +1174,8 @@ export namespace email {
         /**
          * Sends a personalized Nu Skin outreach email to a prospect.
          */
-        public async sendEmail(params: RequestType<typeof api_email_send_sendEmail>): Promise<ResponseType<typeof api_email_send_sendEmail>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/email/send`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_email_send_sendEmail>
+        public async sendEmail(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/email/send`, {method: "POST", body: undefined})
         }
 
         /**
@@ -1200,340 +1192,6 @@ export namespace email {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/email/track-response`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_email_response_tracking_trackResponse>
-        }
-    }
-}
-
-/**
- * Import the endpoint handlers to derive the types for the client.
- */
-import {
-    compareCohorts as api_forecasting_cohort_analyzer_compareCohorts,
-    createCohortAnalysis as api_forecasting_cohort_analyzer_createCohortAnalysis,
-    getCohortAnalyses as api_forecasting_cohort_analyzer_getCohortAnalyses,
-    getCohortTrends as api_forecasting_cohort_analyzer_getCohortTrends,
-    predictCohortPerformance as api_forecasting_cohort_analyzer_predictCohortPerformance
-} from "~backend/forecasting/cohort_analyzer";
-import {
-    batchPredictConversion as api_forecasting_conversion_predictor_batchPredictConversion,
-    getConversionModelPerformance as api_forecasting_conversion_predictor_getConversionModelPerformance,
-    getConversionPredictions as api_forecasting_conversion_predictor_getConversionPredictions,
-    predictConversion as api_forecasting_conversion_predictor_predictConversion,
-    trainConversionModel as api_forecasting_conversion_predictor_trainConversionModel
-} from "~backend/forecasting/conversion_predictor";
-import {
-    checkModelHealth as api_forecasting_model_trainer_checkModelHealth,
-    configureAutoRetrain as api_forecasting_model_trainer_configureAutoRetrain,
-    evaluateModel as api_forecasting_model_trainer_evaluateModel,
-    getActiveModels as api_forecasting_model_trainer_getActiveModels,
-    getModelPerformance as api_forecasting_model_trainer_getModelPerformance,
-    retrainModel as api_forecasting_model_trainer_retrainModel,
-    trainModel as api_forecasting_model_trainer_trainModel
-} from "~backend/forecasting/model_trainer";
-import {
-    bulkPredictPerformance as api_forecasting_performance_predictor_bulkPredictPerformance,
-    getPerformanceAnalytics as api_forecasting_performance_predictor_getPerformanceAnalytics,
-    getPerformancePredictions as api_forecasting_performance_predictor_getPerformancePredictions,
-    predictPerformance as api_forecasting_performance_predictor_predictPerformance
-} from "~backend/forecasting/performance_predictor";
-import {
-    compareForecasts as api_forecasting_revenue_forecaster_compareForecasts,
-    generateRevenueForecast as api_forecasting_revenue_forecaster_generateRevenueForecast,
-    getRevenueAnalytics as api_forecasting_revenue_forecaster_getRevenueAnalytics,
-    getRevenueForecasts as api_forecasting_revenue_forecaster_getRevenueForecasts
-} from "~backend/forecasting/revenue_forecaster";
-import {
-    getFeatures as api_forecasting_test_endpoints_getFeatures,
-    testConnection as api_forecasting_test_endpoints_testConnection
-} from "~backend/forecasting/test_endpoints";
-import {
-    bulkPredictTiming as api_forecasting_timing_predictor_bulkPredictTiming,
-    getTimingAnalytics as api_forecasting_timing_predictor_getTimingAnalytics,
-    predictOptimalTiming as api_forecasting_timing_predictor_predictOptimalTiming,
-    updateEngagementFeedback as api_forecasting_timing_predictor_updateEngagementFeedback
-} from "~backend/forecasting/timing_predictor";
-import {
-    analyzeTrend as api_forecasting_trend_analyzer_analyzeTrend,
-    compareMetricTrends as api_forecasting_trend_analyzer_compareMetricTrends,
-    detectAnomalies as api_forecasting_trend_analyzer_detectAnomalies,
-    detectPatterns as api_forecasting_trend_analyzer_detectPatterns,
-    getTrendInsights as api_forecasting_trend_analyzer_getTrendInsights
-} from "~backend/forecasting/trend_analyzer";
-
-export namespace forecasting {
-
-    export class ServiceClient {
-        private baseClient: BaseClient
-
-        constructor(baseClient: BaseClient) {
-            this.baseClient = baseClient
-            this.analyzeTrend = this.analyzeTrend.bind(this)
-            this.batchPredictConversion = this.batchPredictConversion.bind(this)
-            this.bulkPredictPerformance = this.bulkPredictPerformance.bind(this)
-            this.bulkPredictTiming = this.bulkPredictTiming.bind(this)
-            this.checkModelHealth = this.checkModelHealth.bind(this)
-            this.compareCohorts = this.compareCohorts.bind(this)
-            this.compareForecasts = this.compareForecasts.bind(this)
-            this.compareMetricTrends = this.compareMetricTrends.bind(this)
-            this.configureAutoRetrain = this.configureAutoRetrain.bind(this)
-            this.createCohortAnalysis = this.createCohortAnalysis.bind(this)
-            this.detectAnomalies = this.detectAnomalies.bind(this)
-            this.detectPatterns = this.detectPatterns.bind(this)
-            this.evaluateModel = this.evaluateModel.bind(this)
-            this.generateRevenueForecast = this.generateRevenueForecast.bind(this)
-            this.getActiveModels = this.getActiveModels.bind(this)
-            this.getCohortAnalyses = this.getCohortAnalyses.bind(this)
-            this.getCohortTrends = this.getCohortTrends.bind(this)
-            this.getConversionModelPerformance = this.getConversionModelPerformance.bind(this)
-            this.getConversionPredictions = this.getConversionPredictions.bind(this)
-            this.getFeatures = this.getFeatures.bind(this)
-            this.getModelPerformance = this.getModelPerformance.bind(this)
-            this.getPerformanceAnalytics = this.getPerformanceAnalytics.bind(this)
-            this.getPerformancePredictions = this.getPerformancePredictions.bind(this)
-            this.getRevenueAnalytics = this.getRevenueAnalytics.bind(this)
-            this.getRevenueForecasts = this.getRevenueForecasts.bind(this)
-            this.getTimingAnalytics = this.getTimingAnalytics.bind(this)
-            this.getTrendInsights = this.getTrendInsights.bind(this)
-            this.predictCohortPerformance = this.predictCohortPerformance.bind(this)
-            this.predictConversion = this.predictConversion.bind(this)
-            this.predictOptimalTiming = this.predictOptimalTiming.bind(this)
-            this.predictPerformance = this.predictPerformance.bind(this)
-            this.retrainModel = this.retrainModel.bind(this)
-            this.testConnection = this.testConnection.bind(this)
-            this.trainConversionModel = this.trainConversionModel.bind(this)
-            this.trainModel = this.trainModel.bind(this)
-            this.updateEngagementFeedback = this.updateEngagementFeedback.bind(this)
-        }
-
-        public async analyzeTrend(params: RequestType<typeof api_forecasting_trend_analyzer_analyzeTrend>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_analyzeTrend>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/analyze`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_analyzeTrend>
-        }
-
-        public async batchPredictConversion(params: RequestType<typeof api_forecasting_conversion_predictor_batchPredictConversion>): Promise<ResponseType<typeof api_forecasting_conversion_predictor_batchPredictConversion>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/batch-predict`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_batchPredictConversion>
-        }
-
-        public async bulkPredictPerformance(params: RequestType<typeof api_forecasting_performance_predictor_bulkPredictPerformance>): Promise<ResponseType<typeof api_forecasting_performance_predictor_bulkPredictPerformance>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/bulk-predict`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_bulkPredictPerformance>
-        }
-
-        public async bulkPredictTiming(params: RequestType<typeof api_forecasting_timing_predictor_bulkPredictTiming>): Promise<ResponseType<typeof api_forecasting_timing_predictor_bulkPredictTiming>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/bulk-predict`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_bulkPredictTiming>
-        }
-
-        public async checkModelHealth(): Promise<ResponseType<typeof api_forecasting_model_trainer_checkModelHealth>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/health`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_checkModelHealth>
-        }
-
-        public async compareCohorts(params: RequestType<typeof api_forecasting_cohort_analyzer_compareCohorts>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_compareCohorts>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/compare`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_compareCohorts>
-        }
-
-        public async compareForecasts(params: RequestType<typeof api_forecasting_revenue_forecaster_compareForecasts>): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_compareForecasts>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/compare`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_compareForecasts>
-        }
-
-        public async compareMetricTrends(params: RequestType<typeof api_forecasting_trend_analyzer_compareMetricTrends>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_compareMetricTrends>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/compare`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_compareMetricTrends>
-        }
-
-        public async configureAutoRetrain(params: RequestType<typeof api_forecasting_model_trainer_configureAutoRetrain>): Promise<ResponseType<typeof api_forecasting_model_trainer_configureAutoRetrain>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/auto-retrain/config`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_configureAutoRetrain>
-        }
-
-        public async createCohortAnalysis(params: RequestType<typeof api_forecasting_cohort_analyzer_createCohortAnalysis>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_createCohortAnalysis>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/create`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_createCohortAnalysis>
-        }
-
-        public async detectAnomalies(params: RequestType<typeof api_forecasting_trend_analyzer_detectAnomalies>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_detectAnomalies>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/anomalies`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_detectAnomalies>
-        }
-
-        public async detectPatterns(params: RequestType<typeof api_forecasting_trend_analyzer_detectPatterns>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_detectPatterns>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/patterns`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_detectPatterns>
-        }
-
-        public async evaluateModel(params: RequestType<typeof api_forecasting_model_trainer_evaluateModel>): Promise<ResponseType<typeof api_forecasting_model_trainer_evaluateModel>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/evaluate`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_evaluateModel>
-        }
-
-        public async generateRevenueForecast(params: RequestType<typeof api_forecasting_revenue_forecaster_generateRevenueForecast>): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_generateRevenueForecast>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/forecast`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_generateRevenueForecast>
-        }
-
-        public async getActiveModels(): Promise<ResponseType<typeof api_forecasting_model_trainer_getActiveModels>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/active`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_getActiveModels>
-        }
-
-        public async getCohortAnalyses(): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_getCohortAnalyses>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/analyses`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_getCohortAnalyses>
-        }
-
-        public async getCohortTrends(params: RequestType<typeof api_forecasting_cohort_analyzer_getCohortTrends>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_getCohortTrends>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/trends`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_getCohortTrends>
-        }
-
-        public async getConversionModelPerformance(): Promise<ResponseType<typeof api_forecasting_conversion_predictor_getConversionModelPerformance>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/model-performance`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_getConversionModelPerformance>
-        }
-
-        public async getConversionPredictions(): Promise<ResponseType<typeof api_forecasting_conversion_predictor_getConversionPredictions>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/predictions`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_getConversionPredictions>
-        }
-
-        public async getFeatures(): Promise<ResponseType<typeof api_forecasting_test_endpoints_getFeatures>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/features`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_test_endpoints_getFeatures>
-        }
-
-        public async getModelPerformance(params: { modelId: string }): Promise<ResponseType<typeof api_forecasting_model_trainer_getModelPerformance>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/${encodeURIComponent(params.modelId)}/performance`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_getModelPerformance>
-        }
-
-        public async getPerformanceAnalytics(params: RequestType<typeof api_forecasting_performance_predictor_getPerformanceAnalytics>): Promise<ResponseType<typeof api_forecasting_performance_predictor_getPerformanceAnalytics>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/analytics`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_getPerformanceAnalytics>
-        }
-
-        public async getPerformancePredictions(params: RequestType<typeof api_forecasting_performance_predictor_getPerformancePredictions>): Promise<ResponseType<typeof api_forecasting_performance_predictor_getPerformancePredictions>> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                entityId:   params.entityId,
-                entityType: params.entityType === undefined ? undefined : String(params.entityType),
-                limit:      params.limit === undefined ? undefined : String(params.limit),
-                metric:     params.metric,
-            })
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/predictions`, {query, method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_getPerformancePredictions>
-        }
-
-        public async getRevenueAnalytics(params: RequestType<typeof api_forecasting_revenue_forecaster_getRevenueAnalytics>): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueAnalytics>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/analytics`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueAnalytics>
-        }
-
-        public async getRevenueForecasts(): Promise<ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueForecasts>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/revenue/forecasts`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_revenue_forecaster_getRevenueForecasts>
-        }
-
-        public async getTimingAnalytics(): Promise<ResponseType<typeof api_forecasting_timing_predictor_getTimingAnalytics>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/analytics`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_getTimingAnalytics>
-        }
-
-        public async getTrendInsights(params: RequestType<typeof api_forecasting_trend_analyzer_getTrendInsights>): Promise<ResponseType<typeof api_forecasting_trend_analyzer_getTrendInsights>> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                entityType: params.entityType === undefined ? undefined : String(params.entityType),
-                limit:      params.limit === undefined ? undefined : String(params.limit),
-                period:     params.period === undefined ? undefined : String(params.period),
-            })
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/trends/insights`, {query, method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_trend_analyzer_getTrendInsights>
-        }
-
-        public async predictCohortPerformance(params: RequestType<typeof api_forecasting_cohort_analyzer_predictCohortPerformance>): Promise<ResponseType<typeof api_forecasting_cohort_analyzer_predictCohortPerformance>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/cohort/predict`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_cohort_analyzer_predictCohortPerformance>
-        }
-
-        public async predictConversion(params: RequestType<typeof api_forecasting_conversion_predictor_predictConversion>): Promise<ResponseType<typeof api_forecasting_conversion_predictor_predictConversion>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/predict`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_predictConversion>
-        }
-
-        public async predictOptimalTiming(params: RequestType<typeof api_forecasting_timing_predictor_predictOptimalTiming>): Promise<ResponseType<typeof api_forecasting_timing_predictor_predictOptimalTiming>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/predict`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_predictOptimalTiming>
-        }
-
-        public async predictPerformance(params: RequestType<typeof api_forecasting_performance_predictor_predictPerformance>): Promise<ResponseType<typeof api_forecasting_performance_predictor_predictPerformance>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/performance/predict`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_performance_predictor_predictPerformance>
-        }
-
-        public async retrainModel(params: RequestType<typeof api_forecasting_model_trainer_retrainModel>): Promise<ResponseType<typeof api_forecasting_model_trainer_retrainModel>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/retrain`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_retrainModel>
-        }
-
-        public async testConnection(): Promise<ResponseType<typeof api_forecasting_test_endpoints_testConnection>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/test`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_test_endpoints_testConnection>
-        }
-
-        public async trainConversionModel(params: RequestType<typeof api_forecasting_conversion_predictor_trainConversionModel>): Promise<ResponseType<typeof api_forecasting_conversion_predictor_trainConversionModel>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/conversion/train`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_conversion_predictor_trainConversionModel>
-        }
-
-        public async trainModel(params: RequestType<typeof api_forecasting_model_trainer_trainModel>): Promise<ResponseType<typeof api_forecasting_model_trainer_trainModel>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/models/train`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_model_trainer_trainModel>
-        }
-
-        public async updateEngagementFeedback(params: RequestType<typeof api_forecasting_timing_predictor_updateEngagementFeedback>): Promise<ResponseType<typeof api_forecasting_timing_predictor_updateEngagementFeedback>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/forecasting/timing/feedback`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_forecasting_timing_predictor_updateEngagementFeedback>
         }
     }
 }
@@ -1750,7 +1408,63 @@ export namespace hubspot {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
-import { create as api_prospect_create_create } from "~backend/prospect/create";
+import {
+    createSequence as api_nurturing_main_endpoints_createSequence,
+    enrollProspect as api_nurturing_main_endpoints_enrollProspect,
+    getFunnelAnalytics as api_nurturing_main_endpoints_getFunnelAnalytics,
+    getSequences as api_nurturing_main_endpoints_getSequences,
+    getStagnantProspects as api_nurturing_main_endpoints_getStagnantProspects
+} from "~backend/nurturing/main_endpoints";
+
+export namespace nurturing {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.createSequence = this.createSequence.bind(this)
+            this.enrollProspect = this.enrollProspect.bind(this)
+            this.getFunnelAnalytics = this.getFunnelAnalytics.bind(this)
+            this.getSequences = this.getSequences.bind(this)
+            this.getStagnantProspects = this.getStagnantProspects.bind(this)
+        }
+
+        public async createSequence(params: RequestType<typeof api_nurturing_main_endpoints_createSequence>): Promise<ResponseType<typeof api_nurturing_main_endpoints_createSequence>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_createSequence>
+        }
+
+        public async enrollProspect(params: RequestType<typeof api_nurturing_main_endpoints_enrollProspect>): Promise<ResponseType<typeof api_nurturing_main_endpoints_enrollProspect>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/enroll`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_enrollProspect>
+        }
+
+        public async getFunnelAnalytics(): Promise<ResponseType<typeof api_nurturing_main_endpoints_getFunnelAnalytics>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/funnel-analytics`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getFunnelAnalytics>
+        }
+
+        public async getSequences(): Promise<ResponseType<typeof api_nurturing_main_endpoints_getSequences>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sequences`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getSequences>
+        }
+
+        public async getStagnantProspects(): Promise<ResponseType<typeof api_nurturing_main_endpoints_getStagnantProspects>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/stagnant-prospects`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getStagnantProspects>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
 import { list as api_prospect_list_list } from "~backend/prospect/list";
 import { simulateSearch as api_prospect_simulate_search_simulateSearch } from "~backend/prospect/simulate_search";
 import { update as api_prospect_update_update } from "~backend/prospect/update";
@@ -1771,10 +1485,8 @@ export namespace prospect {
         /**
          * Creates a new prospect for outreach.
          */
-        public async create(params: RequestType<typeof api_prospect_create_create>): Promise<ResponseType<typeof api_prospect_create_create>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/prospects`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_prospect_create_create>
+        public async create(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospects`, {method: "POST", body: undefined})
         }
 
         /**
@@ -1830,14 +1542,6 @@ export namespace prospect {
  * Import the endpoint handlers to derive the types for the client.
  */
 import {
-    generateAnalytics as api_rate_limiting_analytics_generateAnalytics,
-    getAnalytics as api_rate_limiting_analytics_getAnalytics,
-    getIdentifierStats as api_rate_limiting_analytics_getIdentifierStats,
-    getRealTimeUsage as api_rate_limiting_analytics_getRealTimeUsage,
-    getTopViolators as api_rate_limiting_analytics_getTopViolators,
-    getUserQuotaUsage as api_rate_limiting_analytics_getUserQuotaUsage
-} from "~backend/rate_limiting/analytics";
-import {
     bulkUpdateQuotasByTier as api_rate_limiting_config_bulkUpdateQuotasByTier,
     createRule as api_rate_limiting_config_createRule,
     createUserQuota as api_rate_limiting_config_createUserQuota,
@@ -1848,6 +1552,26 @@ import {
     updateRule as api_rate_limiting_config_updateRule,
     updateUserQuota as api_rate_limiting_config_updateUserQuota
 } from "~backend/rate_limiting/config";
+import {
+    bulkUpdateConfigs as api_rate_limiting_endpoint_config_bulkUpdateConfigs,
+    createEndpointConfig as api_rate_limiting_endpoint_config_createEndpointConfig,
+    discoverEndpoints as api_rate_limiting_endpoint_config_discoverEndpoints,
+    getEffectiveRateLimits as api_rate_limiting_endpoint_config_getEffectiveRateLimits,
+    getEndpointMetrics as api_rate_limiting_endpoint_config_getEndpointMetrics
+} from "~backend/rate_limiting/endpoint_config";
+import {
+    checkQuotaAlerts as api_rate_limiting_quota_manager_checkQuotaAlerts,
+    getQuotaBreakdown as api_rate_limiting_quota_manager_getQuotaBreakdown,
+    getUsageForecast as api_rate_limiting_quota_manager_getUsageForecast,
+    performQuotaScaling as api_rate_limiting_quota_manager_performQuotaScaling,
+    requestQuotaAdjustment as api_rate_limiting_quota_manager_requestQuotaAdjustment
+} from "~backend/rate_limiting/quota_manager";
+import {
+    healthCheck as api_rate_limiting_test_endpoints_healthCheck,
+    testBasicRateLimit as api_rate_limiting_test_endpoints_testBasicRateLimit,
+    testQuotaCheck as api_rate_limiting_test_endpoints_testQuotaCheck,
+    testRetryMechanism as api_rate_limiting_test_endpoints_testRetryMechanism
+} from "~backend/rate_limiting/test_endpoints";
 
 export namespace rate_limiting {
 
@@ -1856,25 +1580,35 @@ export namespace rate_limiting {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.bulkUpdateConfigs = this.bulkUpdateConfigs.bind(this)
             this.bulkUpdateQuotasByTier = this.bulkUpdateQuotasByTier.bind(this)
-            this.checkAlerts = this.checkAlerts.bind(this)
+            this.checkQuotaAlerts = this.checkQuotaAlerts.bind(this)
+            this.createEndpointConfig = this.createEndpointConfig.bind(this)
             this.createRule = this.createRule.bind(this)
             this.createUserQuota = this.createUserQuota.bind(this)
             this.deleteRule = this.deleteRule.bind(this)
             this.deleteUserQuota = this.deleteUserQuota.bind(this)
-            this.generateAnalytics = this.generateAnalytics.bind(this)
-            this.getAnalytics = this.getAnalytics.bind(this)
-            this.getHealthScore = this.getHealthScore.bind(this)
-            this.getIdentifierStats = this.getIdentifierStats.bind(this)
-            this.getRealTimeUsage = this.getRealTimeUsage.bind(this)
+            this.discoverEndpoints = this.discoverEndpoints.bind(this)
+            this.getEffectiveRateLimits = this.getEffectiveRateLimits.bind(this)
+            this.getEndpointMetrics = this.getEndpointMetrics.bind(this)
+            this.getQuotaBreakdown = this.getQuotaBreakdown.bind(this)
             this.getRules = this.getRules.bind(this)
             this.getRulesByEndpoint = this.getRulesByEndpoint.bind(this)
-            this.getTopViolators = this.getTopViolators.bind(this)
+            this.getUsageForecast = this.getUsageForecast.bind(this)
             this.getUserQuota = this.getUserQuota.bind(this)
-            this.getUserQuotaUsage = this.getUserQuotaUsage.bind(this)
             this.getUserQuotas = this.getUserQuotas.bind(this)
+            this.healthCheck = this.healthCheck.bind(this)
+            this.performQuotaScaling = this.performQuotaScaling.bind(this)
+            this.requestQuotaAdjustment = this.requestQuotaAdjustment.bind(this)
+            this.testBasicRateLimit = this.testBasicRateLimit.bind(this)
+            this.testQuotaCheck = this.testQuotaCheck.bind(this)
+            this.testRetryMechanism = this.testRetryMechanism.bind(this)
             this.updateRule = this.updateRule.bind(this)
             this.updateUserQuota = this.updateUserQuota.bind(this)
+        }
+
+        public async bulkUpdateConfigs(params: RequestType<typeof api_rate_limiting_endpoint_config_bulkUpdateConfigs>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/endpoints/bulk`, {method: "PUT", body: JSON.stringify(params)})
         }
 
         /**
@@ -1892,11 +1626,16 @@ export namespace rate_limiting {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_config_bulkUpdateQuotasByTier>
         }
 
-        /**
-         * Check current alert conditions
-         */
-        public async checkAlerts(): Promise<void> {
-            await this.baseClient.callTypedAPI(`/rate-limiting/alerts/check`, {method: "GET", body: undefined})
+        public async checkQuotaAlerts(): Promise<ResponseType<typeof api_rate_limiting_quota_manager_checkQuotaAlerts>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quota/alerts`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_quota_manager_checkQuotaAlerts>
+        }
+
+        public async createEndpointConfig(params: RequestType<typeof api_rate_limiting_endpoint_config_createEndpointConfig>): Promise<ResponseType<typeof api_rate_limiting_endpoint_config_createEndpointConfig>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/endpoints/config`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_endpoint_config_createEndpointConfig>
         }
 
         /**
@@ -1936,56 +1675,39 @@ export namespace rate_limiting {
         }
 
         /**
-         * Trigger manual analytics generation
+         * API endpoints
          */
-        public async generateAnalytics(params: RequestType<typeof api_rate_limiting_analytics_generateAnalytics>): Promise<void> {
-            await this.baseClient.callTypedAPI(`/rate-limiting/analytics/generate`, {method: "POST", body: JSON.stringify(params)})
+        public async discoverEndpoints(): Promise<ResponseType<typeof api_rate_limiting_endpoint_config_discoverEndpoints>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/endpoints/discover`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_endpoint_config_discoverEndpoints>
         }
 
-        /**
-         * Get rate limiting analytics for date range
-         */
-        public async getAnalytics(params: RequestType<typeof api_rate_limiting_analytics_getAnalytics>): Promise<void> {
+        public async getEffectiveRateLimits(params: RequestType<typeof api_rate_limiting_endpoint_config_getEffectiveRateLimits>): Promise<void> {
             // Convert our params into the objects we need for the request
             const query = makeRecord<string, string | string[]>({
-                endDate:   params.endDate,
-                endpoint:  params.endpoint,
-                startDate: params.startDate,
-                tier:      params.tier,
+                tier: params.tier,
             })
 
-            await this.baseClient.callTypedAPI(`/rate-limiting/analytics`, {query, method: "GET", body: undefined})
+            await this.baseClient.callTypedAPI(`/rate-limiting/endpoints/${encodeURIComponent(params.endpoint)}/${encodeURIComponent(params.method)}/limits`, {query, method: "GET", body: undefined})
         }
 
-        /**
-         * Get rate limiting health score
-         */
-        public async getHealthScore(): Promise<void> {
-            await this.baseClient.callTypedAPI(`/rate-limiting/health`, {method: "GET", body: undefined})
-        }
-
-        /**
-         * Get rate limit statistics for specific identifier
-         */
-        public async getIdentifierStats(params: RequestType<typeof api_rate_limiting_analytics_getIdentifierStats>): Promise<void> {
+        public async getEndpointMetrics(params: RequestType<typeof api_rate_limiting_endpoint_config_getEndpointMetrics>): Promise<void> {
             // Convert our params into the objects we need for the request
             const query = makeRecord<string, string | string[]>({
-                endpoint: params.endpoint,
+                days: params.days === undefined ? undefined : String(params.days),
             })
 
-            await this.baseClient.callTypedAPI(`/rate-limiting/stats/${encodeURIComponent(params.identifier)}`, {query, method: "GET", body: undefined})
+            await this.baseClient.callTypedAPI(`/rate-limiting/endpoints/${encodeURIComponent(params.endpoint)}/${encodeURIComponent(params.method)}/metrics`, {query, method: "GET", body: undefined})
         }
 
         /**
-         * Get real-time usage statistics
+         * API endpoints
          */
-        public async getRealTimeUsage(params: RequestType<typeof api_rate_limiting_analytics_getRealTimeUsage>): Promise<void> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                timeWindowMinutes: params.timeWindowMinutes === undefined ? undefined : String(params.timeWindowMinutes),
-            })
-
-            await this.baseClient.callTypedAPI(`/rate-limiting/usage/realtime`, {query, method: "GET", body: undefined})
+        public async getQuotaBreakdown(params: { userId: string }): Promise<ResponseType<typeof api_rate_limiting_quota_manager_getQuotaBreakdown>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quota/breakdown/${encodeURIComponent(params.userId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_quota_manager_getQuotaBreakdown>
         }
 
         /**
@@ -2002,16 +1724,15 @@ export namespace rate_limiting {
             await this.baseClient.callTypedAPI(`/rate-limiting/rules/${encodeURIComponent(params.endpoint)}`, {method: "GET", body: undefined})
         }
 
-        /**
-         * Get top violators
-         */
-        public async getTopViolators(params: RequestType<typeof api_rate_limiting_analytics_getTopViolators>): Promise<void> {
+        public async getUsageForecast(params: RequestType<typeof api_rate_limiting_quota_manager_getUsageForecast>): Promise<ResponseType<typeof api_rate_limiting_quota_manager_getUsageForecast>> {
             // Convert our params into the objects we need for the request
             const query = makeRecord<string, string | string[]>({
-                limit: params.limit === undefined ? undefined : String(params.limit),
+                period: params.period === undefined ? undefined : String(params.period),
             })
 
-            await this.baseClient.callTypedAPI(`/rate-limiting/violators`, {query, method: "GET", body: undefined})
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quota/forecast/${encodeURIComponent(params.userId)}`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_quota_manager_getUsageForecast>
         }
 
         /**
@@ -2024,22 +1745,56 @@ export namespace rate_limiting {
         }
 
         /**
-         * Get user quota usage
-         */
-        public async getUserQuotaUsage(params: RequestType<typeof api_rate_limiting_analytics_getUserQuotaUsage>): Promise<void> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                userId: params.userId,
-            })
-
-            await this.baseClient.callTypedAPI(`/rate-limiting/usage/quotas`, {query, method: "GET", body: undefined})
-        }
-
-        /**
          * Get user quotas
          */
         public async getUserQuotas(): Promise<void> {
             await this.baseClient.callTypedAPI(`/rate-limiting/quotas`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Health check endpoint for rate limiting system
+         */
+        public async healthCheck(): Promise<ResponseType<typeof api_rate_limiting_test_endpoints_healthCheck>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/test/health`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_test_endpoints_healthCheck>
+        }
+
+        public async performQuotaScaling(): Promise<ResponseType<typeof api_rate_limiting_quota_manager_performQuotaScaling>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/quota/scale`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_quota_manager_performQuotaScaling>
+        }
+
+        public async requestQuotaAdjustment(params: RequestType<typeof api_rate_limiting_quota_manager_requestQuotaAdjustment>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/rate-limiting/quota/adjust`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Test endpoint for basic rate limiting
+         */
+        public async testBasicRateLimit(params: RequestType<typeof api_rate_limiting_test_endpoints_testBasicRateLimit>): Promise<ResponseType<typeof api_rate_limiting_test_endpoints_testBasicRateLimit>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/test/basic`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_test_endpoints_testBasicRateLimit>
+        }
+
+        /**
+         * Test endpoint for quota checking
+         */
+        public async testQuotaCheck(params: { userId: string }): Promise<ResponseType<typeof api_rate_limiting_test_endpoints_testQuotaCheck>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/test/quota/${encodeURIComponent(params.userId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_test_endpoints_testQuotaCheck>
+        }
+
+        /**
+         * Test endpoint for retry mechanism
+         */
+        public async testRetryMechanism(params: RequestType<typeof api_rate_limiting_test_endpoints_testRetryMechanism>): Promise<ResponseType<typeof api_rate_limiting_test_endpoints_testRetryMechanism>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/rate-limiting/test/retry`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_rate_limiting_test_endpoints_testRetryMechanism>
         }
 
         /**
@@ -2123,534 +1878,11 @@ export namespace realtime {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
-import {
-    drillDown as api_reporting_analytics_drillDown,
-    getMetricSummary as api_reporting_analytics_getMetricSummary
-} from "~backend/reporting/analytics";
-import {
-    createDashboard as api_reporting_dashboards_createDashboard,
-    getDashboard as api_reporting_dashboards_getDashboard,
-    listDashboards as api_reporting_dashboards_listDashboards,
-    removeDashboard as api_reporting_dashboards_removeDashboard,
-    updateDashboard as api_reporting_dashboards_updateDashboard
-} from "~backend/reporting/dashboards";
-import {
-    compareReportPeriods as api_reporting_drill_down_compareReportPeriods,
-    getAvailableDrillDownOptions as api_reporting_drill_down_getAvailableDrillDownOptions,
-    getTimeSeriesAnalysis as api_reporting_drill_down_getTimeSeriesAnalysis,
-    listSavedDrillDowns as api_reporting_drill_down_listSavedDrillDowns,
-    performCohortAnalysis as api_reporting_drill_down_performCohortAnalysis,
-    performDrillDown as api_reporting_drill_down_performDrillDown,
-    performFunnelAnalysis as api_reporting_drill_down_performFunnelAnalysis,
-    saveDrillDown as api_reporting_drill_down_saveDrillDown
-} from "~backend/reporting/drill_down";
-import {
-    cloneWidget as api_reporting_enhanced_widgets_cloneWidget,
-    createAdvancedWidget as api_reporting_enhanced_widgets_createAdvancedWidget,
-    getAdvancedWidgetData as api_reporting_enhanced_widgets_getAdvancedWidgetData,
-    getAvailableWidgetTypes as api_reporting_enhanced_widgets_getAvailableWidgetTypes,
-    refreshAdvancedWidget as api_reporting_enhanced_widgets_refreshAdvancedWidget
-} from "~backend/reporting/enhanced_widgets";
-import {
-    bulkExportReports as api_reporting_exports_bulkExportReports,
-    downloadReport as api_reporting_exports_downloadReport,
-    getDownload as api_reporting_exports_getDownload
-} from "~backend/reporting/exports";
-import {
-    buildDynamicQuery as api_reporting_filters_buildDynamicQuery,
-    createSegment as api_reporting_filters_createSegment,
-    deleteSegment as api_reporting_filters_deleteSegment,
-    getAvailableFilters as api_reporting_filters_getAvailableFilters,
-    getFilterInsights as api_reporting_filters_getFilterInsights,
-    getFilterSuggestions as api_reporting_filters_getFilterSuggestions,
-    getSegment as api_reporting_filters_getSegment,
-    listSegments as api_reporting_filters_listSegments,
-    updateSegment as api_reporting_filters_updateSegment,
-    validateFilters as api_reporting_filters_validateFilters
-} from "~backend/reporting/filters";
-import {
-    createReport as api_reporting_reports_createReport,
-    generateReport as api_reporting_reports_generateReport,
-    getReport as api_reporting_reports_getReport,
-    listReports as api_reporting_reports_listReports,
-    removeReport as api_reporting_reports_removeReport,
-    updateReport as api_reporting_reports_updateReport
-} from "~backend/reporting/reports";
-import {
-    createReportSubscription as api_reporting_scheduler_createReportSubscription,
-    createScheduledReport as api_reporting_scheduler_createScheduledReport,
-    deleteScheduledReport as api_reporting_scheduler_deleteScheduledReport,
-    listScheduledReports as api_reporting_scheduler_listScheduledReports,
-    updateScheduledReport as api_reporting_scheduler_updateScheduledReport
-} from "~backend/reporting/scheduler";
-import {
-    createWidget as api_reporting_widgets_createWidget,
-    getWidget as api_reporting_widgets_getWidget,
-    getWidgetData as api_reporting_widgets_getWidgetData,
-    listWidgets as api_reporting_widgets_listWidgets,
-    removeWidget as api_reporting_widgets_removeWidget,
-    updateWidget as api_reporting_widgets_updateWidget
-} from "~backend/reporting/widgets";
-
-export namespace reporting {
-
-    export class ServiceClient {
-        private baseClient: BaseClient
-
-        constructor(baseClient: BaseClient) {
-            this.baseClient = baseClient
-            this.buildDynamicQuery = this.buildDynamicQuery.bind(this)
-            this.bulkExportReports = this.bulkExportReports.bind(this)
-            this.cloneWidget = this.cloneWidget.bind(this)
-            this.compareReportPeriods = this.compareReportPeriods.bind(this)
-            this.createAdvancedWidget = this.createAdvancedWidget.bind(this)
-            this.createDashboard = this.createDashboard.bind(this)
-            this.createReport = this.createReport.bind(this)
-            this.createReportSubscription = this.createReportSubscription.bind(this)
-            this.createScheduledReport = this.createScheduledReport.bind(this)
-            this.createSegment = this.createSegment.bind(this)
-            this.createWidget = this.createWidget.bind(this)
-            this.deleteScheduledReport = this.deleteScheduledReport.bind(this)
-            this.deleteSegment = this.deleteSegment.bind(this)
-            this.downloadReport = this.downloadReport.bind(this)
-            this.drillDown = this.drillDown.bind(this)
-            this.generateReport = this.generateReport.bind(this)
-            this.getAdvancedWidgetData = this.getAdvancedWidgetData.bind(this)
-            this.getAvailableDrillDownOptions = this.getAvailableDrillDownOptions.bind(this)
-            this.getAvailableFilters = this.getAvailableFilters.bind(this)
-            this.getAvailableWidgetTypes = this.getAvailableWidgetTypes.bind(this)
-            this.getDashboard = this.getDashboard.bind(this)
-            this.getDownload = this.getDownload.bind(this)
-            this.getFilterInsights = this.getFilterInsights.bind(this)
-            this.getFilterSuggestions = this.getFilterSuggestions.bind(this)
-            this.getMetricSummary = this.getMetricSummary.bind(this)
-            this.getReport = this.getReport.bind(this)
-            this.getSegment = this.getSegment.bind(this)
-            this.getTimeSeriesAnalysis = this.getTimeSeriesAnalysis.bind(this)
-            this.getWidget = this.getWidget.bind(this)
-            this.getWidgetData = this.getWidgetData.bind(this)
-            this.listDashboards = this.listDashboards.bind(this)
-            this.listReports = this.listReports.bind(this)
-            this.listSavedDrillDowns = this.listSavedDrillDowns.bind(this)
-            this.listScheduledReports = this.listScheduledReports.bind(this)
-            this.listSegments = this.listSegments.bind(this)
-            this.listWidgets = this.listWidgets.bind(this)
-            this.performCohortAnalysis = this.performCohortAnalysis.bind(this)
-            this.performDrillDown = this.performDrillDown.bind(this)
-            this.performFunnelAnalysis = this.performFunnelAnalysis.bind(this)
-            this.refreshAdvancedWidget = this.refreshAdvancedWidget.bind(this)
-            this.removeDashboard = this.removeDashboard.bind(this)
-            this.removeReport = this.removeReport.bind(this)
-            this.removeWidget = this.removeWidget.bind(this)
-            this.saveDrillDown = this.saveDrillDown.bind(this)
-            this.updateDashboard = this.updateDashboard.bind(this)
-            this.updateReport = this.updateReport.bind(this)
-            this.updateScheduledReport = this.updateScheduledReport.bind(this)
-            this.updateSegment = this.updateSegment.bind(this)
-            this.updateWidget = this.updateWidget.bind(this)
-            this.validateFilters = this.validateFilters.bind(this)
-        }
-
-        public async buildDynamicQuery(params: RequestType<typeof api_reporting_filters_buildDynamicQuery>): Promise<ResponseType<typeof api_reporting_filters_buildDynamicQuery>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/filters/build-query`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_buildDynamicQuery>
-        }
-
-        public async bulkExportReports(params: RequestType<typeof api_reporting_exports_bulkExportReports>): Promise<ResponseType<typeof api_reporting_exports_bulkExportReports>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/bulk-export`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_exports_bulkExportReports>
-        }
-
-        public async cloneWidget(params: RequestType<typeof api_reporting_enhanced_widgets_cloneWidget>): Promise<ResponseType<typeof api_reporting_enhanced_widgets_cloneWidget>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                "target_dashboard_id": params["target_dashboard_id"],
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}/clone`, {method: "POST", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_enhanced_widgets_cloneWidget>
-        }
-
-        public async compareReportPeriods(params: RequestType<typeof api_reporting_drill_down_compareReportPeriods>): Promise<ResponseType<typeof api_reporting_drill_down_compareReportPeriods>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/compare-periods`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_compareReportPeriods>
-        }
-
-        public async createAdvancedWidget(params: RequestType<typeof api_reporting_enhanced_widgets_createAdvancedWidget>): Promise<ResponseType<typeof api_reporting_enhanced_widgets_createAdvancedWidget>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                config:         params.config,
-                "dashboard_id": params["dashboard_id"],
-                description:    params.description,
-                height:         params.height,
-                "position_x":   params["position_x"],
-                "position_y":   params["position_y"],
-                title:          params.title,
-                "widget_type":  params["widget_type"],
-                width:          params.width,
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/dashboards/${encodeURIComponent(params.dashboardId)}/widgets/advanced`, {method: "POST", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_enhanced_widgets_createAdvancedWidget>
-        }
-
-        public async createDashboard(params: RequestType<typeof api_reporting_dashboards_createDashboard>): Promise<ResponseType<typeof api_reporting_dashboards_createDashboard>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/dashboards`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_createDashboard>
-        }
-
-        public async createReport(params: RequestType<typeof api_reporting_reports_createReport>): Promise<ResponseType<typeof api_reporting_reports_createReport>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_createReport>
-        }
-
-        public async createReportSubscription(params: RequestType<typeof api_reporting_scheduler_createReportSubscription>): Promise<ResponseType<typeof api_reporting_scheduler_createReportSubscription>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                email:     params.email,
-                format:    params.format,
-                frequency: params.frequency,
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.reportId)}/subscribe`, {method: "POST", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_createReportSubscription>
-        }
-
-        public async createScheduledReport(params: RequestType<typeof api_reporting_scheduler_createScheduledReport>): Promise<ResponseType<typeof api_reporting_scheduler_createScheduledReport>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                "cron_expression":     params["cron_expression"],
-                "notification_emails": params["notification_emails"],
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.reportId)}/schedule`, {method: "POST", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_createScheduledReport>
-        }
-
-        public async createSegment(params: RequestType<typeof api_reporting_filters_createSegment>): Promise<ResponseType<typeof api_reporting_filters_createSegment>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/segments`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_createSegment>
-        }
-
-        public async createWidget(params: RequestType<typeof api_reporting_widgets_createWidget>): Promise<ResponseType<typeof api_reporting_widgets_createWidget>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_createWidget>
-        }
-
-        public async deleteScheduledReport(params: { jobId: string }): Promise<ResponseType<typeof api_reporting_scheduler_deleteScheduledReport>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/scheduled/${encodeURIComponent(params.jobId)}`, {method: "DELETE", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_deleteScheduledReport>
-        }
-
-        public async deleteSegment(params: { id: string }): Promise<ResponseType<typeof api_reporting_filters_deleteSegment>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/segments/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_deleteSegment>
-        }
-
-        public async downloadReport(params: RequestType<typeof api_reporting_exports_downloadReport>): Promise<ResponseType<typeof api_reporting_exports_downloadReport>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/export`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_exports_downloadReport>
-        }
-
-        public async drillDown(params: RequestType<typeof api_reporting_analytics_drillDown>): Promise<ResponseType<typeof api_reporting_analytics_drillDown>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/analytics/drill-down`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_analytics_drillDown>
-        }
-
-        public async generateReport(params: { id: string }): Promise<ResponseType<typeof api_reporting_reports_generateReport>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}/generate`, {method: "POST", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_generateReport>
-        }
-
-        public async getAdvancedWidgetData(params: RequestType<typeof api_reporting_enhanced_widgets_getAdvancedWidgetData>): Promise<ResponseType<typeof api_reporting_enhanced_widgets_getAdvancedWidgetData>> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                filters: params.filters === undefined ? undefined : String(params.filters),
-            })
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}/advanced-data`, {query, method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_enhanced_widgets_getAdvancedWidgetData>
-        }
-
-        public async getAvailableDrillDownOptions(params: RequestType<typeof api_reporting_drill_down_getAvailableDrillDownOptions>): Promise<ResponseType<typeof api_reporting_drill_down_getAvailableDrillDownOptions>> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                metric: params.metric,
-            })
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/drill-down-options`, {query, method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_getAvailableDrillDownOptions>
-        }
-
-        public async getAvailableFilters(params: RequestType<typeof api_reporting_filters_getAvailableFilters>): Promise<ResponseType<typeof api_reporting_filters_getAvailableFilters>> {
-            // Convert our params into the objects we need for the request
-            const query = makeRecord<string, string | string[]>({
-                "data_source": params["data_source"],
-            })
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/filters/available`, {query, method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_getAvailableFilters>
-        }
-
-        public async getAvailableWidgetTypes(): Promise<ResponseType<typeof api_reporting_enhanced_widgets_getAvailableWidgetTypes>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/types`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_enhanced_widgets_getAvailableWidgetTypes>
-        }
-
-        public async getDashboard(params: { id: string }): Promise<ResponseType<typeof api_reporting_dashboards_getDashboard>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/dashboards/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_getDashboard>
-        }
-
-        public async getDownload(params: { executionId: string }): Promise<ResponseType<typeof api_reporting_exports_getDownload>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/download/${encodeURIComponent(params.executionId)}`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_exports_getDownload>
-        }
-
-        public async getFilterInsights(params: RequestType<typeof api_reporting_filters_getFilterInsights>): Promise<ResponseType<typeof api_reporting_filters_getFilterInsights>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/filters/insights`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_getFilterInsights>
-        }
-
-        public async getFilterSuggestions(params: RequestType<typeof api_reporting_filters_getFilterSuggestions>): Promise<ResponseType<typeof api_reporting_filters_getFilterSuggestions>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/filters/suggestions`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_getFilterSuggestions>
-        }
-
-        public async getMetricSummary(params: RequestType<typeof api_reporting_analytics_getMetricSummary>): Promise<ResponseType<typeof api_reporting_analytics_getMetricSummary>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/analytics/summary`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_analytics_getMetricSummary>
-        }
-
-        public async getReport(params: { id: string }): Promise<ResponseType<typeof api_reporting_reports_getReport>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_getReport>
-        }
-
-        public async getSegment(params: { id: string }): Promise<ResponseType<typeof api_reporting_filters_getSegment>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/segments/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_getSegment>
-        }
-
-        public async getTimeSeriesAnalysis(params: RequestType<typeof api_reporting_drill_down_getTimeSeriesAnalysis>): Promise<ResponseType<typeof api_reporting_drill_down_getTimeSeriesAnalysis>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/time-series`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_getTimeSeriesAnalysis>
-        }
-
-        public async getWidget(params: { id: string }): Promise<ResponseType<typeof api_reporting_widgets_getWidget>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_getWidget>
-        }
-
-        public async getWidgetData(params: { id: string }): Promise<ResponseType<typeof api_reporting_widgets_getWidgetData>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}/data`, {method: "POST", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_getWidgetData>
-        }
-
-        public async listDashboards(): Promise<ResponseType<typeof api_reporting_dashboards_listDashboards>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/dashboards`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_listDashboards>
-        }
-
-        public async listReports(): Promise<ResponseType<typeof api_reporting_reports_listReports>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_listReports>
-        }
-
-        public async listSavedDrillDowns(): Promise<ResponseType<typeof api_reporting_drill_down_listSavedDrillDowns>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/drill-down/saved`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_listSavedDrillDowns>
-        }
-
-        public async listScheduledReports(): Promise<ResponseType<typeof api_reporting_scheduler_listScheduledReports>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/scheduled`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_listScheduledReports>
-        }
-
-        public async listSegments(): Promise<ResponseType<typeof api_reporting_filters_listSegments>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/segments`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_listSegments>
-        }
-
-        public async listWidgets(params: { dashboardId: string }): Promise<ResponseType<typeof api_reporting_widgets_listWidgets>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/dashboard/${encodeURIComponent(params.dashboardId)}`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_listWidgets>
-        }
-
-        public async performCohortAnalysis(params: RequestType<typeof api_reporting_drill_down_performCohortAnalysis>): Promise<ResponseType<typeof api_reporting_drill_down_performCohortAnalysis>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/cohort-analysis`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_performCohortAnalysis>
-        }
-
-        public async performDrillDown(params: RequestType<typeof api_reporting_drill_down_performDrillDown>): Promise<ResponseType<typeof api_reporting_drill_down_performDrillDown>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/drill-down`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_performDrillDown>
-        }
-
-        public async performFunnelAnalysis(params: RequestType<typeof api_reporting_drill_down_performFunnelAnalysis>): Promise<ResponseType<typeof api_reporting_drill_down_performFunnelAnalysis>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/funnel-analysis`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_performFunnelAnalysis>
-        }
-
-        public async refreshAdvancedWidget(params: { id: string }): Promise<ResponseType<typeof api_reporting_enhanced_widgets_refreshAdvancedWidget>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}/refresh-advanced`, {method: "POST", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_enhanced_widgets_refreshAdvancedWidget>
-        }
-
-        public async removeDashboard(params: { id: string }): Promise<ResponseType<typeof api_reporting_dashboards_removeDashboard>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/dashboards/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_removeDashboard>
-        }
-
-        public async removeReport(params: { id: string }): Promise<ResponseType<typeof api_reporting_reports_removeReport>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_removeReport>
-        }
-
-        public async removeWidget(params: { id: string }): Promise<ResponseType<typeof api_reporting_widgets_removeWidget>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_removeWidget>
-        }
-
-        public async saveDrillDown(params: RequestType<typeof api_reporting_drill_down_saveDrillDown>): Promise<ResponseType<typeof api_reporting_drill_down_saveDrillDown>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/drill-down/save`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_drill_down_saveDrillDown>
-        }
-
-        public async updateDashboard(params: RequestType<typeof api_reporting_dashboards_updateDashboard>): Promise<ResponseType<typeof api_reporting_dashboards_updateDashboard>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                description:  params.description,
-                "is_default": params["is_default"],
-                layout:       params.layout,
-                name:         params.name,
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/dashboards/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_dashboards_updateDashboard>
-        }
-
-        public async updateReport(params: RequestType<typeof api_reporting_reports_updateReport>): Promise<ResponseType<typeof api_reporting_reports_updateReport>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                config:            params.config,
-                description:       params.description,
-                filters:           params.filters,
-                name:              params.name,
-                "schedule_config": params["schedule_config"],
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_reports_updateReport>
-        }
-
-        public async updateScheduledReport(params: RequestType<typeof api_reporting_scheduler_updateScheduledReport>): Promise<ResponseType<typeof api_reporting_scheduler_updateScheduledReport>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                "cron_expression":     params["cron_expression"],
-                "is_active":           params["is_active"],
-                "notification_emails": params["notification_emails"],
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/reports/scheduled/${encodeURIComponent(params.jobId)}`, {method: "PUT", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_scheduler_updateScheduledReport>
-        }
-
-        public async updateSegment(params: RequestType<typeof api_reporting_filters_updateSegment>): Promise<ResponseType<typeof api_reporting_filters_updateSegment>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                criteria:    params.criteria,
-                description: params.description,
-                name:        params.name,
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/segments/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_updateSegment>
-        }
-
-        public async updateWidget(params: RequestType<typeof api_reporting_widgets_updateWidget>): Promise<ResponseType<typeof api_reporting_widgets_updateWidget>> {
-            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
-            const body: Record<string, any> = {
-                config:        params.config,
-                description:   params.description,
-                height:        params.height,
-                "position_x":  params["position_x"],
-                "position_y":  params["position_y"],
-                title:         params.title,
-                "widget_type": params["widget_type"],
-                width:         params.width,
-            }
-
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/widgets/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_widgets_updateWidget>
-        }
-
-        public async validateFilters(params: RequestType<typeof api_reporting_filters_validateFilters>): Promise<ResponseType<typeof api_reporting_filters_validateFilters>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/filters/validate`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_reporting_filters_validateFilters>
-        }
-    }
-}
-
-/**
- * Import the endpoint handlers to derive the types for the client.
- */
 import { bulkScoreProspects as api_scoring_bulk_score_bulkScoreProspects } from "~backend/scoring/bulk_score";
 import {
     getProspectScore as api_scoring_priority_prospects_getProspectScore,
     getTopProspects as api_scoring_priority_prospects_getTopProspects
 } from "~backend/scoring/priority_prospects";
-import { scoreProspect as api_scoring_score_prospect_scoreProspect } from "~backend/scoring/score_prospect";
 
 export namespace scoring {
 
@@ -2690,10 +1922,8 @@ export namespace scoring {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_scoring_priority_prospects_getTopProspects>
         }
 
-        public async scoreProspect(params: RequestType<typeof api_scoring_score_prospect_scoreProspect>): Promise<ResponseType<typeof api_scoring_score_prospect_scoreProspect>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/scoring/prospect`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_scoring_score_prospect_scoreProspect>
+        public async scoreProspect(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/scoring/prospect`, {method: "POST", body: undefined})
         }
     }
 }

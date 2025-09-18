@@ -1,475 +1,471 @@
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import {
-  Plus,
-  X,
-  Mail,
-  MessageSquare,
-  Clock,
-  CheckSquare,
-  ArrowRight,
-  Wand2,
-  Target,
-  Users
-} from 'lucide-react';
-import { useCreateSequence, useContentTemplates } from '../hooks/useNurturing';
-import { useToast } from '@/components/ui/use-toast';
-import type { NurturingStep } from '~backend/nurturing/types';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Trash2, Plus, ArrowDown } from 'lucide-react';
+import type { CreateSequenceRequest, SequenceStep } from '~backend/nurturing/types';
 
-interface SequenceBuilderProps {
+interface NurturingSequenceBuilderProps {
   onClose: () => void;
-  onSave: () => void;
+  onSave: (sequence: CreateSequenceRequest) => Promise<void>;
 }
 
-export default function NurturingSequenceBuilder({ onClose, onSave }: SequenceBuilderProps) {
-  const [activeTab, setActiveTab] = useState('basic');
-  const [sequenceData, setSequenceData] = useState({
+export function NurturingSequenceBuilder({ onClose, onSave }: NurturingSequenceBuilderProps) {
+  const [formData, setFormData] = useState<Partial<CreateSequenceRequest>>({
     name: '',
     description: '',
-    targetClassification: [] as string[],
-    targetStages: [] as string[],
-    steps: [] as Omit<NurturingStep, 'id' | 'sequenceId'>[]
+    clientId: 'default-client', // This should come from auth context
+    triggerConditions: {
+      events: [],
+      behaviors: [],
+      demographics: [],
+      engagement: {},
+      timeframe: {}
+    },
+    targetAudience: {
+      industries: [],
+      companySize: [],
+      roles: [],
+      geography: [],
+      behaviorSegments: [],
+      excludeSegments: []
+    },
+    steps: []
   });
 
-  const createSequence = useCreateSequence();
-  const { toast } = useToast();
+  const [currentStep, setCurrentStep] = useState<Partial<SequenceStep>>({
+    stepOrder: 0,
+    stepType: 'email',
+    delayDays: 0,
+    delayHours: 24,
+    contentTemplate: {
+      type: 'email',
+      subject: '',
+      body: '',
+      variables: [],
+      personalizationRules: [],
+      dynamicContent: []
+    },
+    isActive: true
+  });
 
-  const handleSave = async () => {
-    if (!sequenceData.name || sequenceData.steps.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide a name and at least one step",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await createSequence.mutateAsync({
-        name: sequenceData.name,
-        description: sequenceData.description,
-        targetClassification: sequenceData.targetClassification,
-        targetStages: sequenceData.targetStages,
-        steps: sequenceData.steps
-      });
-      
-      toast({
-        title: "Success",
-        description: "Nurturing sequence created successfully"
-      });
-      
-      onSave();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create sequence",
-        variant: "destructive"
-      });
-    }
-  };
+  const [saving, setSaving] = useState(false);
 
   const addStep = () => {
-    const newStep: Omit<NurturingStep, 'id' | 'sequenceId'> = {
-      stepNumber: sequenceData.steps.length + 1,
-      type: 'email',
-      trigger: 'time_delay',
-      delayDays: 1,
-      delayHours: 0,
-      contentTemplate: '',
-      personalizationRules: [],
-      conditions: [],
-      isActive: true
-    };
-    
-    setSequenceData(prev => ({
-      ...prev,
-      steps: [...prev.steps, newStep]
-    }));
-  };
+    if (!currentStep.contentTemplate?.body) return;
 
-  const updateStep = (index: number, updates: Partial<NurturingStep>) => {
-    setSequenceData(prev => ({
+    const newStep = {
+      ...currentStep,
+      stepOrder: formData.steps?.length || 0
+    } as Omit<SequenceStep, 'id' | 'sequenceId' | 'createdAt'>;
+
+    setFormData(prev => ({
       ...prev,
-      steps: prev.steps.map((step, i) => 
-        i === index ? { ...step, ...updates } : step
-      )
+      steps: [...(prev.steps || []), newStep]
     }));
+
+    setCurrentStep({
+      stepOrder: (formData.steps?.length || 0) + 1,
+      stepType: 'email',
+      delayDays: 0,
+      delayHours: 24,
+      contentTemplate: {
+        type: 'email',
+        subject: '',
+        body: '',
+        variables: [],
+        personalizationRules: [],
+        dynamicContent: []
+      },
+      isActive: true
+    });
   };
 
   const removeStep = (index: number) => {
-    setSequenceData(prev => ({
+    setFormData(prev => ({
       ...prev,
-      steps: prev.steps.filter((_, i) => i !== index).map((step, i) => ({
-        ...step,
-        stepNumber: i + 1
-      }))
+      steps: prev.steps?.filter((_, i) => i !== index)
     }));
   };
 
-  const classifications = ['hot', 'warm', 'nurture', 'cold'];
-  const stages = ['awareness', 'interest', 'consideration', 'intent', 'evaluation'];
+  const handleSave = async () => {
+    if (!formData.name || !formData.steps?.length) return;
+
+    setSaving(true);
+    try {
+      await onSave(formData as CreateSequenceRequest);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save sequence:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addPersonalizationRule = () => {
+    if (!currentStep.contentTemplate) return;
+
+    setCurrentStep(prev => ({
+      ...prev,
+      contentTemplate: {
+        ...prev.contentTemplate!,
+        personalizationRules: [
+          ...(prev.contentTemplate?.personalizationRules || []),
+          {
+            placeholder: '',
+            source: 'prospect',
+            field: '',
+            fallback: '',
+            transformation: ''
+          }
+        ]
+      }
+    }));
+  };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5" />
-            Create Nurturing Sequence
-          </DialogTitle>
-          <DialogDescription>
-            Build an AI-powered nurturing sequence with automated follow-ups and personalized content.
-          </DialogDescription>
+          <DialogTitle>Create Nurturing Sequence</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="targeting">Targeting</TabsTrigger>
-            <TabsTrigger value="steps">Sequence Steps</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basic" className="space-y-4">
-            <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="name">Sequence Name</Label>
                 <Input
                   id="name"
-                  value={sequenceData.name}
-                  onChange={(e) => setSequenceData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Enterprise Leads Nurturing"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Welcome Series for New Leads"
                 />
               </div>
-              
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={sequenceData.description}
-                  onChange={(e) => setSequenceData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe the purpose and goals of this sequence..."
-                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe the purpose and goals of this sequence"
                 />
               </div>
-            </div>
-          </TabsContent>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="targeting" className="space-y-4">
-            <div className="space-y-6">
-              <div>
-                <Label className="text-base font-medium flex items-center gap-2 mb-3">
-                  <Target className="h-4 w-4" />
-                  Prospect Classification
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {classifications.map((classification) => (
-                    <label
-                      key={classification}
-                      className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={sequenceData.targetClassification.includes(classification)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSequenceData(prev => ({
-                              ...prev,
-                              targetClassification: [...prev.targetClassification, classification]
-                            }));
-                          } else {
-                            setSequenceData(prev => ({
-                              ...prev,
-                              targetClassification: prev.targetClassification.filter(c => c !== classification)
-                            }));
-                          }
-                        }}
-                      />
-                      <Badge variant="outline" className={getClassificationColor(classification)}>
-                        {classification}
-                      </Badge>
-                    </label>
-                  ))}
+          {/* Target Audience */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Target Audience</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Industries</Label>
+                  <Input
+                    placeholder="Technology, Healthcare, Finance"
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      targetAudience: {
+                        ...prev.targetAudience!,
+                        industries: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                      }
+                    }))}
+                  />
+                </div>
+                <div>
+                  <Label>Company Size</Label>
+                  <Input
+                    placeholder="1-10, 11-50, 51-200"
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      targetAudience: {
+                        ...prev.targetAudience!,
+                        companySize: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                      }
+                    }))}
+                  />
+                </div>
+                <div>
+                  <Label>Roles</Label>
+                  <Input
+                    placeholder="CEO, CTO, Marketing Manager"
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      targetAudience: {
+                        ...prev.targetAudience!,
+                        roles: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                      }
+                    }))}
+                  />
+                </div>
+                <div>
+                  <Label>Geography</Label>
+                  <Input
+                    placeholder="US, Europe, Asia-Pacific"
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      targetAudience: {
+                        ...prev.targetAudience!,
+                        geography: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                      }
+                    }))}
+                  />
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <div>
-                <Label className="text-base font-medium flex items-center gap-2 mb-3">
-                  <Users className="h-4 w-4" />
-                  Sales Funnel Stage
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {stages.map((stage) => (
-                    <label
-                      key={stage}
-                      className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={sequenceData.targetStages.includes(stage)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSequenceData(prev => ({
-                              ...prev,
-                              targetStages: [...prev.targetStages, stage]
-                            }));
-                          } else {
-                            setSequenceData(prev => ({
-                              ...prev,
-                              targetStages: prev.targetStages.filter(s => s !== stage)
-                            }));
-                          }
-                        }}
-                      />
-                      <Badge variant="outline" className={getStageColor(stage)}>
-                        {stage}
-                      </Badge>
-                    </label>
-                  ))}
+          {/* Sequence Steps */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Sequence Steps</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Existing Steps */}
+              {formData.steps?.map((step, index) => (
+                <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary">Step {index + 1}</Badge>
+                      <Badge className="capitalize">{step.stepType}</Badge>
+                      <span className="text-sm text-gray-600">
+                        Delay: {step.delayDays}d {step.delayHours}h
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium">{step.contentTemplate.subject}</p>
+                    <p className="text-xs text-gray-600 line-clamp-2">
+                      {step.contentTemplate.body.substring(0, 100)}...
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeStep(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
-            </div>
-          </TabsContent>
+              ))}
 
-          <TabsContent value="steps" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Sequence Steps</h3>
-                <Button onClick={addStep} size="sm">
+              {formData.steps && formData.steps.length > 0 && (
+                <div className="flex justify-center">
+                  <ArrowDown className="h-5 w-5 text-gray-400" />
+                </div>
+              )}
+
+              {/* Add New Step */}
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Label>Step Type</Label>
+                    <Select
+                      value={currentStep.stepType}
+                      onValueChange={(value: 'email' | 'sms' | 'task' | 'wait') => 
+                        setCurrentStep(prev => ({ 
+                          ...prev, 
+                          stepType: value,
+                          contentTemplate: {
+                            ...prev.contentTemplate!,
+                            type: value === 'wait' ? 'email' : value
+                          }
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="sms">SMS</SelectItem>
+                        <SelectItem value="task">Task</SelectItem>
+                        <SelectItem value="wait">Wait</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Delay (Days)</Label>
+                    <Input
+                      type="number"
+                      value={currentStep.delayDays}
+                      onChange={(e) => setCurrentStep(prev => ({ 
+                        ...prev, 
+                        delayDays: parseInt(e.target.value) || 0 
+                      }))}
+                      className="w-20"
+                    />
+                  </div>
+                  <div>
+                    <Label>Delay (Hours)</Label>
+                    <Input
+                      type="number"
+                      value={currentStep.delayHours}
+                      onChange={(e) => setCurrentStep(prev => ({ 
+                        ...prev, 
+                        delayHours: parseInt(e.target.value) || 0 
+                      }))}
+                      className="w-20"
+                    />
+                  </div>
+                </div>
+
+                {currentStep.stepType !== 'wait' && (
+                  <>
+                    <div>
+                      <Label>Subject Line</Label>
+                      <Input
+                        value={currentStep.contentTemplate?.subject}
+                        onChange={(e) => setCurrentStep(prev => ({
+                          ...prev,
+                          contentTemplate: {
+                            ...prev.contentTemplate!,
+                            subject: e.target.value
+                          }
+                        }))}
+                        placeholder="Enter subject line (use {{variables}} for personalization)"
+                      />
+                    </div>
+                    <div>
+                      <Label>Content</Label>
+                      <Textarea
+                        value={currentStep.contentTemplate?.body}
+                        onChange={(e) => setCurrentStep(prev => ({
+                          ...prev,
+                          contentTemplate: {
+                            ...prev.contentTemplate!,
+                            body: e.target.value
+                          }
+                        }))}
+                        placeholder="Enter content (use {{variables}} for personalization)"
+                        rows={4}
+                      />
+                    </div>
+
+                    {/* Personalization Rules */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Personalization Rules</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addPersonalizationRule}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {currentStep.contentTemplate?.personalizationRules?.map((rule, ruleIndex) => (
+                        <div key={ruleIndex} className="grid grid-cols-4 gap-2 p-2 border rounded">
+                          <Input
+                            placeholder="{{variable}}"
+                            value={rule.placeholder}
+                            onChange={(e) => {
+                              const newRules = [...(currentStep.contentTemplate?.personalizationRules || [])];
+                              newRules[ruleIndex] = { ...rule, placeholder: e.target.value };
+                              setCurrentStep(prev => ({
+                                ...prev,
+                                contentTemplate: {
+                                  ...prev.contentTemplate!,
+                                  personalizationRules: newRules
+                                }
+                              }));
+                            }}
+                          />
+                          <Select
+                            value={rule.source}
+                            onValueChange={(value: 'prospect' | 'company' | 'behavior' | 'external') => {
+                              const newRules = [...(currentStep.contentTemplate?.personalizationRules || [])];
+                              newRules[ruleIndex] = { ...rule, source: value };
+                              setCurrentStep(prev => ({
+                                ...prev,
+                                contentTemplate: {
+                                  ...prev.contentTemplate!,
+                                  personalizationRules: newRules
+                                }
+                              }));
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="prospect">Prospect</SelectItem>
+                              <SelectItem value="company">Company</SelectItem>
+                              <SelectItem value="behavior">Behavior</SelectItem>
+                              <SelectItem value="external">External</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="field_name"
+                            value={rule.field}
+                            onChange={(e) => {
+                              const newRules = [...(currentStep.contentTemplate?.personalizationRules || [])];
+                              newRules[ruleIndex] = { ...rule, field: e.target.value };
+                              setCurrentStep(prev => ({
+                                ...prev,
+                                contentTemplate: {
+                                  ...prev.contentTemplate!,
+                                  personalizationRules: newRules
+                                }
+                              }));
+                            }}
+                          />
+                          <Input
+                            placeholder="fallback"
+                            value={rule.fallback}
+                            onChange={(e) => {
+                              const newRules = [...(currentStep.contentTemplate?.personalizationRules || [])];
+                              newRules[ruleIndex] = { ...rule, fallback: e.target.value };
+                              setCurrentStep(prev => ({
+                                ...prev,
+                                contentTemplate: {
+                                  ...prev.contentTemplate!,
+                                  personalizationRules: newRules
+                                }
+                              }));
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <Button onClick={addStep} className="w-full">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Step
                 </Button>
               </div>
+            </CardContent>
+          </Card>
 
-              {sequenceData.steps.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Steps Yet</h3>
-                    <p className="text-muted-foreground text-center mb-4">
-                      Add your first step to start building your nurturing sequence.
-                    </p>
-                    <Button onClick={addStep}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add First Step
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {sequenceData.steps.map((step, index) => (
-                    <SequenceStepEditor
-                      key={index}
-                      step={step}
-                      stepIndex={index}
-                      onUpdate={(updates) => updateStep(index, updates)}
-                      onRemove={() => removeStep(index)}
-                      isLast={index === sequenceData.steps.length - 1}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+          <Separator />
 
-        <DialogFooter className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {sequenceData.steps.length} steps configured
-          </div>
-          <div className="space-x-2">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={createSequence.isPending}>
-              {createSequence.isPending ? 'Creating...' : 'Create Sequence'}
+            <Button 
+              onClick={handleSave} 
+              disabled={!formData.name || !formData.steps?.length || saving}
+            >
+              {saving ? 'Creating...' : 'Create Sequence'}
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
-}
-
-function SequenceStepEditor({
-  step,
-  stepIndex,
-  onUpdate,
-  onRemove,
-  isLast
-}: {
-  step: Omit<NurturingStep, 'id' | 'sequenceId'>;
-  stepIndex: number;
-  onUpdate: (updates: Partial<NurturingStep>) => void;
-  onRemove: () => void;
-  isLast: boolean;
-}) {
-  const getStepIcon = () => {
-    switch (step.type) {
-      case 'email': return <Mail className="h-4 w-4" />;
-      case 'sms': return <MessageSquare className="h-4 w-4" />;
-      case 'task': return <CheckSquare className="h-4 w-4" />;
-      case 'delay': return <Clock className="h-4 w-4" />;
-      default: return <Mail className="h-4 w-4" />;
-    }
-  };
-
-  return (
-    <div className="relative">
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-                {stepIndex + 1}
-              </div>
-              <div className="flex items-center gap-2">
-                {getStepIcon()}
-                <CardTitle className="text-base">Step {stepIndex + 1}</CardTitle>
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onRemove}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Step Type</Label>
-              <Select value={step.type} onValueChange={(value: any) => onUpdate({ type: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="sms">SMS</SelectItem>
-                  <SelectItem value="task">Task</SelectItem>
-                  <SelectItem value="delay">Delay</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label>Trigger</Label>
-              <Select value={step.trigger} onValueChange={(value: any) => onUpdate({ trigger: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="immediate">Immediate</SelectItem>
-                  <SelectItem value="time_delay">Time Delay</SelectItem>
-                  <SelectItem value="behavior_trigger">Behavior Trigger</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {step.trigger === 'time_delay' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Delay Days</Label>
-                <Input
-                  type="number"
-                  value={step.delayDays || 0}
-                  onChange={(e) => onUpdate({ delayDays: parseInt(e.target.value) || 0 })}
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label>Delay Hours</Label>
-                <Input
-                  type="number"
-                  value={step.delayHours || 0}
-                  onChange={(e) => onUpdate({ delayHours: parseInt(e.target.value) || 0 })}
-                  min="0"
-                  max="23"
-                />
-              </div>
-            </div>
-          )}
-
-          {step.type !== 'delay' && (
-            <div>
-              <Label>Content Template</Label>
-              <Textarea
-                value={step.contentTemplate}
-                onChange={(e) => onUpdate({ contentTemplate: e.target.value })}
-                placeholder={
-                  step.type === 'email' 
-                    ? "Hi {{firstName}}, I wanted to follow up on..."
-                    : step.type === 'sms'
-                    ? "Hi {{firstName}}, quick follow-up..."
-                    : "Follow up with {{fullName}} regarding..."
-                }
-                rows={4}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Use variables like {{firstName}}, {{company}}, {{classification}} for personalization
-              </p>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={step.isActive}
-                onCheckedChange={(checked) => onUpdate({ isActive: checked })}
-              />
-              <Label className="text-sm">Active</Label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {!isLast && (
-        <div className="flex justify-center py-2">
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function getClassificationColor(classification: string) {
-  switch (classification) {
-    case 'hot': return 'border-red-500 bg-red-50 text-red-700';
-    case 'warm': return 'border-orange-500 bg-orange-50 text-orange-700';
-    case 'nurture': return 'border-blue-500 bg-blue-50 text-blue-700';
-    case 'cold': return 'border-gray-500 bg-gray-50 text-gray-700';
-    default: return 'border-blue-500 bg-blue-50 text-blue-700';
-  }
-}
-
-function getStageColor(stage: string) {
-  switch (stage) {
-    case 'awareness': return 'border-purple-500 bg-purple-50 text-purple-700';
-    case 'interest': return 'border-blue-500 bg-blue-50 text-blue-700';
-    case 'consideration': return 'border-yellow-500 bg-yellow-50 text-yellow-700';
-    case 'intent': return 'border-orange-500 bg-orange-50 text-orange-700';
-    case 'evaluation': return 'border-red-500 bg-red-50 text-red-700';
-    default: return 'border-gray-500 bg-gray-50 text-gray-700';
-  }
 }

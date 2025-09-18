@@ -24,9 +24,9 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { useNurturingSequences, useSequenceAnalytics } from '../hooks/useNurturing';
+import { useNurturing } from '../hooks/useNurturing';
 import LoadingSpinner from './LoadingSpinner';
-import NurturingSequenceBuilder from './NurturingSequenceBuilder';
+import { NurturingSequenceBuilder } from './NurturingSequenceBuilder';
 import SequenceAnalyticsDashboard from './SequenceAnalyticsDashboard';
 import EnrollmentManager from './EnrollmentManager';
 import ContentTemplateManager from './ContentTemplateManager';
