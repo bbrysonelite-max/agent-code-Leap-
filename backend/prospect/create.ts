@@ -6,8 +6,10 @@ import { validateField, Rules } from "../shared/validation";
 import { insertRow, executeQuery } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
 import { validateProspectData, logSecurityEvent } from "../shared/security";
-import { checkAdvancedRateLimit } from "../shared/advanced-rate-limiting";
+import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
 import { auditDataChange, auditSecurityEvent } from "../audit/logger";
+import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
+import { Header } from "encore.dev/api";
 
 export interface CreateProspectRequest {
   agent_id: number;
@@ -29,12 +31,21 @@ const validProspectTypes: ProspectType[] = [
 ];
 
 // Creates a new prospect for outreach.
-export const create = api<CreateProspectRequest, Prospect>(
+export const create = api(
   { expose: true, method: "POST", path: "/prospects" },
-  wrapAsync(async (req) => {
-    // Advanced rate limiting
-    const identifier = req.userId || `agent_${req.agent_id}`;
-    await checkAdvancedRateLimit(identifier, "/prospects", "POST", req.userTier || "basic");
+  wrapAsync(async (
+    req: CreateProspectRequest,
+    userAgent?: Header<"user-agent">,
+    forwardedFor?: Header<"x-forwarded-for">
+  ) => {
+    // Enhanced rate limiting with intelligent backoff
+    await withEnhancedRateLimit({
+      identifier: req.userId || `agent_${req.agent_id}`,
+      endpoint: "/prospects",
+      method: "POST",
+      userTier: req.userTier || "basic",
+      userId: req.userId
+    }, userAgent, forwardedFor);
     
     // Validate input
     validateField(req.agent_id, "agent_id", [Rules.required(), Rules.positive(), Rules.integer()]);
@@ -124,19 +135,24 @@ export const create = api<CreateProspectRequest, Prospect>(
       
       throw error;
     }
-    const result = await insertRow(
-      () => prospectDB.queryRow<Prospect>`
-        INSERT INTO prospects (
-          agent_id, client_id, name, email, linkedin_profile, company, position, 
-          prospect_type, custom_prospect_type, notes
-        ) VALUES (
-          ${req.agent_id}, ${agent.client_id}, ${req.name}, ${req.email}, 
-          ${req.linkedin_profile || null}, ${req.company || null}, ${req.position || null}, 
-          ${req.prospect_type}, ${req.custom_prospect_type || null}, ${req.notes || null}
-        )
-        RETURNING *
-      `,
-      "prospect"
+    const result = await retryWithAdaptiveBackoff(
+      () => insertRow(
+        () => prospectDB.queryRow<Prospect>`
+          INSERT INTO prospects (
+            agent_id, client_id, name, email, linkedin_profile, company, position, 
+            prospect_type, custom_prospect_type, notes
+          ) VALUES (
+            ${req.agent_id}, ${agent.client_id}, ${req.name}, ${req.email}, 
+            ${req.linkedin_profile || null}, ${req.company || null}, ${req.position || null}, 
+            ${req.prospect_type}, ${req.custom_prospect_type || null}, ${req.notes || null}
+          )
+          RETURNING *
+        `,
+        "prospect"
+      ),
+      "/prospects",
+      "POST",
+      { userId: req.userId, requestId: `prospect_${Date.now()}` }
     );
     
     // Audit the prospect creation

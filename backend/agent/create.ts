@@ -1,19 +1,36 @@
-import { api } from "encore.dev/api";
+import { api, Header } from "encore.dev/api";
 import { agentDB } from "./db";
 import type { Agent } from "./types";
 import { validateField, Rules } from "../shared/validation";
 import { insertRow, executeQuery } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
+import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
 
 export interface CreateAgentRequest {
   name: string;
   client_id: number;
+  userTier?: string;
+  userId?: string;
 }
 
 // Creates a new prospecting agent for a specific client.
-export const create = api<CreateAgentRequest, Agent>(
+export const create = api(
   { expose: true, method: "POST", path: "/agents" },
-  wrapAsync(async (req) => {
+  wrapAsync(async (
+    req: CreateAgentRequest,
+    userAgent?: Header<"user-agent">,
+    forwardedFor?: Header<"x-forwarded-for">
+  ) => {
+    // Enhanced rate limiting for agent creation
+    await withEnhancedRateLimit({
+      identifier: req.userId || `client_${req.client_id}`,
+      endpoint: "/agents",
+      method: "POST",
+      userTier: req.userTier || "basic",
+      userId: req.userId
+    }, userAgent, forwardedFor);
+    
     // Validate input
     validateField(req.name, "name", [Rules.required(), Rules.minLength(2), Rules.maxLength(100)]);
     validateField(req.client_id, "client_id", [Rules.required(), Rules.positive(), Rules.integer()]);

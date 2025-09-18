@@ -1,6 +1,8 @@
-import { api } from "encore.dev/api";
+import { api, Header } from "encore.dev/api";
 import { CRM } from "./db";
 import type { Lead, CreateLeadRequest, UpdateLeadRequest, NextBestAction } from "./types";
+import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
 
 interface AIScoreResult {
   score: number;
@@ -13,7 +15,18 @@ interface AIScoreResult {
 
 export const scoreLeadWithAI = api(
   { method: "POST", path: "/ai-crm/leads/:id/score", expose: true },
-  async ({ id }: { id: string }): Promise<AIScoreResult> => {
+  async (
+    { id }: { id: string },
+    userAgent?: Header<"user-agent">,
+    forwardedFor?: Header<"x-forwarded-for">
+  ): Promise<AIScoreResult> => {
+    // Enhanced rate limiting for AI scoring
+    await withEnhancedRateLimit({
+      identifier: `ai_scoring_${id}`,
+      endpoint: "/ai-crm/leads/score",
+      method: "POST",
+      userTier: "basic" // Default tier for AI operations
+    }, userAgent, forwardedFor);
     const result = await CRM.queryRow`
       SELECT * FROM leads WHERE id = ${id}
     `;
@@ -25,15 +38,20 @@ export const scoreLeadWithAI = api(
     const lead = result as Lead;
     const aiScore = await calculateAIScore(lead);
     
-    await CRM.exec`
-      UPDATE leads 
-      SET ai_score = ${aiScore.score},
-          ai_qualification = ${aiScore.qualification},
-          next_best_action = ${aiScore.nextBestAction},
-          priority = ${aiScore.priority},
-          updated_at = NOW()
-      WHERE id = ${id}
-    `;
+    await retryWithAdaptiveBackoff(
+      () => CRM.exec`
+        UPDATE leads 
+        SET ai_score = ${aiScore.score},
+            ai_qualification = ${aiScore.qualification},
+            next_best_action = ${aiScore.nextBestAction},
+            priority = ${aiScore.priority},
+            updated_at = NOW()
+        WHERE id = ${id}
+      `,
+      "/ai-crm/leads/score",
+      "POST",
+      { requestId: `score_${id}` }
+    );
 
     return aiScore;
   }
@@ -41,7 +59,18 @@ export const scoreLeadWithAI = api(
 
 export const bulkScoreLeads = api(
   { method: "POST", path: "/ai-crm/leads/bulk-score", expose: true },
-  async ({ leadIds }: { leadIds: string[] }): Promise<{ processed: number; errors: number }> => {
+  async (
+    { leadIds }: { leadIds: string[] },
+    userAgent?: Header<"user-agent">,
+    forwardedFor?: Header<"x-forwarded-for">
+  ): Promise<{ processed: number; errors: number }> => {
+    // Enhanced rate limiting for bulk operations
+    await withEnhancedRateLimit({
+      identifier: `bulk_scoring_${leadIds.length}`,
+      endpoint: "/ai-crm/leads/bulk-score",
+      method: "POST",
+      userTier: "premium" // Bulk operations require higher tier
+    }, userAgent, forwardedFor);
     let processed = 0;
     let errors = 0;
 

@@ -25,6 +25,7 @@ const aiCRMNavigation = [
 const rateLimitNavigation = [
   { name: 'Rate Limit Monitor', href: '/rate-limits', icon: Shield },
   { name: 'Rate Limit Config', href: '/rate-limits/management', icon: Settings },
+  { name: 'Advanced Analytics', href: '/rate-limits/advanced', icon: Activity },
 ];
 
 const reportingNavigation = [

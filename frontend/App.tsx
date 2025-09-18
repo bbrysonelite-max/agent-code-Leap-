@@ -22,6 +22,7 @@ import CRMIntegration from './components/CRMIntegration';
 import HubSpotIntegration from './components/HubSpotIntegration';
 import RateLimitDashboard from './components/RateLimitDashboard';
 import RateLimitManagement from './components/RateLimitManagement';
+import RateLimitingDashboard from './components/RateLimitingDashboard';
 import { ReportingDashboard } from './components/ReportingDashboard';
 import { ComplianceDashboard } from './components/ComplianceDashboard';
 import NurturingDashboard from './components/NurturingDashboard';
@@ -58,6 +59,7 @@ function AppInner() {
                     <Route path="/hubspot" element={<HubSpotIntegration />} />
                     <Route path="/rate-limits" element={<RateLimitDashboard />} />
                     <Route path="/rate-limits/management" element={<RateLimitManagement />} />
+                    <Route path="/rate-limits/advanced" element={<RateLimitingDashboard />} />
                     <Route path="/reporting" element={<ReportingDashboard />} />
                     <Route path="/compliance" element={<ComplianceDashboard />} />
                     <Route path="/nurturing" element={<NurturingDashboard />} />

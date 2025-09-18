@@ -5,10 +5,12 @@ import { validateField, Rules } from "../shared/validation";
 import { requireRow, executeQuery, insertRow } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
 import { validateEmailContent, sanitizeHtml, logSecurityEvent } from "../shared/security";
-import { checkAdvancedRateLimit } from "../shared/advanced-rate-limiting";
+import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
 import { broadcastMessage } from "../realtime/websocket";
 import type { EmailProgressData } from "../realtime/types";
 import { auditDataChange, auditSecurityEvent } from "../audit/logger";
+import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
+import { Header } from "encore.dev/api";
 
 export interface SendEmailRequest {
   prospect_id: number;
@@ -25,12 +27,21 @@ export interface SendEmailResponse {
 }
 
 // Sends a personalized Nu Skin outreach email to a prospect.
-export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
+export const sendEmail = api(
   { expose: true, method: "POST", path: "/email/send" },
-  wrapAsync(async (req) => {
-    // Rate limiting check
-    const identifier = req.agentId || "anonymous";
-    await checkAdvancedRateLimit(identifier, "/email/send", "POST", req.userTier || "basic");
+  wrapAsync(async (
+    req: SendEmailRequest,
+    userAgent?: Header<"user-agent">,
+    forwardedFor?: Header<"x-forwarded-for">
+  ) => {
+    // Enhanced rate limiting with intelligent backoff
+    await withEnhancedRateLimit({
+      identifier: req.agentId || req.userId || "anonymous",
+      endpoint: "/email/send",
+      method: "POST",
+      userTier: req.userTier || "basic",
+      userId: req.userId
+    }, userAgent, forwardedFor);
     
     // Validate input
     validateField(req.prospect_id, "prospect_id", [Rules.required(), Rules.positive(), Rules.integer()]);
@@ -128,18 +139,23 @@ export const sendEmail = api<SendEmailRequest, SendEmailResponse>(
       timestamp: new Date().toISOString()
     }, "email_progress");
 
-    // Create email campaign record
-    const campaign = await insertRow(
-      () => emailDB.queryRow<EmailCampaign>`
-        INSERT INTO email_campaigns (
-          prospect_id, template_id, subject, body, sent_at, status
-        ) VALUES (
-          ${req.prospect_id}, ${req.template_id}, ${personalizedSubject}, 
-          ${sanitizedBody}, NOW(), 'sent'
-        )
-        RETURNING *
-      `,
-      "email campaign"
+    // Create email campaign record with intelligent retry
+    const campaign = await retryWithAdaptiveBackoff(
+      () => insertRow(
+        () => emailDB.queryRow<EmailCampaign>`
+          INSERT INTO email_campaigns (
+            prospect_id, template_id, subject, body, sent_at, status
+          ) VALUES (
+            ${req.prospect_id}, ${req.template_id}, ${personalizedSubject}, 
+            ${sanitizedBody}, NOW(), 'sent'
+          )
+          RETURNING *
+        `,
+        "email campaign"
+      ),
+      "/email/send",
+      "POST",
+      { userId: req.userId, requestId: `email_${Date.now()}` }
     );
     
     // Audit the email sending
