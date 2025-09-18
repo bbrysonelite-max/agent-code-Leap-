@@ -64,7 +64,7 @@ function AppInner() {
                     <Route path="/compliance" element={<ComplianceDashboard />} />
                     <Route path="/nurturing" element={<NurturingDashboard />} />
                     <Route path="/intelligent-nurturing" element={<IntelligentNurturingDashboard />} />
-                    <Route path="/ai-sequence-builder" element={<AISequenceBuilder />} />
+                    <Route path="/ai-sequence-builder" element={<AISequenceBuilder onClose={() => {}} onSave={() => Promise.resolve()} />} />
                     <Route path="/engagement-tracker" element={<RealTimeEngagementTracker />} />
                   </Routes>
                 </ErrorBoundary>

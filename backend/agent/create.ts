@@ -4,7 +4,7 @@ import type { Agent } from "./types";
 import { validateField, Rules } from "../shared/validation";
 import { insertRow, executeQuery } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
-import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { withEnhancedRateLimit } from "../shared/simple-rate-limiting";
 import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
 
 export interface CreateAgentRequest {

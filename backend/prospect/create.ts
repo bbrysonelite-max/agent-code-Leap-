@@ -6,7 +6,7 @@ import { validateField, Rules } from "../shared/validation";
 import { insertRow, executeQuery } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
 import { validateProspectData, logSecurityEvent } from "../shared/security";
-import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { withEnhancedRateLimit } from "../shared/simple-rate-limiting";
 import { auditDataChange, auditSecurityEvent } from "../audit/logger";
 import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
 import { Header } from "encore.dev/api";

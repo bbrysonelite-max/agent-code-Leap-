@@ -5,7 +5,7 @@ import { validateField, Rules } from "../shared/validation";
 import { requireRow, executeQuery, insertRow } from "../shared/database";
 import { wrapAsync, BusinessLogicError } from "../shared/errors";
 import { validateEmailContent, sanitizeHtml, logSecurityEvent } from "../shared/security";
-import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { withEnhancedRateLimit } from "../shared/simple-rate-limiting";
 import { broadcastMessage } from "../realtime/websocket";
 import type { EmailProgressData } from "../realtime/types";
 import { auditDataChange, auditSecurityEvent } from "../audit/logger";

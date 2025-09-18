@@ -1,5 +1,5 @@
 import { api } from "encore.dev/api";
-import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { withEnhancedRateLimit } from "../shared/simple-rate-limiting";
 import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
 
 export interface TestRequest {

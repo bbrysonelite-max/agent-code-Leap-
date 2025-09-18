@@ -1,7 +1,7 @@
 import { api, Header } from "encore.dev/api";
 import { CRM } from "./db";
 import type { Lead, CreateLeadRequest, UpdateLeadRequest, NextBestAction } from "./types";
-import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { withEnhancedRateLimit } from "../shared/simple-rate-limiting";
 import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
 
 interface AIScoreResult {

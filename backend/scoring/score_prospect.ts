@@ -4,7 +4,7 @@ import { calculateProspectScore } from "./algorithm";
 import { ScoreAnalysisRequest, ProspectScore } from "./types";
 import { validateField, Rules } from "../shared/validation";
 import { wrapAsync } from "../shared/errors";
-import { withEnhancedRateLimit } from "../shared/enhanced-rate-limiting-middleware";
+import { withEnhancedRateLimit } from "../shared/simple-rate-limiting";
 import { retryWithAdaptiveBackoff } from "../shared/intelligent-backoff";
 
 export const scoreProspect = api(
