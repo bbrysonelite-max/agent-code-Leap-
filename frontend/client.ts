@@ -1347,6 +1347,11 @@ export namespace hubspot {
  * Import the endpoint handlers to derive the types for the client.
  */
 import {
+    analyzeAdvancedBehavior as api_nurturing_advanced_behavior_analyzer_analyzeAdvancedBehavior,
+    getBehaviorInsights as api_nurturing_advanced_behavior_analyzer_getBehaviorInsights,
+    predictEngagementWindow as api_nurturing_advanced_behavior_analyzer_predictEngagementWindow
+} from "~backend/nurturing/advanced_behavior_analyzer";
+import {
     classifyProspect as api_nurturing_ai_classification_classifyProspect,
     generateAIInsights as api_nurturing_ai_classification_generateAIInsights,
     getAIInsights as api_nurturing_ai_classification_getAIInsights,
@@ -1381,6 +1386,29 @@ import {
     handleEmailUnsubscribed as api_nurturing_email_integration_handleEmailUnsubscribed
 } from "~backend/nurturing/email_integration";
 import {
+    generateIntelligentContent as api_nurturing_intelligent_content_engine_generateIntelligentContent,
+    generatePersonalizedSubjectLines as api_nurturing_intelligent_content_engine_generatePersonalizedSubjectLines,
+    generateSequenceContent as api_nurturing_intelligent_content_engine_generateSequenceContent,
+    optimizeContentPerformance as api_nurturing_intelligent_content_engine_optimizeContentPerformance
+} from "~backend/nurturing/intelligent_content_engine";
+import {
+    adaptSequenceTiming as api_nurturing_intelligent_sequence_engine_adaptSequenceTiming,
+    createIntelligentSequence as api_nurturing_intelligent_sequence_engine_createIntelligentSequence,
+    intelligentEnroll as api_nurturing_intelligent_sequence_engine_intelligentEnroll,
+    optimizeSequencePerformance as api_nurturing_intelligent_sequence_engine_optimizeSequencePerformance,
+    predictSequenceOutcome as api_nurturing_intelligent_sequence_engine_predictSequenceOutcome,
+    processIntelligentSteps as api_nurturing_intelligent_sequence_engine_processIntelligentSteps
+} from "~backend/nurturing/intelligent_sequence_engine";
+import {
+    adaptFollowUpContent as api_nurturing_personalized_followup_engine_adaptFollowUpContent,
+    automaticFollowUpTriggers as api_nurturing_personalized_followup_engine_automaticFollowUpTriggers,
+    createPersonalizedFollowUp as api_nurturing_personalized_followup_engine_createPersonalizedFollowUp,
+    generateFollowUpSeries as api_nurturing_personalized_followup_engine_generateFollowUpSeries,
+    getFollowUpInsights as api_nurturing_personalized_followup_engine_getFollowUpInsights,
+    optimizeFollowUpTiming as api_nurturing_personalized_followup_engine_optimizeFollowUpTiming,
+    trackFollowUpPerformance as api_nurturing_personalized_followup_engine_trackFollowUpPerformance
+} from "~backend/nurturing/personalized_followup_engine";
+import {
     getRecentNurturingEvents as api_nurturing_realtime_notifications_getRecentNurturingEvents,
     markAllNotificationsAsRead as api_nurturing_realtime_notifications_markAllNotificationsAsRead,
     markNotificationAsRead as api_nurturing_realtime_notifications_markNotificationAsRead,
@@ -1402,9 +1430,15 @@ export namespace nurturing {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.adaptFollowUpContent = this.adaptFollowUpContent.bind(this)
+            this.adaptSequenceTiming = this.adaptSequenceTiming.bind(this)
+            this.analyzeAdvancedBehavior = this.analyzeAdvancedBehavior.bind(this)
+            this.automaticFollowUpTriggers = this.automaticFollowUpTriggers.bind(this)
             this.bulkEnrollProspects = this.bulkEnrollProspects.bind(this)
             this.classifyProspect = this.classifyProspect.bind(this)
             this.createContentTemplate = this.createContentTemplate.bind(this)
+            this.createIntelligentSequence = this.createIntelligentSequence.bind(this)
+            this.createPersonalizedFollowUp = this.createPersonalizedFollowUp.bind(this)
             this.createSequence = this.createSequence.bind(this)
             this.deleteSequence = this.deleteSequence.bind(this)
             this.duplicateSequence = this.duplicateSequence.bind(this)
@@ -1412,12 +1446,18 @@ export namespace nurturing {
             this.executeStep = this.executeStep.bind(this)
             this.generateAIContent = this.generateAIContent.bind(this)
             this.generateAIInsights = this.generateAIInsights.bind(this)
+            this.generateFollowUpSeries = this.generateFollowUpSeries.bind(this)
+            this.generateIntelligentContent = this.generateIntelligentContent.bind(this)
             this.generatePersonalizedContent = this.generatePersonalizedContent.bind(this)
+            this.generatePersonalizedSubjectLines = this.generatePersonalizedSubjectLines.bind(this)
+            this.generateSequenceContent = this.generateSequenceContent.bind(this)
             this.getAIInsights = this.getAIInsights.bind(this)
             this.getActiveEnrollments = this.getActiveEnrollments.bind(this)
+            this.getBehaviorInsights = this.getBehaviorInsights.bind(this)
             this.getBulkEnrollmentCandidates = this.getBulkEnrollmentCandidates.bind(this)
             this.getContentTemplates = this.getContentTemplates.bind(this)
             this.getEngagementPattern = this.getEngagementPattern.bind(this)
+            this.getFollowUpInsights = this.getFollowUpInsights.bind(this)
             this.getProspectBehaviors = this.getProspectBehaviors.bind(this)
             this.getProspectClassification = this.getProspectClassification.bind(this)
             this.getRecentNurturingEvents = this.getRecentNurturingEvents.bind(this)
@@ -1429,15 +1469,52 @@ export namespace nurturing {
             this.handleEmailOpened = this.handleEmailOpened.bind(this)
             this.handleEmailReplied = this.handleEmailReplied.bind(this)
             this.handleEmailUnsubscribed = this.handleEmailUnsubscribed.bind(this)
+            this.intelligentEnroll = this.intelligentEnroll.bind(this)
             this.markAllNotificationsAsRead = this.markAllNotificationsAsRead.bind(this)
             this.markNotificationAsRead = this.markNotificationAsRead.bind(this)
+            this.optimizeContentPerformance = this.optimizeContentPerformance.bind(this)
+            this.optimizeFollowUpTiming = this.optimizeFollowUpTiming.bind(this)
             this.optimizeSequence = this.optimizeSequence.bind(this)
+            this.optimizeSequencePerformance = this.optimizeSequencePerformance.bind(this)
             this.pauseEnrollment = this.pauseEnrollment.bind(this)
+            this.predictEngagementWindow = this.predictEngagementWindow.bind(this)
+            this.predictSequenceOutcome = this.predictSequenceOutcome.bind(this)
+            this.processIntelligentSteps = this.processIntelligentSteps.bind(this)
             this.resumeEnrollment = this.resumeEnrollment.bind(this)
             this.subscribeToNurturingEvents = this.subscribeToNurturingEvents.bind(this)
             this.trackBehavior = this.trackBehavior.bind(this)
+            this.trackFollowUpPerformance = this.trackFollowUpPerformance.bind(this)
             this.unsubscribeFromNurturingEvents = this.unsubscribeFromNurturingEvents.bind(this)
             this.updateSequence = this.updateSequence.bind(this)
+        }
+
+        public async adaptFollowUpContent(params: RequestType<typeof api_nurturing_personalized_followup_engine_adaptFollowUpContent>): Promise<ResponseType<typeof api_nurturing_personalized_followup_engine_adaptFollowUpContent>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                recentBehavior: params.recentBehavior,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/follow-ups/${encodeURIComponent(params.followUpId)}/adapt-content`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_personalized_followup_engine_adaptFollowUpContent>
+        }
+
+        public async adaptSequenceTiming(params: { enrollmentId: string }): Promise<ResponseType<typeof api_nurturing_intelligent_sequence_engine_adaptSequenceTiming>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/enrollments/${encodeURIComponent(params.enrollmentId)}/adapt-timing`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_sequence_engine_adaptSequenceTiming>
+        }
+
+        public async analyzeAdvancedBehavior(params: { prospectId: string }): Promise<ResponseType<typeof api_nurturing_advanced_behavior_analyzer_analyzeAdvancedBehavior>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/advanced-analysis`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_advanced_behavior_analyzer_analyzeAdvancedBehavior>
+        }
+
+        public async automaticFollowUpTriggers(): Promise<ResponseType<typeof api_nurturing_personalized_followup_engine_automaticFollowUpTriggers>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/follow-ups/auto-trigger`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_personalized_followup_engine_automaticFollowUpTriggers>
         }
 
         public async bulkEnrollProspects(params: RequestType<typeof api_nurturing_campaign_management_bulkEnrollProspects>): Promise<ResponseType<typeof api_nurturing_campaign_management_bulkEnrollProspects>> {
@@ -1459,6 +1536,18 @@ export namespace nurturing {
 
         public async createContentTemplate(params: RequestType<typeof api_nurturing_content_generator_createContentTemplate>): Promise<void> {
             await this.baseClient.callTypedAPI(`/content/templates`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        public async createIntelligentSequence(params: RequestType<typeof api_nurturing_intelligent_sequence_engine_createIntelligentSequence>): Promise<ResponseType<typeof api_nurturing_intelligent_sequence_engine_createIntelligentSequence>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/intelligent-sequences`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_sequence_engine_createIntelligentSequence>
+        }
+
+        public async createPersonalizedFollowUp(params: RequestType<typeof api_nurturing_personalized_followup_engine_createPersonalizedFollowUp>): Promise<ResponseType<typeof api_nurturing_personalized_followup_engine_createPersonalizedFollowUp>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/follow-ups/create`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_personalized_followup_engine_createPersonalizedFollowUp>
         }
 
         public async createSequence(params: RequestType<typeof api_nurturing_sequence_scheduler_createSequence>): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_createSequence>> {
@@ -1512,10 +1601,34 @@ export namespace nurturing {
             await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/ai-insights`, {method: "POST", body: undefined})
         }
 
+        public async generateFollowUpSeries(params: RequestType<typeof api_nurturing_personalized_followup_engine_generateFollowUpSeries>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/follow-ups/series`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        public async generateIntelligentContent(params: RequestType<typeof api_nurturing_intelligent_content_engine_generateIntelligentContent>): Promise<ResponseType<typeof api_nurturing_intelligent_content_engine_generateIntelligentContent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/content/intelligent-generate`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_content_engine_generateIntelligentContent>
+        }
+
         public async generatePersonalizedContent(params: RequestType<typeof api_nurturing_content_generator_generatePersonalizedContent>): Promise<ResponseType<typeof api_nurturing_content_generator_generatePersonalizedContent>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/content/generate`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_content_generator_generatePersonalizedContent>
+        }
+
+        public async generatePersonalizedSubjectLines(params: RequestType<typeof api_nurturing_intelligent_content_engine_generatePersonalizedSubjectLines>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/content/subject-lines`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        public async generateSequenceContent(params: RequestType<typeof api_nurturing_intelligent_content_engine_generateSequenceContent>): Promise<void> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                prospectIds: params.prospectIds,
+                stepNumber:  params.stepNumber,
+            }
+
+            await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.sequenceId)}/generate-content`, {method: "POST", body: JSON.stringify(body)})
         }
 
         public async getAIInsights(params: { prospectId: string }): Promise<void> {
@@ -1524,6 +1637,10 @@ export namespace nurturing {
 
         public async getActiveEnrollments(): Promise<void> {
             await this.baseClient.callTypedAPI(`/enrollments/active`, {method: "GET", body: undefined})
+        }
+
+        public async getBehaviorInsights(params: { prospectId: string }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/behavior-insights`, {method: "GET", body: undefined})
         }
 
         public async getBulkEnrollmentCandidates(params: RequestType<typeof api_nurturing_campaign_management_getBulkEnrollmentCandidates>): Promise<void> {
@@ -1550,6 +1667,12 @@ export namespace nurturing {
 
         public async getEngagementPattern(params: { prospectId: string }): Promise<void> {
             await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/engagement-pattern`, {method: "GET", body: undefined})
+        }
+
+        public async getFollowUpInsights(params: { prospectId: string }): Promise<ResponseType<typeof api_nurturing_personalized_followup_engine_getFollowUpInsights>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/follow-ups/insights/${encodeURIComponent(params.prospectId)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_personalized_followup_engine_getFollowUpInsights>
         }
 
         public async getProspectBehaviors(params: { prospectId: string }): Promise<void> {
@@ -1631,6 +1754,18 @@ export namespace nurturing {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_email_integration_handleEmailUnsubscribed>
         }
 
+        public async intelligentEnroll(params: RequestType<typeof api_nurturing_intelligent_sequence_engine_intelligentEnroll>): Promise<ResponseType<typeof api_nurturing_intelligent_sequence_engine_intelligentEnroll>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                metadata:   params.metadata,
+                prospectId: params.prospectId,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/intelligent-sequences/${encodeURIComponent(params.sequenceId)}/enroll`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_sequence_engine_intelligentEnroll>
+        }
+
         public async markAllNotificationsAsRead(params: RequestType<typeof api_nurturing_realtime_notifications_markAllNotificationsAsRead>): Promise<ResponseType<typeof api_nurturing_realtime_notifications_markAllNotificationsAsRead>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/notifications/read-all`, {method: "PUT", body: JSON.stringify(params)})
@@ -1648,6 +1783,18 @@ export namespace nurturing {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_realtime_notifications_markNotificationAsRead>
         }
 
+        public async optimizeContentPerformance(params: RequestType<typeof api_nurturing_intelligent_content_engine_optimizeContentPerformance>): Promise<ResponseType<typeof api_nurturing_intelligent_content_engine_optimizeContentPerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/content/optimize`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_content_engine_optimizeContentPerformance>
+        }
+
+        public async optimizeFollowUpTiming(params: { followUpId: string }): Promise<ResponseType<typeof api_nurturing_personalized_followup_engine_optimizeFollowUpTiming>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/follow-ups/${encodeURIComponent(params.followUpId)}/optimize-timing`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_personalized_followup_engine_optimizeFollowUpTiming>
+        }
+
         public async optimizeSequence(params: RequestType<typeof api_nurturing_campaign_management_optimizeSequence>): Promise<ResponseType<typeof api_nurturing_campaign_management_optimizeSequence>> {
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
@@ -1659,10 +1806,34 @@ export namespace nurturing {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_campaign_management_optimizeSequence>
         }
 
+        public async optimizeSequencePerformance(params: { sequenceId: string }): Promise<ResponseType<typeof api_nurturing_intelligent_sequence_engine_optimizeSequencePerformance>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/intelligent-sequences/${encodeURIComponent(params.sequenceId)}/optimize`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_sequence_engine_optimizeSequencePerformance>
+        }
+
         public async pauseEnrollment(params: { enrollmentId: string }): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_pauseEnrollment>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/enrollments/${encodeURIComponent(params.enrollmentId)}/pause`, {method: "POST", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_sequence_scheduler_pauseEnrollment>
+        }
+
+        public async predictEngagementWindow(params: { prospectId: string }): Promise<ResponseType<typeof api_nurturing_advanced_behavior_analyzer_predictEngagementWindow>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/prospects/${encodeURIComponent(params.prospectId)}/engagement-window`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_advanced_behavior_analyzer_predictEngagementWindow>
+        }
+
+        public async predictSequenceOutcome(params: { enrollmentId: string }): Promise<ResponseType<typeof api_nurturing_intelligent_sequence_engine_predictSequenceOutcome>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/enrollments/${encodeURIComponent(params.enrollmentId)}/predict`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_sequence_engine_predictSequenceOutcome>
+        }
+
+        public async processIntelligentSteps(): Promise<ResponseType<typeof api_nurturing_intelligent_sequence_engine_processIntelligentSteps>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/intelligent-sequences/process`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_intelligent_sequence_engine_processIntelligentSteps>
         }
 
         public async resumeEnrollment(params: { enrollmentId: string }): Promise<ResponseType<typeof api_nurturing_sequence_scheduler_resumeEnrollment>> {
@@ -1684,6 +1855,18 @@ export namespace nurturing {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/behaviors`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_behavior_tracking_trackBehavior>
+        }
+
+        public async trackFollowUpPerformance(params: RequestType<typeof api_nurturing_personalized_followup_engine_trackFollowUpPerformance>): Promise<ResponseType<typeof api_nurturing_personalized_followup_engine_trackFollowUpPerformance>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                data:  params.data,
+                event: params.event,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/follow-ups/${encodeURIComponent(params.followUpId)}/track`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_personalized_followup_engine_trackFollowUpPerformance>
         }
 
         public async unsubscribeFromNurturingEvents(params: RequestType<typeof api_nurturing_realtime_notifications_unsubscribeFromNurturingEvents>): Promise<ResponseType<typeof api_nurturing_realtime_notifications_unsubscribeFromNurturingEvents>> {

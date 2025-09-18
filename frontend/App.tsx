@@ -24,6 +24,9 @@ import RateLimitManagement from './components/RateLimitManagement';
 import { ReportingDashboard } from './components/ReportingDashboard';
 import { ComplianceDashboard } from './components/ComplianceDashboard';
 import NurturingDashboard from './components/NurturingDashboard';
+import IntelligentNurturingDashboard from './components/IntelligentNurturingDashboard';
+import AISequenceBuilder from './components/AISequenceBuilder';
+import RealTimeEngagementTracker from './components/RealTimeEngagementTracker';
 
 const PUBLISHABLE_KEY = "pk_test_Y2xlYXItZmluY2gtMS5jbGVyay5hY2NvdW50cy5kZXYk";
 
@@ -56,6 +59,9 @@ function AppInner() {
                     <Route path="/reporting" element={<ReportingDashboard />} />
                     <Route path="/compliance" element={<ComplianceDashboard />} />
                     <Route path="/nurturing" element={<NurturingDashboard />} />
+                    <Route path="/intelligent-nurturing" element={<IntelligentNurturingDashboard />} />
+                    <Route path="/ai-sequence-builder" element={<AISequenceBuilder />} />
+                    <Route path="/engagement-tracker" element={<RealTimeEngagementTracker />} />
                   </Routes>
                 </ErrorBoundary>
               </main>
