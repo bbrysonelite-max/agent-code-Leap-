@@ -29,6 +29,7 @@ import NurturingDashboard from './components/NurturingDashboard';
 import { IntelligentNurturingDashboard } from './components/IntelligentNurturingDashboard';
 import { AISequenceBuilder } from './components/AISequenceBuilder';
 import RealTimeEngagementTracker from './components/RealTimeEngagementTracker';
+import { PaymentDashboard } from './components/PaymentDashboard';
 
 const PUBLISHABLE_KEY = "pk_test_Y2xlYXItZmluY2gtMS5jbGVyay5hY2NvdW50cy5kZXYk";
 
@@ -66,6 +67,7 @@ function AppInner() {
                     <Route path="/intelligent-nurturing" element={<IntelligentNurturingDashboard />} />
                     <Route path="/ai-sequence-builder" element={<AISequenceBuilder onClose={() => {}} onSave={() => Promise.resolve()} />} />
                     <Route path="/engagement-tracker" element={<RealTimeEngagementTracker />} />
+                    <Route path="/payments" element={<PaymentDashboard />} />
                   </Routes>
                 </ErrorBoundary>
               </main>
