@@ -50,6 +50,7 @@ export class Client {
     public readonly rate_limiting: rate_limiting.ServiceClient
     public readonly realtime: realtime.ServiceClient
     public readonly scoring: scoring.ServiceClient
+    public readonly system: system.ServiceClient
     private readonly options: ClientOptions
     private readonly target: string
 
@@ -81,6 +82,7 @@ export class Client {
         this.rate_limiting = new rate_limiting.ServiceClient(base)
         this.realtime = new realtime.ServiceClient(base)
         this.scoring = new scoring.ServiceClient(base)
+        this.system = new system.ServiceClient(base)
     }
 
     /**
@@ -2476,6 +2478,29 @@ export namespace scoring {
 
         public async scoreProspect(): Promise<void> {
             await this.baseClient.callTypedAPI(`/scoring/prospect`, {method: "POST", body: undefined})
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import { stopAllLoops as api_system_stop_loops_stopAllLoops } from "~backend/system/stop_loops";
+
+export namespace system {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.stopAllLoops = this.stopAllLoops.bind(this)
+        }
+
+        public async stopAllLoops(): Promise<ResponseType<typeof api_system_stop_loops_stopAllLoops>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/system/stop-loops`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_system_stop_loops_stopAllLoops>
         }
     }
 }

@@ -116,7 +116,7 @@ export const getConnectedClients = api(
 );
 
 // Clean up stale connections
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = new Date();
   const staleThreshold = 5 * 60 * 1000; // 5 minutes
   
@@ -127,3 +127,8 @@ setInterval(() => {
     }
   }
 }, 60000); // Check every minute
+
+// Cleanup function to stop the interval
+export function stopCleanup() {
+  clearInterval(cleanupInterval);
+}

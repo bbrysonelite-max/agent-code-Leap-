@@ -13,11 +13,12 @@ interface RateLimitEntry {
 class RateLimiter {
   private store = new Map<string, RateLimitEntry>();
   private config: RateLimitConfig;
+  private cleanupInterval?: NodeJS.Timeout;
 
   constructor(config: RateLimitConfig) {
     this.config = config;
     // Clean up expired entries every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
   checkLimit(identifier: string): { allowed: boolean; retryAfter?: number } {
@@ -51,6 +52,12 @@ class RateLimiter {
       if (now >= entry.resetTime) {
         this.store.delete(key);
       }
+    }
+  }
+
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
     }
   }
 }
