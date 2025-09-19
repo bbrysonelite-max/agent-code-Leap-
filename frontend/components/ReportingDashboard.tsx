@@ -15,16 +15,16 @@ import {
   Filter
 } from 'lucide-react';
 import { useReporting } from '../hooks/useReporting';
-import { DashboardGrid } from './DashboardGrid';
-import { ReportBuilder } from './ReportBuilder';
-import { ScheduledReports } from './ScheduledReports';
-import { ExportDialog } from './ExportDialog';
+import DashboardGrid from './DashboardGrid';
+import ReportBuilder from './ReportBuilder';
+import ScheduledReports from './ScheduledReports';
+import ExportDialog from './ExportDialog';
 
 interface ReportingDashboardProps {
   initialDashboardId?: string;
 }
 
-export function ReportingDashboard({ initialDashboardId }: ReportingDashboardProps) {
+export default function ReportingDashboard({ initialDashboardId }: ReportingDashboardProps) {
   const {
     dashboards,
     currentDashboard,

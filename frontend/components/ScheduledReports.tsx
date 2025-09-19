@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import { useReporting } from '../hooks/useReporting';
 
-export function ScheduledReports() {
+export default function ScheduledReports() {
   const {
     scheduledReports,
     reportExecutions,

@@ -230,10 +230,11 @@ export const smartEnrollProspect = api(
   { method: "POST", path: "/smart-enroll", expose: true },
   async ({ prospect_id, client_id }: { prospect_id: number; client_id: number }) => {
     // Get prospect engagement profile
-    const [profile] = await nurturingDB.query`
+    const profileResults = await nurturingDB.query`
       SELECT * FROM prospect_engagement_profile 
       WHERE prospect_id = ${prospect_id}
     `;
+    const profile = profileResults[0];
     
     // Get recent behaviors to inform classification
     const behaviors = await nurturingDB.query`

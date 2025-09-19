@@ -17,7 +17,7 @@ interface AISequenceBuilderProps {
   onSave: (sequence: CreateSequenceRequest) => Promise<void>;
 }
 
-export function AISequenceBuilder({ onClose, onSave }: AISequenceBuilderProps) {
+export default function AISequenceBuilder({ onClose, onSave }: AISequenceBuilderProps) {
   const [step, setStep] = useState<'goals' | 'audience' | 'strategy' | 'generation' | 'review'>('goals');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -87,7 +87,7 @@ export function AISequenceBuilder({ onClose, onSave }: AISequenceBuilderProps) {
   };
 
   const generateSteps = () => {
-    const steps = [];
+    const steps: any[] = [];
     const stepTemplates = [
       {
         type: 'email' as const,
@@ -516,7 +516,7 @@ Best,
 
                   <div>
                     <Label className="font-medium">Description</Label>
-                    <p className="text-sm text-gray-600">{generatedSequence.description}</p>
+                    <p className="text-sm text-gray-600">{generatedSequence.name}</p>
                   </div>
 
                   <div>
@@ -526,15 +526,15 @@ Best,
                         <div key={index} className="border rounded p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant="secondary">Step {index + 1}</Badge>
-                            <Badge className="capitalize">{step.stepType}</Badge>
+                            <Badge className="capitalize">{step.step_type}</Badge>
                             <span className="text-sm text-gray-600">
-                              {step.delayDays > 0 && `${step.delayDays}d `}
-                              {step.delayHours > 0 && `${step.delayHours}h`}
+                              {step.delay_days > 0 && `${step.delay_days}d `}
+                              {step.delay_hours > 0 && `${step.delay_hours}h`}
                             </span>
                           </div>
-                          <p className="font-medium text-sm">{step.contentTemplate.subject}</p>
+                          <p className="font-medium text-sm">{step.content_template}</p>
                           <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                            {step.contentTemplate.body.substring(0, 120)}...
+                            {step.content_template && step.content_template.substring(0, 120)}...
                           </p>
                         </div>
                       ))}

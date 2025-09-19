@@ -23,13 +23,13 @@ import HubSpotIntegration from './components/HubSpotIntegration';
 import RateLimitDashboard from './components/RateLimitDashboard';
 import RateLimitManagement from './components/RateLimitManagement';
 import RateLimitingDashboard from './components/RateLimitingDashboard';
-import { ReportingDashboard } from './components/ReportingDashboard';
-import { ComplianceDashboard } from './components/ComplianceDashboard';
+import ReportingDashboard from './components/ReportingDashboard';
+import ComplianceDashboard from './components/ComplianceDashboard';
 import NurturingDashboard from './components/NurturingDashboard';
 import IntelligentNurturingDashboard from './components/IntelligentNurturingDashboard';
-import { AISequenceBuilder } from './components/AISequenceBuilder';
+import AISequenceBuilder from './components/AISequenceBuilder';
 import RealTimeEngagementTracker from './components/RealTimeEngagementTracker';
-import { PaymentDashboard } from './components/PaymentDashboard';
+import PaymentDashboard from './components/PaymentDashboard';
 
 const PUBLISHABLE_KEY = "pk_test_Y2xlYXItZmluY2gtMS5jbGVyay5hY2NvdW50cy5kZXYk";
 

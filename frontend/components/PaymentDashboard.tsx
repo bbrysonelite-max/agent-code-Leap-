@@ -11,7 +11,7 @@ import { PlanManagement } from './PlanManagement';
 import { PaymentSettings } from './PaymentSettings';
 import { CreditCard, Users, FileText, Package, Settings, DollarSign } from 'lucide-react';
 
-export function PaymentDashboard() {
+export default function PaymentDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const { useCustomers, useSubscriptions, useInvoices, usePlans } = usePayment();
 

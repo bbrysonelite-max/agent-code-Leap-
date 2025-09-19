@@ -21,7 +21,7 @@ import { AuditTrailViewer } from './AuditTrailViewer';
 import { GDPRManagement } from './GDPRManagement';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
-export const ComplianceDashboard: React.FC = () => {
+const ComplianceDashboard: React.FC = () => {
   const { auditStats } = useCompliance();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const { data: complianceReport } = useComplianceReport(selectedPeriod);
@@ -302,3 +302,5 @@ export const ComplianceDashboard: React.FC = () => {
     </div>
   );
 };
+
+export default ComplianceDashboard;

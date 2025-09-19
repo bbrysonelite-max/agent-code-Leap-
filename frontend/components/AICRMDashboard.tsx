@@ -22,8 +22,16 @@ import { usePipelineAnalytics, useDashboardInsights, useTopPerformers, useUpcomi
 import { useToast } from '@/components/ui/use-toast';
 
 export default function AICRMDashboard() {
-  const { data: analytics, isLoading: analyticsLoading } = usePipelineAnalytics();
-  const { data: insights, isLoading: insightsLoading } = useDashboardInsights();
+  const { data: analytics = {
+    leads_by_stage: {},
+    conversion_rates: {},
+    revenue_pipeline: {},
+    average_deal_value: 0,
+    top_leads: [],
+    top_contacts: [], 
+    top_deals: []
+  }, isLoading: analyticsLoading } = usePipelineAnalytics();
+  const { data: insights = [], isLoading: insightsLoading } = useDashboardInsights();
   const { data: topPerformers, isLoading: performersLoading } = useTopPerformers();
   const { data: upcomingActivities, isLoading: activitiesLoading } = useUpcomingActivities();
   const { toast } = useToast();

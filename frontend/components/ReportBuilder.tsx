@@ -52,7 +52,7 @@ const EXPORT_FORMATS = [
   { value: 'json', label: 'JSON' }
 ];
 
-export function ReportBuilder({ onClose }: ReportBuilderProps) {
+export default function ReportBuilder({ onClose }: ReportBuilderProps) {
   const { createReport, generateReport } = useReporting();
   const [loading, setLoading] = useState(false);
   const [testingReport, setTestingReport] = useState(false);

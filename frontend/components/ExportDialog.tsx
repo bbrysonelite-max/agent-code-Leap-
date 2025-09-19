@@ -63,7 +63,7 @@ const COLOR_SCHEMES = [
   { value: 'red', label: 'Red', color: '#ef4444' }
 ];
 
-export function ExportDialog({ reportId, open, onClose }: ExportDialogProps) {
+export default function ExportDialog({ reportId, open, onClose }: ExportDialogProps) {
   const { exportReport } = useReporting();
   const [loading, setLoading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
