@@ -45,6 +45,7 @@ export class Client {
     public readonly gdpr: gdpr.ServiceClient
     public readonly hubspot: hubspot.ServiceClient
     public readonly nurturing: nurturing.ServiceClient
+    public readonly payment: payment.ServiceClient
     public readonly prospect: prospect.ServiceClient
     public readonly rate_limiting: rate_limiting.ServiceClient
     public readonly realtime: realtime.ServiceClient
@@ -75,6 +76,7 @@ export class Client {
         this.gdpr = new gdpr.ServiceClient(base)
         this.hubspot = new hubspot.ServiceClient(base)
         this.nurturing = new nurturing.ServiceClient(base)
+        this.payment = new payment.ServiceClient(base)
         this.prospect = new prospect.ServiceClient(base)
         this.rate_limiting = new rate_limiting.ServiceClient(base)
         this.realtime = new realtime.ServiceClient(base)
@@ -1458,6 +1460,232 @@ export namespace nurturing {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/stagnant-prospects`, {method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getStagnantProspects>
+        }
+    }
+}
+
+/**
+ * Import the endpoint handlers to derive the types for the client.
+ */
+import {
+    createCustomer as api_payment_customers_createCustomer,
+    getCustomer as api_payment_customers_getCustomer,
+    getCustomerByEmail as api_payment_customers_getCustomerByEmail,
+    listCustomers as api_payment_customers_listCustomers
+} from "~backend/payment/customers";
+import {
+    createInvoice as api_payment_invoices_createInvoice,
+    finalizeInvoice as api_payment_invoices_finalizeInvoice,
+    getInvoice as api_payment_invoices_getInvoice,
+    listInvoices as api_payment_invoices_listInvoices,
+    sendInvoice as api_payment_invoices_sendInvoice
+} from "~backend/payment/invoices";
+import {
+    confirmPaymentIntent as api_payment_payment_intents_confirmPaymentIntent,
+    createPaymentIntent as api_payment_payment_intents_createPaymentIntent,
+    getPaymentIntent as api_payment_payment_intents_getPaymentIntent
+} from "~backend/payment/payment_intents";
+import {
+    getPlan as api_payment_plans_getPlan,
+    listPlans as api_payment_plans_listPlans,
+    syncPlansFromStripe as api_payment_plans_syncPlansFromStripe
+} from "~backend/payment/plans";
+import {
+    cancelSubscription as api_payment_subscriptions_cancelSubscription,
+    createSubscription as api_payment_subscriptions_createSubscription,
+    getSubscription as api_payment_subscriptions_getSubscription,
+    listSubscriptions as api_payment_subscriptions_listSubscriptions,
+    updateSubscription as api_payment_subscriptions_updateSubscription
+} from "~backend/payment/subscriptions";
+import { handleWebhook as api_payment_webhooks_handleWebhook } from "~backend/payment/webhooks";
+
+export namespace payment {
+
+    export class ServiceClient {
+        private baseClient: BaseClient
+
+        constructor(baseClient: BaseClient) {
+            this.baseClient = baseClient
+            this.cancelSubscription = this.cancelSubscription.bind(this)
+            this.confirmPaymentIntent = this.confirmPaymentIntent.bind(this)
+            this.createCustomer = this.createCustomer.bind(this)
+            this.createInvoice = this.createInvoice.bind(this)
+            this.createPaymentIntent = this.createPaymentIntent.bind(this)
+            this.createSubscription = this.createSubscription.bind(this)
+            this.finalizeInvoice = this.finalizeInvoice.bind(this)
+            this.getCustomer = this.getCustomer.bind(this)
+            this.getCustomerByEmail = this.getCustomerByEmail.bind(this)
+            this.getInvoice = this.getInvoice.bind(this)
+            this.getPaymentIntent = this.getPaymentIntent.bind(this)
+            this.getPlan = this.getPlan.bind(this)
+            this.getSubscription = this.getSubscription.bind(this)
+            this.handleWebhook = this.handleWebhook.bind(this)
+            this.listCustomers = this.listCustomers.bind(this)
+            this.listInvoices = this.listInvoices.bind(this)
+            this.listPlans = this.listPlans.bind(this)
+            this.listSubscriptions = this.listSubscriptions.bind(this)
+            this.sendInvoice = this.sendInvoice.bind(this)
+            this.syncPlansFromStripe = this.syncPlansFromStripe.bind(this)
+            this.updateSubscription = this.updateSubscription.bind(this)
+        }
+
+        public async cancelSubscription(params: { id: string }): Promise<ResponseType<typeof api_payment_subscriptions_cancelSubscription>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/subscriptions/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_subscriptions_cancelSubscription>
+        }
+
+        public async confirmPaymentIntent(params: RequestType<typeof api_payment_payment_intents_confirmPaymentIntent>): Promise<ResponseType<typeof api_payment_payment_intents_confirmPaymentIntent>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                paymentMethodId: params.paymentMethodId,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/payment-intents/${encodeURIComponent(params.id)}/confirm`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_payment_intents_confirmPaymentIntent>
+        }
+
+        public async createCustomer(params: RequestType<typeof api_payment_customers_createCustomer>): Promise<ResponseType<typeof api_payment_customers_createCustomer>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/customers`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_customers_createCustomer>
+        }
+
+        public async createInvoice(params: RequestType<typeof api_payment_invoices_createInvoice>): Promise<ResponseType<typeof api_payment_invoices_createInvoice>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/invoices`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_invoices_createInvoice>
+        }
+
+        public async createPaymentIntent(params: RequestType<typeof api_payment_payment_intents_createPaymentIntent>): Promise<ResponseType<typeof api_payment_payment_intents_createPaymentIntent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/payment-intents`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_payment_intents_createPaymentIntent>
+        }
+
+        public async createSubscription(params: RequestType<typeof api_payment_subscriptions_createSubscription>): Promise<ResponseType<typeof api_payment_subscriptions_createSubscription>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/subscriptions`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_subscriptions_createSubscription>
+        }
+
+        public async finalizeInvoice(params: { id: string }): Promise<ResponseType<typeof api_payment_invoices_finalizeInvoice>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/invoices/${encodeURIComponent(params.id)}/finalize`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_invoices_finalizeInvoice>
+        }
+
+        public async getCustomer(params: { id: string }): Promise<ResponseType<typeof api_payment_customers_getCustomer>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/customers/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_customers_getCustomer>
+        }
+
+        public async getCustomerByEmail(params: { email: string }): Promise<ResponseType<typeof api_payment_customers_getCustomerByEmail>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/customers/by-email/${encodeURIComponent(params.email)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_customers_getCustomerByEmail>
+        }
+
+        public async getInvoice(params: { id: string }): Promise<ResponseType<typeof api_payment_invoices_getInvoice>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/invoices/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_invoices_getInvoice>
+        }
+
+        public async getPaymentIntent(params: { id: string }): Promise<ResponseType<typeof api_payment_payment_intents_getPaymentIntent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/payment-intents/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_payment_intents_getPaymentIntent>
+        }
+
+        public async getPlan(params: { id: string }): Promise<ResponseType<typeof api_payment_plans_getPlan>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/plans/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_plans_getPlan>
+        }
+
+        public async getSubscription(params: { id: string }): Promise<ResponseType<typeof api_payment_subscriptions_getSubscription>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/subscriptions/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_subscriptions_getSubscription>
+        }
+
+        public async handleWebhook(params: RequestType<typeof api_payment_webhooks_handleWebhook>): Promise<ResponseType<typeof api_payment_webhooks_handleWebhook>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/webhooks/stripe`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_webhooks_handleWebhook>
+        }
+
+        public async listCustomers(params: RequestType<typeof api_payment_customers_listCustomers>): Promise<ResponseType<typeof api_payment_customers_listCustomers>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                clientId: params.clientId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/customers`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_customers_listCustomers>
+        }
+
+        public async listInvoices(params: RequestType<typeof api_payment_invoices_listInvoices>): Promise<ResponseType<typeof api_payment_invoices_listInvoices>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                customerId:     params.customerId,
+                subscriptionId: params.subscriptionId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/invoices`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_invoices_listInvoices>
+        }
+
+        public async listPlans(params: RequestType<typeof api_payment_plans_listPlans>): Promise<ResponseType<typeof api_payment_plans_listPlans>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                activeOnly: params.activeOnly === undefined ? undefined : String(params.activeOnly),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/plans`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_plans_listPlans>
+        }
+
+        public async listSubscriptions(params: RequestType<typeof api_payment_subscriptions_listSubscriptions>): Promise<ResponseType<typeof api_payment_subscriptions_listSubscriptions>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                customerId: params.customerId,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/subscriptions`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_subscriptions_listSubscriptions>
+        }
+
+        public async sendInvoice(params: { id: string }): Promise<ResponseType<typeof api_payment_invoices_sendInvoice>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/invoices/${encodeURIComponent(params.id)}/send`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_invoices_sendInvoice>
+        }
+
+        public async syncPlansFromStripe(): Promise<ResponseType<typeof api_payment_plans_syncPlansFromStripe>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/plans/sync`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_plans_syncPlansFromStripe>
+        }
+
+        public async updateSubscription(params: RequestType<typeof api_payment_subscriptions_updateSubscription>): Promise<ResponseType<typeof api_payment_subscriptions_updateSubscription>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                cancelAtPeriodEnd: params.cancelAtPeriodEnd,
+                priceId:           params.priceId,
+                subscriptionId:    params.subscriptionId,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/subscriptions/${encodeURIComponent(params.id)}`, {method: "PUT", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_payment_subscriptions_updateSubscription>
         }
     }
 }
