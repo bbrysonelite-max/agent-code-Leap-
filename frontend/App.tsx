@@ -26,7 +26,7 @@ import RateLimitingDashboard from './components/RateLimitingDashboard';
 import { ReportingDashboard } from './components/ReportingDashboard';
 import { ComplianceDashboard } from './components/ComplianceDashboard';
 import NurturingDashboard from './components/NurturingDashboard';
-import { IntelligentNurturingDashboard } from './components/IntelligentNurturingDashboard';
+import IntelligentNurturingDashboard from './components/IntelligentNurturingDashboard';
 import { AISequenceBuilder } from './components/AISequenceBuilder';
 import RealTimeEngagementTracker from './components/RealTimeEngagementTracker';
 import { PaymentDashboard } from './components/PaymentDashboard';

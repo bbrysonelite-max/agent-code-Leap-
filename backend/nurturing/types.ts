@@ -1,420 +1,220 @@
+export type BehaviorType = 
+  | 'email_open' 
+  | 'email_click' 
+  | 'email_reply' 
+  | 'website_visit' 
+  | 'linkedin_view' 
+  | 'linkedin_connect' 
+  | 'phone_answer' 
+  | 'phone_voicemail' 
+  | 'content_download' 
+  | 'meeting_scheduled' 
+  | 'meeting_attended' 
+  | 'meeting_no_show';
+
+export type EngagementTrend = 'increasing' | 'decreasing' | 'stable' | 'neutral';
+export type ContentPreference = 'email' | 'linkedin' | 'phone' | 'sms' | 'video';
+export type SequenceStatus = 'active' | 'paused' | 'completed' | 'stopped';
+export type CommunicationType = 'email' | 'linkedin_message' | 'phone_call' | 'sms' | 'task';
+export type ClassificationTarget = 'hot' | 'warm' | 'cold' | 'nurture' | 'unqualified';
+export type StageTarget = 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
+
+export interface ProspectBehavior {
+  id: number;
+  prospect_id: number;
+  client_id: number;
+  behavior_type: BehaviorType;
+  behavior_data: Record<string, any>;
+  engagement_score: number;
+  created_at: Date;
+}
+
+export interface ProspectEngagementProfile {
+  id: number;
+  prospect_id: number;
+  client_id: number;
+  total_score: number;
+  email_engagement_score: number;
+  content_engagement_score: number;
+  response_rate: number;
+  avg_response_time_hours: number;
+  preferred_content_type?: ContentPreference;
+  optimal_send_time?: string;
+  optimal_send_day?: number;
+  engagement_trend: EngagementTrend;
+  last_engagement_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface NurturingSequence {
-  id: string;
-  clientId: string;
+  id: number;
+  client_id: number;
   name: string;
-  description?: string;
-  triggerConditions: TriggerConditions;
-  targetAudience: TargetAudience;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  classification_target: ClassificationTarget;
+  stage_target: StageTarget;
+  sequence_type: string;
+  total_steps: number;
+  is_active: boolean;
+  performance_score: number;
+  conversion_rate: number;
+  created_by_ai: boolean;
+  template_data: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
   steps?: SequenceStep[];
 }
 
 export interface SequenceStep {
-  id: string;
-  sequenceId: string;
-  stepOrder: number;
-  stepType: 'email' | 'sms' | 'task' | 'wait';
-  delayDays: number;
-  delayHours: number;
-  contentTemplate: ContentTemplate;
-  conditions?: StepConditions;
-  isActive: boolean;
-  createdAt: Date;
+  id: number;
+  sequence_id: number;
+  step_number: number;
+  content_type: CommunicationType;
+  delay_days: number;
+  delay_hours: number;
+  subject_template?: string;
+  content_template: string;
+  conditions: Record<string, any>;
+  performance_metrics: Record<string, any>;
+  is_active: boolean;
+  created_at: Date;
 }
 
-export interface ProspectSequence {
-  id: string;
-  prospectId: string;
-  sequenceId: string;
-  currentStep: number;
-  status: 'active' | 'paused' | 'completed' | 'failed';
-  nextActionAt?: Date;
-  engagementScore: number;
-  conversionProbability: number;
-  startedAt: Date;
-  completedAt?: Date;
-  metadata: Record<string, any>;
+export interface SequenceEnrollment {
+  id: number;
+  prospect_id: number;
+  sequence_id: number;
+  client_id: number;
+  current_step: number;
+  status: SequenceStatus;
+  enrolled_at: Date;
+  last_step_sent_at?: Date;
+  next_step_scheduled_at?: Date;
+  completion_reason?: string;
+  created_at: Date;
+  updated_at: Date;
+  sequence?: NurturingSequence;
 }
 
-export interface SequenceExecution {
-  id: string;
-  prospectSequenceId: string;
-  stepId: string;
-  executedAt: Date;
-  status: 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'replied' | 'failed';
-  contentUsed: Record<string, any>;
-  engagementData: EngagementData;
-  errorMessage?: string;
-}
-
-export interface BehaviorAnalytics {
-  id: string;
-  prospectId: string;
-  eventType: string;
-  eventData: Record<string, any>;
-  timestamp: Date;
-  sessionId?: string;
-  source?: string;
-  engagementScore: number;
-}
-
-export interface ProspectClassification {
-  id: string;
-  prospectId: string;
-  classificationType: string;
-  classificationValue: string;
-  confidenceScore: number;
-  funnelStage: 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
-  createdAt: Date;
-  expiresAt?: Date;
-}
-
-export interface TriggerConditions {
-  events?: string[];
-  behaviors?: BehaviorCriteria[];
-  demographics?: DemographicCriteria[];
-  engagement?: EngagementCriteria;
-  timeframe?: TimeframeCriteria;
-}
-
-export interface TargetAudience {
-  industries?: string[];
-  companySize?: string[];
-  roles?: string[];
-  geography?: string[];
-  behaviorSegments?: string[];
-  excludeSegments?: string[];
-}
-
-export interface ContentTemplate {
-  type: 'email' | 'sms' | 'task';
+export interface NurturingCommunication {
+  id: number;
+  enrollment_id: number;
+  step_id: number;
+  prospect_id: number;
+  communication_type: CommunicationType;
   subject?: string;
-  body: string;
-  variables: string[];
-  personalizationRules: PersonalizationRule[];
-  dynamicContent: DynamicContentRule[];
-}
-
-export interface StepConditions {
-  skipIf?: ConditionRule[];
-  continueIf?: ConditionRule[];
-  waitFor?: WaitCondition;
-}
-
-export interface EngagementData {
-  opens?: number;
-  clicks?: number;
-  replies?: number;
-  unsubscribes?: number;
-  bounces?: number;
-  deliveryTime?: Date;
-  firstOpenAt?: Date;
-  lastClickAt?: Date;
-  deviceType?: string;
-  location?: string;
-}
-
-export interface BehaviorCriteria {
-  action: string;
-  frequency?: number;
-  timeframe?: string;
-  value?: any;
-}
-
-export interface DemographicCriteria {
-  field: string;
-  operator: 'equals' | 'contains' | 'in' | 'gt' | 'lt' | 'between';
-  value: any;
-}
-
-export interface EngagementCriteria {
-  minScore?: number;
-  maxScore?: number;
-  emailEngagement?: boolean;
-  websiteActivity?: boolean;
-  contentDownloads?: boolean;
-}
-
-export interface TimeframeCriteria {
-  after?: Date;
-  before?: Date;
-  relativeDays?: number;
-  timeOfDay?: string;
-  dayOfWeek?: string[];
-}
-
-export interface PersonalizationRule {
-  placeholder: string;
-  source: 'prospect' | 'company' | 'behavior' | 'external';
-  field: string;
-  fallback?: string;
-  transformation?: string;
-}
-
-export interface DynamicContentRule {
-  condition: ConditionRule;
   content: string;
-  priority: number;
+  sent_at: Date;
+  opened_at?: Date;
+  clicked_at?: Date;
+  replied_at?: Date;
+  engagement_score: number;
+  created_at: Date;
 }
 
-export interface ConditionRule {
-  field: string;
-  operator: 'equals' | 'contains' | 'in' | 'gt' | 'lt' | 'between' | 'exists' | 'not_exists';
-  value: any;
+export interface SequenceABTest {
+  id: number;
+  sequence_id: number;
+  test_name: string;
+  variant_a_data: Record<string, any>;
+  variant_b_data: Record<string, any>;
+  traffic_split: number;
+  status: 'active' | 'paused' | 'completed';
+  winner?: 'a' | 'b';
+  statistical_significance: number;
+  start_date: Date;
+  end_date?: Date;
+  created_at: Date;
 }
 
-export interface WaitCondition {
-  type: 'time' | 'event' | 'condition';
-  value: any;
-  maxWaitDays?: number;
+// Request/Response types
+export interface TrackBehaviorRequest {
+  prospect_id: number;
+  client_id: number;
+  behavior_type: BehaviorType;
+  behavior_data?: Record<string, any>;
 }
 
 export interface CreateSequenceRequest {
-  clientId: string;
+  client_id: number;
   name: string;
-  description?: string;
-  triggerConditions: TriggerConditions;
-  targetAudience: TargetAudience;
-  steps: Omit<SequenceStep, 'id' | 'sequenceId' | 'createdAt'>[];
+  classification_target: ClassificationTarget;
+  stage_target: StageTarget;
+  sequence_type?: string;
+  steps: CreateSequenceStepRequest[];
+  template_data?: Record<string, any>;
+}
+
+export interface CreateSequenceStepRequest {
+  step_number: number;
+  content_type: CommunicationType;
+  delay_days: number;
+  delay_hours?: number;
+  subject_template?: string;
+  content_template: string;
+  conditions?: Record<string, any>;
 }
 
 export interface EnrollProspectRequest {
-  prospectId: string;
-  sequenceId: string;
-  metadata?: Record<string, any>;
+  prospect_id: number;
+  sequence_id: number;
+  client_id: number;
 }
 
-export interface BehaviorEvent {
-  prospectId: string;
-  eventType: string;
-  eventData: Record<string, any>;
-  sessionId?: string;
-  source?: string;
+export interface AISequenceGenerationRequest {
+  client_id: number;
+  prospect_data: Record<string, any>;
+  classification: ClassificationTarget;
+  stage: StageTarget;
+  sequence_length?: number;
+  preferred_channels?: CommunicationType[];
 }
 
-export interface AIAnalysisResult {
-  prospectId: string;
-  engagementScore: number;
-  conversionProbability: number;
-  recommendedActions: RecommendedAction[];
-  insights: string[];
-  nextBestSequence?: string;
-  optimalTiming?: Date;
-}
-
-export interface SequencePerformanceData {
-  sequenceId: string;
-  sequenceName: string;
-  totalEnrollments: number;
-  completedSequences: number;
-  activeSequences: number;
-  metrics: PerformanceMetrics;
-  avgEngagementScore: number;
-  avgConversionProbability: number;
-  avgCompletionDays: number;
-}
-
-export interface PerformanceMetrics {
-  totalExecutions: number;
-  sentCount: number;
-  deliveredCount: number;
-  openedCount: number;
-  clickedCount: number;
-  repliedCount: number;
-  failedCount: number;
-  deliveryRate: number;
-  openRate: number;
-  clickRate: number;
-  replyRate: number;
-  completionRate: number;
-}
-
-export interface EngagementTrendData {
-  date: Date;
-  metrics: PerformanceMetrics & {
-    avgEngagementScore: number;
-  };
-}
-
-export interface ConversionAnalyticsData {
-  sequenceId: string;
-  sequenceName: string;
-  totalProspects: number;
-  completedProspects: number;
-  highConversionProspects: number;
-  mediumConversionProspects: number;
-  avgConversionProbability: number;
-  totalReplies: number;
-  prospectsReplied: number;
-  completionRate: number;
-  replyRate: number;
-}
-
-export interface StepAnalyticsData {
-  stepOrder: number;
-  stepType: string;
-  subject: string;
-  metrics: PerformanceMetrics & {
-    avgOpens: number;
-    avgClicks: number;
-  };
-}
-
-export interface AIInsightsData {
-  insights: AIInsight[];
-  summary: {
-    totalSequences: number;
-    avgOpenRate: number;
-    avgReplyRate: number;
-    totalActiveProspects: number;
-    topPerformingSequence: string;
-  };
-}
-
-export interface AIInsight {
-  type: string;
-  title: string;
-  description: string;
-  recommendation: string;
-}
-
-export interface BehaviorInsightsData {
-  eventFrequency: EventFrequencyData[];
-  topSessions: SessionData[];
-}
-
-export interface EventFrequencyData {
-  eventType: string;
-  frequency: number;
-  avgEngagementScore: number;
-  lastOccurrence: Date;
-  uniqueProspects: number;
-}
-
-export interface SessionData {
-  sessionId: string;
-  eventCount: number;
-  totalEngagement: number;
-  sessionStart: Date;
-  sessionEnd: Date;
-  sessionDuration: number;
-}
-
-export interface FunnelAnalyticsData {
-  stageDistribution: StageDistribution[];
-  conversionRates: ConversionRate[];
-  avgTimeInStage: AvgTimeInStage[];
-  stageProgression: StageProgression[];
-}
-
-export interface StageDistribution {
-  funnel_stage: string;
-  prospect_count: number;
-  avg_confidence: number;
-}
-
-export interface ConversionRate {
-  from_stage: string;
-  to_stage: string;
-  transitions: number;
-  conversion_rate: number;
-}
-
-export interface AvgTimeInStage {
-  funnel_stage: string;
-  avg_days: number;
-  median_days: number;
-  sample_size: number;
-}
-
-export interface StageProgression {
-  week: Date;
-  funnel_stage: string;
-  new_prospects: number;
-}
-
-export interface StagnantProspectData {
-  prospectId: string;
-  funnelStage: string;
-  stageEnteredAt: Date;
-  daysInStage: number;
-  prospect: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    company: string;
-  };
-  activeSequence?: string;
-  engagementScore: number;
-}
-
-// Response wrapper interfaces
-export interface SequencePerformanceResponse {
-  data: SequencePerformanceData[];
-}
-
-export interface StepAnalyticsResponse {
-  data: StepAnalyticsData[];
-}
-
-export interface EngagementTrendsResponse {
-  data: EngagementTrendData[];
-}
-
-export interface ConversionAnalyticsResponse {
-  data: ConversionAnalyticsData[];
-}
-
-export interface ProspectClassificationsResponse {
-  data: ProspectClassification[];
-}
-
-export interface StagnantProspectsResponse {
-  data: StagnantProspectData[];
-}
-
-export interface ContentVariationsResponse {
-  data: GeneratedContent[];
-}
-
-export interface BehaviorAnalyticsResponse {
-  data: BehaviorAnalytics[];
-}
-
-export interface ProspectSequencesResponse {
-  data: ProspectSequence[];
-}
-
-export interface CreateContentTemplateRequest {
-  type: 'email' | 'sms' | 'task';
-  subject?: string;
-  body: string;
-  variables: string[];
-  personalizationRules: PersonalizationRule[];
-  dynamicContent: DynamicContentRule[];
-}
-
-export interface RecommendedAction {
-  type: 'sequence' | 'content' | 'timing' | 'channel';
-  action: string;
-  confidence: number;
-  reasoning: string;
-}
-
-export interface ContentGenerationRequest {
-  prospectId: string;
-  sequenceId: string;
-  stepId: string;
-  contentType: 'email' | 'sms' | 'task';
+export interface AIAnalysisRequest {
+  prospect_id: number;
+  client_id: number;
+  analysis_type: 'engagement_prediction' | 'content_optimization' | 'timing_optimization' | 'channel_optimization';
   context?: Record<string, any>;
 }
 
-export interface GeneratedContent {
-  subject?: string;
-  body: string;
-  variables: Record<string, string>;
-  personalizationApplied: string[];
-  aiEnhancements: string[];
+export interface AIAnalysisResponse {
+  recommendations: string[];
+  confidence_score: number;
+  reasoning: string;
+  suggested_actions: string[];
+  data: Record<string, any>;
+}
+
+export interface EngagementAnalytics {
+  total_enrollments: number;
+  active_enrollments: number;
+  completed_enrollments: number;
+  average_completion_rate: number;
+  top_performing_sequences: Array<{
+    sequence_id: number;
+    name: string;
+    conversion_rate: number;
+    engagement_score: number;
+  }>;
+  engagement_trends: Array<{
+    date: string;
+    total_engagements: number;
+    average_score: number;
+  }>;
+}
+
+export interface SequencePerformanceMetrics {
+  sequence_id: number;
+  total_enrollments: number;
+  active_enrollments: number;
+  completion_rate: number;
+  average_engagement_score: number;
+  conversion_rate: number;
+  step_performance: Array<{
+    step_number: number;
+    open_rate: number;
+    click_rate: number;
+    reply_rate: number;
+    engagement_score: number;
+  }>;
 }
