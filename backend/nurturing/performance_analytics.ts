@@ -23,7 +23,11 @@ export const getAdvancedAnalytics = api(
       LEFT JOIN nurturing_communications nc ON se.id = nc.enrollment_id
       WHERE ns.client_id = ${client_id}
     `;
-    const overallMetrics = overallMetricsResults[0];
+    const overallMetricsArray = [];
+    for await (const row of overallMetricsResults) {
+      overallMetricsArray.push(row);
+    }
+    const overallMetrics = overallMetricsArray[0];
 
     // Sequence performance breakdown
     const sequenceBreakdown = [];
@@ -118,7 +122,7 @@ export const calculateROI = api(
   { method: "GET", path: "/analytics/roi/:client_id", expose: true },
   async ({ client_id, period_days = 30 }: { client_id: number; period_days?: number }) => {
     // Get conversion data for the period
-    const [conversionData] = await nurturingDB.query`
+    const conversionDataQuery = await nurturingDB.query`
       SELECT 
         COUNT(CASE WHEN nc.replied_at IS NOT NULL THEN 1 END) as conversions,
         COUNT(se.id) as total_enrollments,
@@ -130,6 +134,12 @@ export const calculateROI = api(
       WHERE ns.client_id = ${client_id}
         AND se.enrolled_at >= CURRENT_DATE - INTERVAL '${period_days} days'
     `;
+    
+    const conversionDataArray = [];
+    for await (const row of conversionDataQuery) {
+      conversionDataArray.push(row);
+    }
+    const conversionData = conversionDataArray[0];
 
     // Estimated costs (these would typically come from actual cost data)
     const estimatedCosts = {
@@ -212,9 +222,15 @@ export const getFunnelAnalysis = api(
       ORDER BY ss.step_number
     `;
 
+    // Collect step performance results into array
+    const stepPerformanceArray: any[] = [];
+    for await (const row of stepPerformance) {
+      stepPerformanceArray.push(row);
+    }
+
     // Calculate drop-off rates between steps
-    const funnelData = stepPerformance.map((step, index) => {
-      const prevStep = stepPerformance[index - 1];
+    const funnelData = stepPerformanceArray.map((step, index) => {
+      const prevStep = stepPerformanceArray[index - 1];
       const dropOffRate = prevStep ? 
         ((prevStep.total_sent - step.total_sent) / prevStep.total_sent) * 100 : 0;
       
@@ -228,7 +244,7 @@ export const getFunnelAnalysis = api(
     });
 
     // Overall funnel metrics
-    const [overallMetrics] = await nurturingDB.query`
+    const overallMetricsQuery = await nurturingDB.query`
       SELECT 
         COUNT(DISTINCT se.id) as total_enrollments,
         COUNT(CASE WHEN se.current_step > 1 THEN 1 END) as reached_step_2,
@@ -239,6 +255,12 @@ export const getFunnelAnalysis = api(
       LEFT JOIN nurturing_communications nc ON se.id = nc.enrollment_id
       WHERE se.sequence_id = ${sequence_id}
     `;
+    
+    const overallMetricsArray = [];
+    for await (const row of overallMetricsQuery) {
+      overallMetricsArray.push(row);
+    }
+    const overallMetrics = overallMetricsArray[0];
 
     return {
       sequence_id,
@@ -254,7 +276,7 @@ export const getEngagementHeatMap = api(
   { method: "GET", path: "/analytics/heatmap/:client_id", expose: true },
   async ({ client_id }: { client_id: number }) => {
     // Time-based engagement patterns
-    const timePatterns = await nurturingDB.query`
+    const timePatternsQuery = await nurturingDB.query`
       SELECT 
         EXTRACT(HOUR FROM nc.sent_at) as hour_of_day,
         EXTRACT(DOW FROM nc.sent_at) as day_of_week,
@@ -271,9 +293,14 @@ export const getEngagementHeatMap = api(
       GROUP BY EXTRACT(HOUR FROM nc.sent_at), EXTRACT(DOW FROM nc.sent_at)
       ORDER BY day_of_week, hour_of_day
     `;
+    
+    const timePatterns = [];
+    for await (const row of timePatternsQuery) {
+      timePatterns.push(row);
+    }
 
     // Content type performance
-    const contentTypePerformance = await nurturingDB.query`
+    const contentTypePerformanceQuery = await nurturingDB.query`
       SELECT 
         ss.content_type,
         COUNT(nc.id) as total_sent,
@@ -290,9 +317,14 @@ export const getEngagementHeatMap = api(
       GROUP BY ss.content_type
       ORDER BY conversion_rate DESC
     `;
+    
+    const contentTypePerformance = [];
+    for await (const row of contentTypePerformanceQuery) {
+      contentTypePerformance.push(row);
+    }
 
     // Engagement by prospect classification
-    const classificationEngagement = await nurturingDB.query`
+    const classificationEngagementQuery = await nurturingDB.query`
       SELECT 
         ns.classification_target,
         COUNT(nc.id) as total_communications,
@@ -306,6 +338,11 @@ export const getEngagementHeatMap = api(
       GROUP BY ns.classification_target
       ORDER BY avg_engagement DESC
     `;
+    
+    const classificationEngagement = [];
+    for await (const row of classificationEngagementQuery) {
+      classificationEngagement.push(row);
+    }
 
     return {
       time_patterns: timePatterns,
@@ -444,7 +481,7 @@ async function updateSequencePerformanceScores(): Promise<void> {
       break;
     }
     
-    const conversionRate = performance?.enrollments > 0 ? 
+    const conversionRate = performance && performance.enrollments > 0 ? 
       (performance.conversions / performance.enrollments) * 100 : 0;
     const engagementScore = performance?.avg_engagement || 0;
     
@@ -496,17 +533,17 @@ function findOptimalTimes(timePatterns: any[]): any {
     pattern.avg_engagement > (best.avg_engagement || 0) ? pattern : best
   , {});
   
-  const bestDay = timePatterns.reduce((days, pattern) => {
+  const bestDay = timePatterns.reduce((days: Record<string, any>, pattern) => {
     const day = pattern.day_of_week;
     if (!days[day] || pattern.avg_engagement > days[day].avg_engagement) {
       days[day] = pattern;
     }
     return days;
-  }, {});
+  }, {} as Record<string, any>);
   
   return {
     best_hour: bestHour.hour_of_day,
-    best_day: Object.keys(bestDay).reduce((best, day) => 
+    best_day: Object.keys(bestDay).reduce((best: string, day: string) => 
       bestDay[day].avg_engagement > (bestDay[best]?.avg_engagement || 0) ? day : best
     , '0'),
     recommendations: [
@@ -519,11 +556,11 @@ function findOptimalTimes(timePatterns: any[]): any {
 function parseAIInsights(content: string): any {
   const sections = content.split('\n');
   const result = {
-    key_findings: [],
-    bottlenecks: [],
-    opportunities: [],
-    recommendations: [],
-    next_actions: []
+    key_findings: [] as string[],
+    bottlenecks: [] as string[],
+    opportunities: [] as string[],
+    recommendations: [] as string[],
+    next_actions: [] as string[]
   };
   
   let currentSection = '';

@@ -7,7 +7,8 @@ import {
   SequenceEnrollment,
   SequenceStep,
   NurturingCommunication,
-  SequenceStatus
+  SequenceStatus,
+  CommunicationType
 } from "./types";
 import * as ai from "../ai/openai";
 
@@ -16,7 +17,7 @@ export const createSequence = api(
   { method: "POST", path: "/sequences", expose: true },
   async (req: CreateSequenceRequest) => {
     // Insert sequence
-    const [sequence] = await nurturingDB.query`
+    const sequenceQuery = await nurturingDB.query`
       INSERT INTO nurturing_sequences (
         client_id, name, classification_target, stage_target,
         sequence_type, total_steps, template_data
@@ -27,6 +28,12 @@ export const createSequence = api(
       )
       RETURNING *
     `;
+    
+    const sequenceArray = [];
+    for await (const row of sequenceQuery) {
+      sequenceArray.push(row);
+    }
+    const sequence = sequenceArray[0];
     
     // Insert steps
     for (const step of req.steps) {
@@ -73,17 +80,28 @@ export const listSequences = api(
 export const getSequence = api(
   { method: "GET", path: "/sequence/:sequence_id", expose: true },
   async ({ sequence_id }: { sequence_id: number }) => {
-    const [sequence] = await nurturingDB.query`
+    const sequenceQuery = await nurturingDB.query`
       SELECT * FROM nurturing_sequences WHERE id = ${sequence_id}
     `;
     
+    const sequenceArray = [];
+    for await (const row of sequenceQuery) {
+      sequenceArray.push(row);
+    }
+    const sequence = sequenceArray[0];
+    
     if (!sequence) return null;
     
-    const steps = await nurturingDB.query`
+    const stepsQuery = await nurturingDB.query`
       SELECT * FROM sequence_steps 
       WHERE sequence_id = ${sequence_id} 
       ORDER BY step_number ASC
     `;
+    
+    const steps = [];
+    for await (const row of stepsQuery) {
+      steps.push(row);
+    }
     
     return { ...sequence, steps };
   }
@@ -94,34 +112,52 @@ export const enrollProspect = api(
   { method: "POST", path: "/enroll", expose: true },
   async (req: EnrollProspectRequest) => {
     // Check if prospect is already enrolled in this sequence
-    const [existing] = await nurturingDB.query`
+    const existingQuery = await nurturingDB.query`
       SELECT id FROM sequence_enrollments 
       WHERE prospect_id = ${req.prospect_id} 
         AND sequence_id = ${req.sequence_id}
         AND status IN ('active', 'paused')
     `;
     
+    const existingArray = [];
+    for await (const row of existingQuery) {
+      existingArray.push(row);
+    }
+    const existing = existingArray[0];
+    
     if (existing) {
       throw new Error("Prospect is already enrolled in this sequence");
     }
     
     // Get sequence details to calculate first step timing
-    const [sequence] = await nurturingDB.query`
+    const sequenceQuery = await nurturingDB.query`
       SELECT * FROM nurturing_sequences WHERE id = ${req.sequence_id}
     `;
+    
+    const sequenceArray = [];
+    for await (const row of sequenceQuery) {
+      sequenceArray.push(row);
+    }
+    const sequence = sequenceArray[0];
     
     if (!sequence) {
       throw new Error("Sequence not found");
     }
     
     // Get first step details
-    const [firstStep] = await nurturingDB.query`
+    const firstStepQuery = await nurturingDB.query`
       SELECT * FROM sequence_steps 
       WHERE sequence_id = ${req.sequence_id} 
         AND step_number = 1
       ORDER BY step_number ASC
       LIMIT 1
     `;
+    
+    const firstStepArray = [];
+    for await (const row of firstStepQuery) {
+      firstStepArray.push(row);
+    }
+    const firstStep = firstStepArray[0];
     
     // Calculate next step time
     const nextStepTime = new Date();
@@ -131,7 +167,7 @@ export const enrollProspect = api(
     }
     
     // Create enrollment
-    const [enrollment] = await nurturingDB.query`
+    const enrollmentQuery = await nurturingDB.query`
       INSERT INTO sequence_enrollments (
         prospect_id, sequence_id, client_id, current_step,
         next_step_scheduled_at
@@ -142,6 +178,12 @@ export const enrollProspect = api(
       )
       RETURNING *
     `;
+    
+    const enrollmentArray = [];
+    for await (const row of enrollmentQuery) {
+      enrollmentArray.push(row);
+    }
+    const enrollment = enrollmentArray[0];
     
     return enrollment;
   }
@@ -241,7 +283,7 @@ TIMING: [optimal first contact timing]
     const recommendation = parseEnrollmentRecommendation(aiResponse.content);
     
     // Find best matching sequence
-    const [bestSequence] = await nurturingDB.query`
+    const bestSequenceQuery = await nurturingDB.query`
       SELECT * FROM nurturing_sequences 
       WHERE client_id = ${client_id}
         AND classification_target = ${recommendation.classification}
@@ -250,6 +292,12 @@ TIMING: [optimal first contact timing]
       ORDER BY performance_score DESC
       LIMIT 1
     `;
+    
+    const bestSequenceArray = [];
+    for await (const row of bestSequenceQuery) {
+      bestSequenceArray.push(row);
+    }
+    const bestSequence = bestSequenceArray[0];
     
     if (bestSequence) {
       // Enroll in best sequence
@@ -279,12 +327,12 @@ TIMING: [optimal first contact timing]
         name: sequenceResponse.sequence.name,
         classification_target: recommendation.classification,
         stage_target: recommendation.stage,
-        steps: sequenceResponse.sequence.steps.map(step => ({
+        steps: sequenceResponse.sequence.steps.map((step: any) => ({
           step_number: step.step_number,
-          content_type: step.content_type,
+          content_type: step.content_type as CommunicationType,
           delay_days: step.delay_days,
-          delay_hours: 0,
-          content_template: JSON.stringify(step.content_data)
+          delay_hours: step.delay_hours || 0,
+          content_template: step.content_template || JSON.stringify(step.content_data || {})
         }))
       });
       
@@ -321,7 +369,7 @@ async function processSequenceStep(enrollment: any): Promise<void> {
   });
   
   // Record the communication
-  const [communication] = await nurturingDB.query`
+  const communicationQuery = await nurturingDB.query`
     INSERT INTO nurturing_communications (
       enrollment_id, step_id, prospect_id, communication_type,
       subject, content, engagement_score
@@ -333,15 +381,27 @@ async function processSequenceStep(enrollment: any): Promise<void> {
     RETURNING *
   `;
   
+  const communicationArray = [];
+  for await (const row of communicationQuery) {
+    communicationArray.push(row);
+  }
+  const communication = communicationArray[0];
+  
   // Update enrollment for next step
   const nextStepNumber = enrollment.current_step + 1;
   
   // Check if there's a next step
-  const [nextStep] = await nurturingDB.query`
+  const nextStepQuery = await nurturingDB.query`
     SELECT * FROM sequence_steps 
     WHERE sequence_id = ${enrollment.sequence_id} 
       AND step_number = ${nextStepNumber}
   `;
+  
+  const nextStepArray = [];
+  for await (const row of nextStepQuery) {
+    nextStepArray.push(row);
+  }
+  const nextStep = nextStepArray[0];
   
   if (nextStep) {
     // Schedule next step

@@ -207,7 +207,7 @@ async function updateEngagementProfile(prospectId: number, clientId: number): Pr
     metrics = row;
     break;
   }
-  const responseRate = metrics.email_behaviors > 0 ? 
+  const responseRate = metrics && metrics.email_behaviors > 0 ? 
     (metrics.email_replies / metrics.email_behaviors) * 100 : 0;
   
   // Determine engagement trend
@@ -239,7 +239,7 @@ async function updateEngagementProfile(prospectId: number, clientId: number): Pr
   }
   
   let trend: EngagementTrend = 'neutral';
-  if (recentScore.recent_avg && olderScore.older_avg) {
+  if (recentScore && recentScore.recent_avg && olderScore && olderScore.older_avg) {
     const difference = recentScore.recent_avg - olderScore.older_avg;
     if (difference > 5) trend = 'increasing';
     else if (difference < -5) trend = 'decreasing';

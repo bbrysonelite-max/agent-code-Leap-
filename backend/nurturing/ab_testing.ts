@@ -18,7 +18,7 @@ export const createABTest = api(
       new Date(Date.now() + req.duration_days * 24 * 60 * 60 * 1000) : 
       null;
     
-    const [test] = await nurturingDB.query`
+    const testResults = await nurturingDB.query`
       INSERT INTO sequence_ab_tests (
         sequence_id, test_name, variant_a_data, variant_b_data,
         traffic_split, end_date
@@ -30,6 +30,12 @@ export const createABTest = api(
       RETURNING *
     `;
     
+    const testArray = [];
+    for await (const row of testResults) {
+      testArray.push(row);
+    }
+    const test = testArray[0];
+    
     return test;
   }
 );
@@ -38,13 +44,18 @@ export const createABTest = api(
 export const getActiveABTests = api(
   { method: "GET", path: "/ab-tests/:sequence_id", expose: true },
   async ({ sequence_id }: { sequence_id: number }) => {
-    const tests = await nurturingDB.query`
+    const testsQuery = await nurturingDB.query`
       SELECT * FROM sequence_ab_tests 
       WHERE sequence_id = ${sequence_id}
         AND status = 'active'
         AND (end_date IS NULL OR end_date > CURRENT_TIMESTAMP)
       ORDER BY created_at DESC
     `;
+    
+    const tests = [];
+    for await (const row of testsQuery) {
+      tests.push(row);
+    }
     
     return tests;
   }
@@ -55,7 +66,7 @@ export const getVariantForEnrollment = api(
   { method: "POST", path: "/ab-test/variant", expose: true },
   async (req: { sequence_id: number; enrollment_id: number }) => {
     // Get active A/B test for this sequence
-    const [test] = await nurturingDB.query`
+    const testQuery = await nurturingDB.query`
       SELECT * FROM sequence_ab_tests 
       WHERE sequence_id = ${req.sequence_id}
         AND status = 'active'
@@ -63,6 +74,12 @@ export const getVariantForEnrollment = api(
       ORDER BY created_at DESC
       LIMIT 1
     `;
+    
+    const testArray = [];
+    for await (const row of testQuery) {
+      testArray.push(row);
+    }
+    const test = testArray[0];
     
     if (!test) {
       return { variant: null, test_id: null };
@@ -88,9 +105,15 @@ export const generateABTestVariants = api(
     hypothesis?: string;
   }) => {
     // Get sequence details
-    const [sequence] = await nurturingDB.query`
+    const sequenceQuery = await nurturingDB.query`
       SELECT * FROM nurturing_sequences WHERE id = ${req.sequence_id}
     `;
+    
+    const sequenceArray = [];
+    for await (const row of sequenceQuery) {
+      sequenceArray.push(row);
+    }
+    const sequence = sequenceArray[0];
     
     const steps = [];
     for await (const row of nurturingDB.query`
@@ -125,9 +148,15 @@ export const generateABTestVariants = api(
 export const analyzeABTestResults = api(
   { method: "POST", path: "/ab-test/:test_id/analyze", expose: true },
   async ({ test_id }: { test_id: number }) => {
-    const [test] = await nurturingDB.query`
+    const testQuery = await nurturingDB.query`
       SELECT * FROM sequence_ab_tests WHERE id = ${test_id}
     `;
+    
+    const testArray = [];
+    for await (const row of testQuery) {
+      testArray.push(row);
+    }
+    const test = testArray[0];
     
     if (!test) {
       throw new Error("A/B test not found");

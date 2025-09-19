@@ -317,10 +317,16 @@ export const getSystemHealth = api(
   async () => {
     try {
       // Check database connectivity
-      const [dbCheck] = await nurturingDB.query`SELECT 1 as status`;
+      const dbCheckQuery = await nurturingDB.query`SELECT 1 as status`;
+      
+      const dbCheckArray = [];
+      for await (const row of dbCheckQuery) {
+        dbCheckArray.push(row);
+      }
+      const dbCheck = dbCheckArray[0];
       
       // Get system metrics
-      const [metrics] = await nurturingDB.query`
+      const metricsQuery = await nurturingDB.query`
         SELECT 
           COUNT(DISTINCT prospect_id) as total_prospects_tracked,
           COUNT(id) as total_behaviors_tracked,
@@ -328,7 +334,13 @@ export const getSystemHealth = api(
         FROM prospect_behavior
       `;
       
-      const [sequenceMetrics] = await nurturingDB.query`
+      const metricsArray = [];
+      for await (const row of metricsQuery) {
+        metricsArray.push(row);
+      }
+      const metrics = metricsArray[0];
+      
+      const sequenceMetricsQuery = await nurturingDB.query`
         SELECT 
           COUNT(DISTINCT ns.id) as total_sequences,
           COUNT(CASE WHEN se.status = 'active' THEN 1 END) as active_enrollments,
@@ -337,6 +349,12 @@ export const getSystemHealth = api(
         LEFT JOIN sequence_enrollments se ON ns.id = se.sequence_id
         LEFT JOIN nurturing_communications nc ON se.id = nc.enrollment_id
       `;
+      
+      const sequenceMetricsArray = [];
+      for await (const row of sequenceMetricsQuery) {
+        sequenceMetricsArray.push(row);
+      }
+      const sequenceMetrics = sequenceMetricsArray[0];
       
       return {
         status: 'healthy',

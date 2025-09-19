@@ -66,7 +66,7 @@ export const generateStepContent = api(
     context?: Record<string, any>;
   }) => {
     // Get prospect data and behavior history
-    const [prospectData] = await nurturingDB.query`
+    const prospectDataQuery = await nurturingDB.query`
       SELECT pb.*, pep.*
       FROM prospect_behavior pb
       LEFT JOIN prospect_engagement_profile pep ON pb.prospect_id = pep.prospect_id
@@ -75,13 +75,25 @@ export const generateStepContent = api(
       LIMIT 1
     `;
     
+    const prospectDataArray = [];
+    for await (const row of prospectDataQuery) {
+      prospectDataArray.push(row);
+    }
+    const prospectData = prospectDataArray[0];
+    
     // Get sequence context
-    const [sequence] = await nurturingDB.query`
+    const sequenceQuery = await nurturingDB.query`
       SELECT * FROM nurturing_sequences WHERE id = ${req.sequence_id}
     `;
     
+    const sequenceArray = [];
+    for await (const row of sequenceQuery) {
+      sequenceArray.push(row);
+    }
+    const sequence = sequenceArray[0];
+    
     // Get previous communications in this sequence
-    const previousComms = await nurturingDB.query`
+    const previousCommsQuery = await nurturingDB.query`
       SELECT nc.*, ss.step_number
       FROM nurturing_communications nc
       JOIN sequence_steps ss ON nc.step_id = ss.id
@@ -90,6 +102,11 @@ export const generateStepContent = api(
         AND se.sequence_id = ${req.sequence_id}
       ORDER BY ss.step_number ASC
     `;
+    
+    const previousComms = [];
+    for await (const row of previousCommsQuery) {
+      previousComms.push(row);
+    }
     
     const prompt = createStepContentPrompt(req, prospectData, sequence, previousComms);
     
@@ -374,7 +391,7 @@ function parseSequenceResponse(content: string, req: AISequenceGenerationRequest
 
 async function createSequenceFromAI(sequenceData: any, clientId: number): Promise<NurturingSequence> {
   // Insert sequence
-  const [sequence] = await nurturingDB.query`
+  const sequenceQuery = await nurturingDB.query`
     INSERT INTO nurturing_sequences (
       client_id, name, classification_target, stage_target, 
       total_steps, created_by_ai, template_data
@@ -385,6 +402,12 @@ async function createSequenceFromAI(sequenceData: any, clientId: number): Promis
     )
     RETURNING *
   `;
+  
+  const sequenceArray = [];
+  for await (const row of sequenceQuery) {
+    sequenceArray.push(row);
+  }
+  const sequence = sequenceArray[0];
   
   // Insert steps
   for (const step of sequenceData.steps) {
@@ -400,11 +423,11 @@ async function createSequenceFromAI(sequenceData: any, clientId: number): Promis
     `;
   }
   
-  return sequence;
+  return sequence as NurturingSequence;
 }
 
 async function getSequencePerformance(sequenceId: number) {
-  const [performance] = await nurturingDB.query`
+  const performanceQuery = await nurturingDB.query`
     SELECT 
       COUNT(se.id) as total_enrollments,
       COUNT(CASE WHEN se.status = 'active' THEN 1 END) as active_enrollments,
@@ -418,7 +441,12 @@ async function getSequencePerformance(sequenceId: number) {
     WHERE se.sequence_id = ${sequenceId}
   `;
   
-  return performance;
+  const performanceArray = [];
+  for await (const row of performanceQuery) {
+    performanceArray.push(row);
+  }
+  
+  return performanceArray[0];
 }
 
 function parseVariationsResponse(content: string) {

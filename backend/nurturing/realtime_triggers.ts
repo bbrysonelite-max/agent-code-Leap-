@@ -109,19 +109,30 @@ export const analyzeAndExecuteTriggers = api(
     `;
     
     // Get engagement profile
-    const [profile] = await nurturingDB.query`
+    const profileQuery = await nurturingDB.query`
       SELECT * FROM prospect_engagement_profile 
       WHERE prospect_id = ${prospect_id}
     `;
     
+    const profileArray = [];
+    for await (const row of profileQuery) {
+      profileArray.push(row);
+    }
+    const profile = profileArray[0];
+    
     // Get current enrollments
-    const enrollments = await nurturingDB.query`
+    const enrollmentsQuery = await nurturingDB.query`
       SELECT se.*, ns.name as sequence_name
       FROM sequence_enrollments se
       JOIN nurturing_sequences ns ON se.sequence_id = ns.id
       WHERE se.prospect_id = ${prospect_id} 
         AND se.status = 'active'
     `;
+    
+    const enrollments = [];
+    for await (const row of enrollmentsQuery) {
+      enrollments.push(row);
+    }
     
     // Use AI to analyze trigger opportunities
     const prompt = `
@@ -272,13 +283,19 @@ async function scheduleImmediateFollowUp(
   reason: string
 ): Promise<void> {
   // Find or create immediate follow-up sequence
-  const [immediateSequence] = await nurturingDB.query`
+  const immediateSequenceQuery = await nurturingDB.query`
     SELECT id FROM nurturing_sequences 
     WHERE client_id = ${clientId}
       AND name LIKE '%immediate%'
       AND is_active = true
     LIMIT 1
   `;
+  
+  const immediateSequenceArray = [];
+  for await (const row of immediateSequenceQuery) {
+    immediateSequenceArray.push(row);
+  }
+  const immediateSequence = immediateSequenceArray[0];
   
   if (immediateSequence) {
     await sequenceManager.enrollProspect({
@@ -311,7 +328,7 @@ async function considerSequenceAcceleration(prospectId: number): Promise<void> {
 }
 
 async function getRecentWebsiteVisit(prospectId: number): Promise<any> {
-  const [visit] = await nurturingDB.query`
+  const visitQuery = await nurturingDB.query`
     SELECT behavior_data 
     FROM prospect_behavior 
     WHERE prospect_id = ${prospectId}
@@ -320,17 +337,29 @@ async function getRecentWebsiteVisit(prospectId: number): Promise<any> {
     LIMIT 1
   `;
   
+  const visitArray = [];
+  for await (const row of visitQuery) {
+    visitArray.push(row);
+  }
+  const visit = visitArray[0];
+  
   return visit?.behavior_data;
 }
 
 async function enrollInPreMeetingSequence(prospectId: number, clientId: number): Promise<void> {
-  const [preMeetingSequence] = await nurturingDB.query`
+  const preMeetingSequenceQuery = await nurturingDB.query`
     SELECT id FROM nurturing_sequences 
     WHERE client_id = ${clientId}
       AND name LIKE '%pre-meeting%'
       AND is_active = true
     LIMIT 1
   `;
+  
+  const preMeetingSequenceArray = [];
+  for await (const row of preMeetingSequenceQuery) {
+    preMeetingSequenceArray.push(row);
+  }
+  const preMeetingSequence = preMeetingSequenceArray[0];
   
   if (preMeetingSequence) {
     await sequenceManager.enrollProspect({
@@ -342,13 +371,19 @@ async function enrollInPreMeetingSequence(prospectId: number, clientId: number):
 }
 
 async function enrollInReEngagementSequence(prospectId: number, clientId: number): Promise<void> {
-  const [reEngagementSequence] = await nurturingDB.query`
+  const reEngagementSequenceQuery = await nurturingDB.query`
     SELECT id FROM nurturing_sequences 
     WHERE client_id = ${clientId}
       AND name LIKE '%re-engagement%'
       AND is_active = true
     LIMIT 1
   `;
+  
+  const reEngagementSequenceArray = [];
+  for await (const row of reEngagementSequenceQuery) {
+    reEngagementSequenceArray.push(row);
+  }
+  const reEngagementSequence = reEngagementSequenceArray[0];
   
   if (reEngagementSequence) {
     await sequenceManager.enrollProspect({
