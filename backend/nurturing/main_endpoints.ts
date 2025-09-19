@@ -155,7 +155,7 @@ export const getSequencePerformance = api(
   { method: "GET", path: "/sequence/:sequence_id/performance", expose: true },
   async ({ sequence_id }: { sequence_id: number }): Promise<SequencePerformanceMetrics> => {
     // Overall sequence performance
-    const [overall] = await nurturingDB.query`
+    const overallQuery = await nurturingDB.query`
       SELECT 
         COUNT(se.id) as total_enrollments,
         COUNT(CASE WHEN se.status = 'active' THEN 1 END) as active_enrollments,
@@ -167,8 +167,14 @@ export const getSequencePerformance = api(
       WHERE se.sequence_id = ${sequence_id}
     `;
     
+    let overall = null;
+    for await (const row of overallQuery) {
+      overall = row;
+      break;
+    }
+    
     // Step-by-step performance
-    const stepPerformance = await nurturingDB.query`
+    const stepPerformanceQuery = await nurturingDB.query`
       SELECT 
         ss.step_number,
         COUNT(nc.id) as total_sent,
@@ -183,6 +189,17 @@ export const getSequencePerformance = api(
       ORDER BY ss.step_number
     `;
     
+    const stepPerformance = [];
+    for await (const step of stepPerformanceQuery) {
+      stepPerformance.push({
+        step_number: step.step_number,
+        open_rate: step.open_rate || 0,
+        click_rate: step.click_rate || 0,
+        reply_rate: step.reply_rate || 0,
+        engagement_score: step.engagement_score || 0
+      });
+    }
+    
     return {
       sequence_id,
       total_enrollments: overall?.total_enrollments || 0,
@@ -190,13 +207,7 @@ export const getSequencePerformance = api(
       completion_rate: overall?.completion_rate || 0,
       average_engagement_score: overall?.average_engagement_score || 0,
       conversion_rate: overall?.conversion_rate || 0,
-      step_performance: stepPerformance.map(step => ({
-        step_number: step.step_number,
-        open_rate: step.open_rate || 0,
-        click_rate: step.click_rate || 0,
-        reply_rate: step.reply_rate || 0,
-        engagement_score: step.engagement_score || 0
-      }))
+      step_performance: stepPerformance
     };
   }
 );
@@ -205,9 +216,15 @@ export const getSequencePerformance = api(
 export const getABTestResults = api(
   { method: "GET", path: "/ab-test/:test_id/results", expose: true },
   async ({ test_id }: { test_id: number }) => {
-    const [test] = await nurturingDB.query`
+    const testQuery = await nurturingDB.query`
       SELECT * FROM sequence_ab_tests WHERE id = ${test_id}
     `;
+    
+    let test = null;
+    for await (const row of testQuery) {
+      test = row;
+      break;
+    }
     
     if (!test) {
       throw new Error("A/B test not found");

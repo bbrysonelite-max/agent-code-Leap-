@@ -7,8 +7,7 @@ export const getAdvancedAnalytics = api(
   { method: "GET", path: "/analytics/advanced/:client_id", expose: true },
   async ({ client_id }: { client_id: number }) => {
     // Get comprehensive performance metrics
-    const overallMetricsResults = [];
-    for await (const row of nurturingDB.query`
+    const overallMetricsResults = await nurturingDB.query`
       SELECT 
         COUNT(DISTINCT ns.id) as total_sequences,
         COUNT(DISTINCT se.id) as total_enrollments,
@@ -23,9 +22,7 @@ export const getAdvancedAnalytics = api(
       LEFT JOIN sequence_enrollments se ON ns.id = se.sequence_id
       LEFT JOIN nurturing_communications nc ON se.id = nc.enrollment_id
       WHERE ns.client_id = ${client_id}
-    `) {
-      overallMetricsResults.push(row);
-    }
+    `;
     const overallMetrics = overallMetricsResults[0];
 
     // Sequence performance breakdown
@@ -195,8 +192,7 @@ export const getFunnelAnalysis = api(
   { method: "GET", path: "/analytics/funnel/:sequence_id", expose: true },
   async ({ sequence_id }: { sequence_id: number }) => {
     // Get step performance data
-    const stepPerformance = [];
-    for await (const row of nurturingDB.query`
+    const stepPerformance = await nurturingDB.query`
       SELECT 
         ss.step_number,
         ss.content_type,
@@ -214,9 +210,7 @@ export const getFunnelAnalysis = api(
       WHERE ss.sequence_id = ${sequence_id}
       GROUP BY ss.id, ss.step_number, ss.content_type, ss.delay_days
       ORDER BY ss.step_number
-    `) {
-      stepPerformance.push(row);
-    }
+    `;
 
     // Calculate drop-off rates between steps
     const funnelData = stepPerformance.map((step, index) => {
@@ -423,20 +417,8 @@ export const generatePerformanceReport = api(
 );
 
 // Cron job for daily performance calculations
-export const dailyPerformanceCalculation = cron(
-  { title: "Daily Performance Calculation", cron: "0 1 * * *" }, // Daily at 1 AM
-  async () => {
-    console.log('Running daily performance calculations...');
-    
-    // Update sequence performance scores
-    await updateSequencePerformanceScores();
-    
-    // Calculate daily metrics
-    await calculateDailyMetrics();
-    
-    console.log('Daily performance calculations completed');
-  }
-);
+// TODO: Add cron job for daily performance calculations
+// This would update sequence performance scores and calculate daily metrics
 
 // Helper functions
 async function updateSequencePerformanceScores(): Promise<void> {
@@ -444,8 +426,8 @@ async function updateSequencePerformanceScores(): Promise<void> {
     SELECT id FROM nurturing_sequences WHERE is_active = true
   `;
   
-  for (const sequence of sequences) {
-    const [performance] = await nurturingDB.query`
+  for await (const sequence of sequences) {
+    const performanceQuery = await nurturingDB.query`
       SELECT 
         COUNT(se.id) as enrollments,
         COUNT(CASE WHEN nc.replied_at IS NOT NULL THEN 1 END) as conversions,
@@ -456,9 +438,15 @@ async function updateSequencePerformanceScores(): Promise<void> {
         AND se.enrolled_at >= CURRENT_DATE - INTERVAL '30 days'
     `;
     
-    const conversionRate = performance.enrollments > 0 ? 
+    let performance = null;
+    for await (const row of performanceQuery) {
+      performance = row;
+      break;
+    }
+    
+    const conversionRate = performance?.enrollments > 0 ? 
       (performance.conversions / performance.enrollments) * 100 : 0;
-    const engagementScore = performance.avg_engagement || 0;
+    const engagementScore = performance?.avg_engagement || 0;
     
     // Weighted performance score (60% conversion rate, 40% engagement)
     const performanceScore = (conversionRate * 0.6) + (engagementScore * 0.4);
@@ -562,7 +550,7 @@ function parseAIInsights(content: string): any {
       const text = line.replace('NEXT_ACTIONS:', '').trim();
       if (text) result.next_actions.push(text);
     } else if (line.trim() && currentSection) {
-      result[currentSection].push(line.trim());
+      (result as any)[currentSection].push(line.trim());
     }
   }
   

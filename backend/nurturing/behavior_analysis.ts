@@ -68,10 +68,16 @@ export const analyzeProspectEngagement = api(
   { method: "POST", path: "/analyze-engagement", expose: true },
   async (req: AIAnalysisRequest) => {
     // Get prospect engagement data
-    const [profile] = await nurturingDB.query`
+    const profileQuery = await nurturingDB.query`
       SELECT * FROM prospect_engagement_profile 
       WHERE prospect_id = ${req.prospect_id}
     `;
+    
+    let profile = null;
+    for await (const row of profileQuery) {
+      profile = row;
+      break;
+    }
     
     const behaviors = await nurturingDB.query`
       SELECT * FROM prospect_behavior 
@@ -80,8 +86,14 @@ export const analyzeProspectEngagement = api(
       LIMIT 20
     `;
     
+    // Convert async generator to array
+    const behaviorsArray = [];
+    for await (const behavior of behaviors) {
+      behaviorsArray.push(behavior);
+    }
+    
     // Create AI prompt based on analysis type
-    const prompt = createAnalysisPrompt(req.analysis_type, profile, behaviors, req.context);
+    const prompt = createAnalysisPrompt(req.analysis_type, profile, behaviorsArray, req.context);
     
     const aiResponse = await ai.generateText({
       prompt,
@@ -121,9 +133,19 @@ export const getEngagementAnalytics = api(
       ORDER BY date DESC
     `;
     
+    const analyticsArray = [];
+    for await (const row of analytics) {
+      analyticsArray.push(row);
+    }
+    
+    const trendArray = [];
+    for await (const row of trendData) {
+      trendArray.push(row);
+    }
+    
     return {
-      summary: analytics[0],
-      trends: trendData
+      summary: analyticsArray[0],
+      trends: trendArray
     };
   }
 );
@@ -166,7 +188,7 @@ function calculateEngagementScore(behaviorType: BehaviorType, behaviorData?: Rec
 // Update engagement profile based on recent behaviors
 async function updateEngagementProfile(prospectId: number, clientId: number): Promise<void> {
   // Calculate aggregated metrics from recent behaviors
-  const [metrics] = await nurturingDB.query`
+  const metricsResult = await nurturingDB.query`
     SELECT 
       COUNT(id) as total_behaviors,
       AVG(engagement_score) as avg_score,
@@ -180,24 +202,41 @@ async function updateEngagementProfile(prospectId: number, clientId: number): Pr
   `;
   
   // Calculate response rate and timing patterns
+  let metrics = null;
+  for await (const row of metricsResult) {
+    metrics = row;
+    break;
+  }
   const responseRate = metrics.email_behaviors > 0 ? 
     (metrics.email_replies / metrics.email_behaviors) * 100 : 0;
   
   // Determine engagement trend
-  const [recentScore] = await nurturingDB.query`
+  const recentScoreQuery = await nurturingDB.query`
     SELECT AVG(engagement_score) as recent_avg
     FROM prospect_behavior
     WHERE prospect_id = ${prospectId}
       AND created_at >= CURRENT_DATE - INTERVAL '14 days'
   `;
   
-  const [olderScore] = await nurturingDB.query`
+  const olderScoreQuery = await nurturingDB.query`
     SELECT AVG(engagement_score) as older_avg
     FROM prospect_behavior
     WHERE prospect_id = ${prospectId}
       AND created_at >= CURRENT_DATE - INTERVAL '28 days'
       AND created_at < CURRENT_DATE - INTERVAL '14 days'
   `;
+  
+  let recentScore = null;
+  for await (const row of recentScoreQuery) {
+    recentScore = row;
+    break;
+  }
+  
+  let olderScore = null;
+  for await (const row of olderScoreQuery) {
+    olderScore = row;
+    break;
+  }
   
   let trend: EngagementTrend = 'neutral';
   if (recentScore.recent_avg && olderScore.older_avg) {
@@ -214,9 +253,9 @@ async function updateEngagementProfile(prospectId: number, clientId: number): Pr
       response_rate, engagement_trend, last_engagement_at, updated_at
     )
     VALUES (
-      ${prospectId}, ${clientId}, ${Math.round(metrics.avg_score || 0)}, 
-      ${Math.round((metrics.email_behaviors / Math.max(1, metrics.total_behaviors)) * 100)},
-      ${Math.round(responseRate)}, ${trend}, ${metrics.last_behavior}, CURRENT_TIMESTAMP
+      ${prospectId}, ${clientId}, ${Math.round(metrics?.avg_score || 0)}, 
+      ${Math.round(metrics ? (metrics.email_behaviors / Math.max(1, metrics.total_behaviors)) * 100 : 0)},
+      ${Math.round(responseRate)}, ${trend}, ${metrics?.last_behavior}, CURRENT_TIMESTAMP
     )
     ON CONFLICT (prospect_id) DO UPDATE SET
       total_score = EXCLUDED.total_score,

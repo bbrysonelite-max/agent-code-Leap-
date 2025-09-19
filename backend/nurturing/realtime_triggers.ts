@@ -176,31 +176,8 @@ REASONING: [explanation of recommendations]
   }
 );
 
-// Cron job for periodic trigger analysis
-export const periodicTriggerAnalysis = cron(
-  { title: "Periodic Trigger Analysis", cron: "0 */2 * * *" }, // Every 2 hours
-  async () => {
-    // Get prospects with recent activity
-    const activeProspects = await nurturingDB.query`
-      SELECT DISTINCT prospect_id, client_id
-      FROM prospect_behavior 
-      WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '6 hours'
-    `;
-    
-    console.log(`Analyzing triggers for ${activeProspects.length} active prospects`);
-    
-    for (const prospect of activeProspects) {
-      try {
-        await analyzeAndExecuteTriggers({
-          prospect_id: prospect.prospect_id,
-          client_id: prospect.client_id
-        });
-      } catch (error) {
-        console.error(`Error analyzing triggers for prospect ${prospect.prospect_id}:`, error);
-      }
-    }
-  }
-);
+// TODO: Add cron job for periodic trigger analysis
+// This would analyze prospect behavior and execute automated triggers
 
 // Check and execute triggers based on behavior
 async function checkAndExecuteTriggers(
@@ -209,7 +186,28 @@ async function checkAndExecuteTriggers(
   behaviorType: BehaviorType
 ): Promise<void> {
   // Define trigger rules
-  const triggerRules = {
+  const triggerRules: Record<BehaviorType, () => Promise<void>> = {
+    email_open: async () => {
+      await updateEngagementScore(prospectId, 5);
+    },
+    linkedin_view: async () => {
+      await updateEngagementScore(prospectId, 8);
+    },
+    linkedin_connect: async () => {
+      await updateEngagementScore(prospectId, 20);
+    },
+    phone_answer: async () => {
+      await updateEngagementScore(prospectId, 25);
+    },
+    phone_voicemail: async () => {
+      await updateEngagementScore(prospectId, 5);
+    },
+    content_download: async () => {
+      await updateEngagementScore(prospectId, 12);
+    },
+    meeting_attended: async () => {
+      await updateEngagementScore(prospectId, 50);
+    },
     email_reply: async () => {
       // Pause current sequences to avoid overwhelming
       await pauseActiveSequences(prospectId);
@@ -250,7 +248,7 @@ async function checkAndExecuteTriggers(
     }
   };
   
-  const triggerFunction = triggerRules[behaviorType];
+  const triggerFunction = triggerRules[behaviorType as keyof typeof triggerRules];
   if (triggerFunction) {
     await triggerFunction();
   }
@@ -362,12 +360,31 @@ async function enrollInReEngagementSequence(prospectId: number, clientId: number
 }
 
 function getInteractionScore(interactionType: string): number {
-  const scores = {
+  const scores: Record<string, number> = {
     open: 5,
     click: 15,
     reply: 30
   };
   return scores[interactionType] || 0;
+}
+
+// Additional utility functions needed by trigger rules
+async function updateEngagementScore(prospectId: number, points: number): Promise<void> {
+  await nurturingDB.exec`
+    UPDATE prospect_engagement_profiles 
+    SET total_score = total_score + ${points},
+        updated_at = CURRENT_TIMESTAMP
+    WHERE prospect_id = ${prospectId}
+  `;
+}
+
+async function considerSequenceUpgrade(prospectId: number, clientId: number): Promise<void> {
+  // Logic to move to higher engagement sequence
+  console.log(`Considering sequence upgrade for prospect ${prospectId}`);
+}
+
+async function sendContextualFollowUp(prospectId: number, clientId: number, behaviorType: BehaviorType): Promise<void> {
+  console.log(`Sending contextual follow-up for ${behaviorType} to prospect ${prospectId}`);
 }
 
 function parseTriggerAnalysis(content: string): any {

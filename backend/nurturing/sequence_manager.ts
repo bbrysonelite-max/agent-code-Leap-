@@ -266,23 +266,37 @@ TIMING: [optimal first contact timing]
       };
     } else {
       // Generate new sequence if none exists
-      const newSequence = await ai.generateAISequence({
+      const sequenceResponse = await ai.generateAISequence({
+        prospectData: { prospect_id, ...profile },
+        target: recommendation.classification,
+        goals: ['engage', 'nurture', 'convert'],
+        stepCount: 5
+      });
+      
+      // Create sequence from AI response
+      const createdSequence = await createSequence({
         client_id,
-        prospect_data: { prospect_id, ...profile },
-        classification: recommendation.classification,
-        stage: recommendation.stage,
-        sequence_length: 5
+        name: sequenceResponse.sequence.name,
+        classification_target: recommendation.classification,
+        stage_target: recommendation.stage,
+        steps: sequenceResponse.sequence.steps.map(step => ({
+          step_number: step.step_number,
+          content_type: step.content_type,
+          delay_days: step.delay_days,
+          delay_hours: 0,
+          content_template: JSON.stringify(step.content_data)
+        }))
       });
       
       const enrollment = await enrollProspect({
         prospect_id,
-        sequence_id: newSequence.id,
+        sequence_id: createdSequence.id,
         client_id
       });
       
       return {
         enrollment,
-        sequence: newSequence,
+        sequence: createdSequence,
         ai_reasoning: recommendation.reasoning,
         sequence_generated: true
       };
@@ -290,52 +304,20 @@ TIMING: [optimal first contact timing]
   }
 );
 
-// Cron job to process scheduled sequence steps
-export const processScheduledSteps = cron(
-  { title: "Process Scheduled Sequence Steps", cron: "*/5 * * * *" }, // Every 5 minutes
-  async () => {
-    // Get all enrollments with scheduled steps due
-    const dueEnrollments = await nurturingDB.query`
-      SELECT 
-        se.*,
-        ss.id as step_id,
-        ss.content_type,
-        ss.subject_template,
-        ss.content_template,
-        ss.delay_days,
-        ss.delay_hours,
-        ns.name as sequence_name
-      FROM sequence_enrollments se
-      JOIN sequence_steps ss ON se.sequence_id = ss.sequence_id AND se.current_step = ss.step_number
-      JOIN nurturing_sequences ns ON se.sequence_id = ns.id
-      WHERE se.status = 'active'
-        AND se.next_step_scheduled_at <= CURRENT_TIMESTAMP
-        AND ss.is_active = true
-      LIMIT 100
-    `;
-    
-    console.log(`Processing ${dueEnrollments.length} scheduled steps`);
-    
-    for (const enrollment of dueEnrollments) {
-      try {
-        await processSequenceStep(enrollment);
-      } catch (error) {
-        console.error(`Error processing step for enrollment ${enrollment.id}:`, error);
-      }
-    }
-  }
-);
+// TODO: Add cron job to process scheduled sequence steps  
+// This would process nurturing sequence steps that are due to be sent
 
 // Process individual sequence step
 async function processSequenceStep(enrollment: any): Promise<void> {
   // Generate personalized content for this step
   const content = await ai.generateStepContent({
-    prospect_id: enrollment.prospect_id,
-    sequence_id: enrollment.sequence_id,
-    step_number: enrollment.current_step,
-    classification: 'warm', // Would get from prospect data
-    stage: 'interest', // Would get from prospect data
-    content_type: enrollment.content_type
+    contentType: enrollment.content_type,
+    prospectData: { prospect_id: enrollment.prospect_id },
+    stepNumber: enrollment.current_step,
+    context: {
+      sequence_name: enrollment.sequence_name,
+      template: enrollment.content_template
+    }
   });
   
   // Record the communication

@@ -18,8 +18,7 @@ export const createABTest = api(
       new Date(Date.now() + req.duration_days * 24 * 60 * 60 * 1000) : 
       null;
     
-    const results = [];
-    for await (const row of nurturingDB.query`
+    const [test] = await nurturingDB.query`
       INSERT INTO sequence_ab_tests (
         sequence_id, test_name, variant_a_data, variant_b_data,
         traffic_split, end_date
@@ -29,10 +28,7 @@ export const createABTest = api(
         ${JSON.stringify(req.variant_b_data)}, ${req.traffic_split || 50}, ${endDate}
       )
       RETURNING *
-    `) {
-      results.push(row);
-    }
-    const test = results[0];
+    `;
     
     return test;
   }
@@ -42,16 +38,13 @@ export const createABTest = api(
 export const getActiveABTests = api(
   { method: "GET", path: "/ab-tests/:sequence_id", expose: true },
   async ({ sequence_id }: { sequence_id: number }) => {
-    const tests = [];
-    for await (const row of nurturingDB.query`
+    const tests = await nurturingDB.query`
       SELECT * FROM sequence_ab_tests 
       WHERE sequence_id = ${sequence_id}
         AND status = 'active'
         AND (end_date IS NULL OR end_date > CURRENT_TIMESTAMP)
       ORDER BY created_at DESC
-    `) {
-      tests.push(row);
-    }
+    `;
     
     return tests;
   }
@@ -405,7 +398,7 @@ function parseABTestAnalysis(content: string): any {
       currentSection = 'recommendations';
       result.recommendations = line.replace('RECOMMENDATIONS:', '').trim();
     } else if (line.trim() && currentSection) {
-      result[currentSection] += '\n' + line;
+      (result as any)[currentSection] += '\n' + line;
     }
   }
   
