@@ -1,5 +1,4 @@
 import { api } from "encore.dev/api";
-import { cron } from "encore.dev/cron";
 import { nurturingDB } from "./db";
 import { BehaviorType, TrackBehaviorRequest } from "./types";
 import * as behaviorAnalysis from "./behavior_analysis";

@@ -139,7 +139,7 @@ export default function AICRMDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {insights?.slice(0, 5).map((insight: any) => (
+              {insights && Array.isArray(insights) ? insights.slice(0, 5).map((insight: any) => (
                 <div key={insight.id} className="flex items-start justify-between p-3 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -175,9 +175,9 @@ export default function AICRMDashboard() {
                     <CheckCircle className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
+              )) : null}
               
-              {(!insights || insights.length === 0) && (
+              {(!insights || !Array.isArray(insights) || insights.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No AI insights available yet</p>
@@ -197,7 +197,7 @@ export default function AICRMDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {upcomingActivities?.slice(0, 5).map((activity: any) => (
+              {upcomingActivities && Array.isArray(upcomingActivities) ? upcomingActivities.slice(0, 5).map((activity: any) => (
                 <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -223,9 +223,9 @@ export default function AICRMDashboard() {
                     </div>
                   )}
                 </div>
-              ))}
+              )) : null}
               
-              {(!upcomingActivities || upcomingActivities.length === 0) && (
+              {(!upcomingActivities || !Array.isArray(upcomingActivities) || upcomingActivities.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No upcoming activities</p>
@@ -252,7 +252,7 @@ export default function AICRMDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topPerformers?.top_leads?.slice(0, 3).map((lead: any, index: number) => (
+                  {topPerformers?.top_leads && Array.isArray(topPerformers.top_leads) ? topPerformers.top_leads.slice(0, 3).map((lead: any, index: number) => (
                     <div key={lead.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{lead.name}</p>
@@ -263,7 +263,7 @@ export default function AICRMDashboard() {
                         <p className="text-xs text-muted-foreground">{lead.status}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </CardContent>
             </Card>
@@ -274,7 +274,7 @@ export default function AICRMDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topPerformers?.top_contacts?.slice(0, 3).map((contact: any) => (
+                  {topPerformers?.top_contacts && Array.isArray(topPerformers.top_contacts) ? topPerformers.top_contacts.slice(0, 3).map((contact: any) => (
                     <div key={contact.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{contact.name}</p>
@@ -285,7 +285,7 @@ export default function AICRMDashboard() {
                         <p className="text-xs text-muted-foreground">{contact.deal_count} deals</p>
                       </div>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </CardContent>
             </Card>
@@ -296,7 +296,7 @@ export default function AICRMDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topPerformers?.top_deals?.slice(0, 3).map((deal: any) => (
+                  {topPerformers?.top_deals && Array.isArray(topPerformers.top_deals) ? topPerformers.top_deals.slice(0, 3).map((deal: any) => (
                     <div key={deal.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{deal.name}</p>
@@ -307,7 +307,7 @@ export default function AICRMDashboard() {
                         <p className="text-xs text-muted-foreground">{deal.ai_win_probability}% win</p>
                       </div>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </CardContent>
             </Card>

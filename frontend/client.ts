@@ -177,7 +177,9 @@ export namespace agent {
  * Import the endpoint handlers to derive the types for the client.
  */
 import {
+    generateAISequence as api_ai_openai_generateAISequence,
     generateContent as api_ai_openai_generateContent,
+    generateStepContent as api_ai_openai_generateStepContent,
     generateText as api_ai_openai_generateText
 } from "~backend/ai/openai";
 
@@ -188,14 +190,28 @@ export namespace ai {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.generateAISequence = this.generateAISequence.bind(this)
             this.generateContent = this.generateContent.bind(this)
+            this.generateStepContent = this.generateStepContent.bind(this)
             this.generateText = this.generateText.bind(this)
+        }
+
+        public async generateAISequence(params: RequestType<typeof api_ai_openai_generateAISequence>): Promise<ResponseType<typeof api_ai_openai_generateAISequence>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/generate-sequence`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateAISequence>
         }
 
         public async generateContent(params: RequestType<typeof api_ai_openai_generateContent>): Promise<ResponseType<typeof api_ai_openai_generateContent>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/generate-content`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateContent>
+        }
+
+        public async generateStepContent(params: RequestType<typeof api_ai_openai_generateStepContent>): Promise<ResponseType<typeof api_ai_openai_generateStepContent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/generate-step-content`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateStepContent>
         }
 
         public async generateText(params: RequestType<typeof api_ai_openai_generateText>): Promise<ResponseType<typeof api_ai_openai_generateText>> {
@@ -1411,12 +1427,54 @@ export namespace hubspot {
  * Import the endpoint handlers to derive the types for the client.
  */
 import {
-    createSequence as api_nurturing_main_endpoints_createSequence,
-    enrollProspect as api_nurturing_main_endpoints_enrollProspect,
-    getFunnelAnalytics as api_nurturing_main_endpoints_getFunnelAnalytics,
-    getSequences as api_nurturing_main_endpoints_getSequences,
-    getStagnantProspects as api_nurturing_main_endpoints_getStagnantProspects
+    analyzeABTestResults as api_nurturing_ab_testing_analyzeABTestResults,
+    createABTest as api_nurturing_ab_testing_createABTest,
+    generateABTestVariants as api_nurturing_ab_testing_generateABTestVariants,
+    getActiveABTests as api_nurturing_ab_testing_getActiveABTests,
+    getVariantForEnrollment as api_nurturing_ab_testing_getVariantForEnrollment
+} from "~backend/nurturing/ab_testing";
+import {
+    generateAISequence as api_nurturing_ai_content_generator_generateAISequence,
+    generateContentVariations as api_nurturing_ai_content_generator_generateContentVariations,
+    generateStepContent as api_nurturing_ai_content_generator_generateStepContent,
+    optimizeSequence as api_nurturing_ai_content_generator_optimizeSequence
+} from "~backend/nurturing/ai_content_generator";
+import {
+    analyzeProspectEngagement as api_nurturing_behavior_analysis_analyzeProspectEngagement,
+    getEngagementAnalytics as api_nurturing_behavior_analysis_getEngagementAnalytics,
+    getEngagementProfile as api_nurturing_behavior_analysis_getEngagementProfile,
+    getProspectBehaviors as api_nurturing_behavior_analysis_getProspectBehaviors,
+    trackBehavior as api_nurturing_behavior_analysis_trackBehavior
+} from "~backend/nurturing/behavior_analysis";
+import {
+    bulkEnrollProspects as api_nurturing_main_endpoints_bulkEnrollProspects,
+    getABTestResults as api_nurturing_main_endpoints_getABTestResults,
+    getNurturingDashboard as api_nurturing_main_endpoints_getNurturingDashboard,
+    getSequencePerformance as api_nurturing_main_endpoints_getSequencePerformance
 } from "~backend/nurturing/main_endpoints";
+import {
+    calculateROI as api_nurturing_performance_analytics_calculateROI,
+    generatePerformanceReport as api_nurturing_performance_analytics_generatePerformanceReport,
+    getAIInsights as api_nurturing_performance_analytics_getAIInsights,
+    getAdvancedAnalytics as api_nurturing_performance_analytics_getAdvancedAnalytics,
+    getEngagementHeatMap as api_nurturing_performance_analytics_getEngagementHeatMap,
+    getFunnelAnalysis as api_nurturing_performance_analytics_getFunnelAnalysis
+} from "~backend/nurturing/performance_analytics";
+import {
+    analyzeAndExecuteTriggers as api_nurturing_realtime_triggers_analyzeAndExecuteTriggers,
+    processBehaviorTrigger as api_nurturing_realtime_triggers_processBehaviorTrigger,
+    trackEmailInteraction as api_nurturing_realtime_triggers_trackEmailInteraction,
+    trackWebsiteActivity as api_nurturing_realtime_triggers_trackWebsiteActivity
+} from "~backend/nurturing/realtime_triggers";
+import {
+    createSequence as api_nurturing_sequence_manager_createSequence,
+    enrollProspect as api_nurturing_sequence_manager_enrollProspect,
+    getProspectEnrollments as api_nurturing_sequence_manager_getProspectEnrollments,
+    getSequence as api_nurturing_sequence_manager_getSequence,
+    listSequences as api_nurturing_sequence_manager_listSequences,
+    smartEnrollProspect as api_nurturing_sequence_manager_smartEnrollProspect,
+    updateEnrollmentStatus as api_nurturing_sequence_manager_updateEnrollmentStatus
+} from "~backend/nurturing/sequence_manager";
 
 export namespace nurturing {
 
@@ -1425,41 +1483,307 @@ export namespace nurturing {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.analyzeABTestResults = this.analyzeABTestResults.bind(this)
+            this.analyzeAndExecuteTriggers = this.analyzeAndExecuteTriggers.bind(this)
+            this.analyzeProspectEngagement = this.analyzeProspectEngagement.bind(this)
+            this.bulkEnrollProspects = this.bulkEnrollProspects.bind(this)
+            this.calculateROI = this.calculateROI.bind(this)
+            this.createABTest = this.createABTest.bind(this)
             this.createSequence = this.createSequence.bind(this)
             this.enrollProspect = this.enrollProspect.bind(this)
-            this.getFunnelAnalytics = this.getFunnelAnalytics.bind(this)
-            this.getSequences = this.getSequences.bind(this)
-            this.getStagnantProspects = this.getStagnantProspects.bind(this)
+            this.generateABTestVariants = this.generateABTestVariants.bind(this)
+            this.generateAISequence = this.generateAISequence.bind(this)
+            this.generateContentVariations = this.generateContentVariations.bind(this)
+            this.generatePerformanceReport = this.generatePerformanceReport.bind(this)
+            this.generateStepContent = this.generateStepContent.bind(this)
+            this.getABTestResults = this.getABTestResults.bind(this)
+            this.getAIInsights = this.getAIInsights.bind(this)
+            this.getActiveABTests = this.getActiveABTests.bind(this)
+            this.getAdvancedAnalytics = this.getAdvancedAnalytics.bind(this)
+            this.getEngagementAnalytics = this.getEngagementAnalytics.bind(this)
+            this.getEngagementHeatMap = this.getEngagementHeatMap.bind(this)
+            this.getEngagementProfile = this.getEngagementProfile.bind(this)
+            this.getFunnelAnalysis = this.getFunnelAnalysis.bind(this)
+            this.getNurturingDashboard = this.getNurturingDashboard.bind(this)
+            this.getProspectBehaviors = this.getProspectBehaviors.bind(this)
+            this.getProspectEnrollments = this.getProspectEnrollments.bind(this)
+            this.getSequence = this.getSequence.bind(this)
+            this.getSequencePerformance = this.getSequencePerformance.bind(this)
+            this.getSystemHealth = this.getSystemHealth.bind(this)
+            this.getVariantForEnrollment = this.getVariantForEnrollment.bind(this)
+            this.listSequences = this.listSequences.bind(this)
+            this.optimizeSequence = this.optimizeSequence.bind(this)
+            this.processBehaviorTrigger = this.processBehaviorTrigger.bind(this)
+            this.smartEnrollProspect = this.smartEnrollProspect.bind(this)
+            this.trackBehavior = this.trackBehavior.bind(this)
+            this.trackEmailInteraction = this.trackEmailInteraction.bind(this)
+            this.trackWebsiteActivity = this.trackWebsiteActivity.bind(this)
+            this.updateEnrollmentStatus = this.updateEnrollmentStatus.bind(this)
         }
 
-        public async createSequence(params: RequestType<typeof api_nurturing_main_endpoints_createSequence>): Promise<ResponseType<typeof api_nurturing_main_endpoints_createSequence>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/sequences`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_createSequence>
+        /**
+         * Analyze A/B test results and declare winner
+         */
+        public async analyzeABTestResults(params: { test_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ab-test/${encodeURIComponent(params.test_id)}/analyze`, {method: "POST", body: undefined})
         }
 
-        public async enrollProspect(params: RequestType<typeof api_nurturing_main_endpoints_enrollProspect>): Promise<ResponseType<typeof api_nurturing_main_endpoints_enrollProspect>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/enroll`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_enrollProspect>
+        /**
+         * AI-powered trigger analysis and execution
+         */
+        public async analyzeAndExecuteTriggers(params: RequestType<typeof api_nurturing_realtime_triggers_analyzeAndExecuteTriggers>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/trigger/ai-analyze`, {method: "POST", body: JSON.stringify(params)})
         }
 
-        public async getFunnelAnalytics(): Promise<ResponseType<typeof api_nurturing_main_endpoints_getFunnelAnalytics>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/funnel-analytics`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getFunnelAnalytics>
+        /**
+         * AI-powered analysis of prospect engagement patterns
+         */
+        public async analyzeProspectEngagement(params: RequestType<typeof api_nurturing_behavior_analysis_analyzeProspectEngagement>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/analyze-engagement`, {method: "POST", body: JSON.stringify(params)})
         }
 
-        public async getSequences(): Promise<ResponseType<typeof api_nurturing_main_endpoints_getSequences>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/sequences`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getSequences>
+        /**
+         * Bulk operations for managing multiple prospects
+         */
+        public async bulkEnrollProspects(params: RequestType<typeof api_nurturing_main_endpoints_bulkEnrollProspects>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/bulk-enroll`, {method: "POST", body: JSON.stringify(params)})
         }
 
-        public async getStagnantProspects(): Promise<ResponseType<typeof api_nurturing_main_endpoints_getStagnantProspects>> {
+        /**
+         * ROI calculation and tracking
+         */
+        public async calculateROI(params: RequestType<typeof api_nurturing_performance_analytics_calculateROI>): Promise<void> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                "period_days": params["period_days"] === undefined ? undefined : String(params["period_days"]),
+            })
+
+            await this.baseClient.callTypedAPI(`/analytics/roi/${encodeURIComponent(params.client_id)}`, {query, method: "GET", body: undefined})
+        }
+
+        /**
+         * Create A/B test for a sequence
+         */
+        public async createABTest(params: RequestType<typeof api_nurturing_ab_testing_createABTest>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ab-test`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Create a new nurturing sequence
+         */
+        public async createSequence(params: RequestType<typeof api_nurturing_sequence_manager_createSequence>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/sequences`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Enroll a prospect in a sequence
+         */
+        public async enrollProspect(params: RequestType<typeof api_nurturing_sequence_manager_enrollProspect>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/enroll`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * AI-powered A/B test generation
+         */
+        public async generateABTestVariants(params: RequestType<typeof api_nurturing_ab_testing_generateABTestVariants>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ab-test/generate`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Generate a complete AI-powered nurturing sequence
+         */
+        public async generateAISequence(params: RequestType<typeof api_nurturing_ai_content_generator_generateAISequence>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/generate-ai-sequence`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Generate content variations for A/B testing
+         */
+        public async generateContentVariations(params: RequestType<typeof api_nurturing_ai_content_generator_generateContentVariations>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/generate-content-variations`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Generate performance reports
+         */
+        public async generatePerformanceReport(params: RequestType<typeof api_nurturing_performance_analytics_generatePerformanceReport>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/analytics/report`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Generate personalized content for a specific step
+         */
+        public async generateStepContent(params: RequestType<typeof api_nurturing_ai_content_generator_generateStepContent>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/generate-step-content`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Get A/B testing results
+         */
+        public async getABTestResults(params: { test_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ab-test/${encodeURIComponent(params.test_id)}/results`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * AI-powered performance insights
+         */
+        public async getAIInsights(params: RequestType<typeof api_nurturing_performance_analytics_getAIInsights>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/analytics/ai-insights`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Get active A/B tests for a sequence
+         */
+        public async getActiveABTests(params: { sequence_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ab-tests/${encodeURIComponent(params.sequence_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Advanced analytics and ROI tracking
+         */
+        public async getAdvancedAnalytics(params: { client_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/analytics/advanced/${encodeURIComponent(params.client_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get engagement analytics for a client
+         */
+        public async getEngagementAnalytics(params: { client_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/engagement-analytics/${encodeURIComponent(params.client_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Engagement heat map analysis
+         */
+        public async getEngagementHeatMap(params: { client_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/analytics/heatmap/${encodeURIComponent(params.client_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get detailed engagement profile for a prospect
+         */
+        public async getEngagementProfile(params: { prospect_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/engagement-profile/${encodeURIComponent(params.prospect_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Step-by-step funnel analysis
+         */
+        public async getFunnelAnalysis(params: { sequence_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/analytics/funnel/${encodeURIComponent(params.sequence_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Additional analytics and reporting endpoints
+         */
+        public async getNurturingDashboard(params: { client_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/dashboard/${encodeURIComponent(params.client_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get recent behaviors for a prospect
+         */
+        public async getProspectBehaviors(params: { prospect_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/prospect-behaviors/${encodeURIComponent(params.prospect_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get prospect enrollments
+         */
+        public async getProspectEnrollments(params: { prospect_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/enrollments/${encodeURIComponent(params.prospect_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get sequence details with steps
+         */
+        public async getSequence(params: { sequence_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/sequence/${encodeURIComponent(params.sequence_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Get detailed sequence performance metrics
+         */
+        public async getSequencePerformance(params: { sequence_id: number }): Promise<ResponseType<typeof api_nurturing_main_endpoints_getSequencePerformance>> {
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/stagnant-prospects`, {method: "GET", body: undefined})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getStagnantProspects>
+            const resp = await this.baseClient.callTypedAPI(`/sequence/${encodeURIComponent(params.sequence_id)}/performance`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_nurturing_main_endpoints_getSequencePerformance>
+        }
+
+        /**
+         * Health check and system status
+         */
+        public async getSystemHealth(): Promise<void> {
+            await this.baseClient.callTypedAPI(`/health`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Determine variant for a new enrollment
+         */
+        public async getVariantForEnrollment(params: RequestType<typeof api_nurturing_ab_testing_getVariantForEnrollment>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/ab-test/variant`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Get all sequences for a client
+         */
+        public async listSequences(params: { client_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/sequences/${encodeURIComponent(params.client_id)}`, {method: "GET", body: undefined})
+        }
+
+        /**
+         * Optimize existing sequence based on performance data
+         */
+        public async optimizeSequence(params: { sequence_id: number }): Promise<void> {
+            await this.baseClient.callTypedAPI(`/optimize-sequence/${encodeURIComponent(params.sequence_id)}`, {method: "POST", body: undefined})
+        }
+
+        /**
+         * Real-time behavior trigger processing
+         */
+        public async processBehaviorTrigger(params: RequestType<typeof api_nurturing_realtime_triggers_processBehaviorTrigger>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/trigger/behavior`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Smart enrollment based on prospect classification and behavior
+         */
+        public async smartEnrollProspect(params: RequestType<typeof api_nurturing_sequence_manager_smartEnrollProspect>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/smart-enroll`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Track a specific prospect behavior and update their engagement profile
+         */
+        public async trackBehavior(params: RequestType<typeof api_nurturing_behavior_analysis_trackBehavior>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/track-behavior`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Email interaction tracking (opens, clicks, replies)
+         */
+        public async trackEmailInteraction(params: RequestType<typeof api_nurturing_realtime_triggers_trackEmailInteraction>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/trigger/email-interaction`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Website activity tracking
+         */
+        public async trackWebsiteActivity(params: RequestType<typeof api_nurturing_realtime_triggers_trackWebsiteActivity>): Promise<void> {
+            await this.baseClient.callTypedAPI(`/trigger/website-activity`, {method: "POST", body: JSON.stringify(params)})
+        }
+
+        /**
+         * Update enrollment status
+         */
+        public async updateEnrollmentStatus(params: RequestType<typeof api_nurturing_sequence_manager_updateEnrollmentStatus>): Promise<void> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                reason: params.reason,
+                status: params.status,
+            }
+
+            await this.baseClient.callTypedAPI(`/enrollment/${encodeURIComponent(params.enrollment_id)}/status`, {method: "PUT", body: JSON.stringify(body)})
         }
     }
 }

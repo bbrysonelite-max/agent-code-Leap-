@@ -17,7 +17,7 @@ export interface AIResponse {
 }
 
 export interface ContentGenerationRequest {
-  type: 'email' | 'sms' | 'social';
+  type: 'email' | 'sms' | 'social' | 'linkedin_message' | 'phone_call' | 'task';
   classification: 'hot' | 'warm' | 'cold' | 'nurture' | 'unqualified';
   stage: 'awareness' | 'interest' | 'consideration' | 'intent' | 'evaluation' | 'purchase';
   prospectData: Record<string, any>;
@@ -27,6 +27,29 @@ export interface ContentGenerationRequest {
 export interface ContentGenerationResponse {
   subject?: string;
   content: string;
+  reasoning: string;
+}
+
+export interface SequenceGenerationRequest {
+  prospectData: Record<string, any>;
+  target: string;
+  goals: string[];
+  stepCount?: number;
+}
+
+export interface SequenceStep {
+  step_number: number;
+  content_type: 'email' | 'sms' | 'social' | 'phone_call' | 'linkedin_message' | 'task';
+  delay_days: number;
+  content_data: Record<string, any>;
+}
+
+export interface SequenceGenerationResponse {
+  sequence: {
+    name: string;
+    description: string;
+    steps: SequenceStep[];
+  };
   reasoning: string;
 }
 
@@ -194,3 +217,130 @@ REASONING: Short, direct SMS with clear call-to-action that respects character l
   
   return "This is a mock AI response. Please configure your OpenAI API key in the Infrastructure tab to use real AI generation.";
 }
+
+export const generateAISequence = api(
+  { method: "POST", path: "/generate-sequence", expose: true },
+  async (req: SequenceGenerationRequest): Promise<SequenceGenerationResponse> => {
+    const prompt = `
+You are an expert sales sequence designer. Create a nurturing sequence for a prospect with the following characteristics:
+
+Prospect Data: ${JSON.stringify(req.prospectData, null, 2)}
+Target Classification: ${req.target}
+Goals: ${req.goals.join(', ')}
+Number of Steps: ${req.stepCount || 5}
+
+Create a sequence with the following specifications:
+1. Mix of communication types (email, sms, social, phone_call, linkedin_message)
+2. Appropriate delays between steps (1-7 days typically)
+3. Progressive value delivery and engagement
+4. Clear call-to-actions for each step
+5. Personalized content based on prospect data
+
+Format as JSON:
+{
+  "name": "Sequence Name",
+  "description": "Brief description",
+  "steps": [
+    {
+      "step_number": 1,
+      "content_type": "email",
+      "delay_days": 0,
+      "content_data": {
+        "subject": "Email subject",
+        "content": "Email content",
+        "call_to_action": "CTA text"
+      }
+    }
+  ]
+}
+`;
+
+    const response = await generateText({
+      prompt,
+      maxTokens: 1200,
+      temperature: 0.8
+    });
+
+    try {
+      const parsed = JSON.parse(response.content);
+      return {
+        sequence: parsed,
+        reasoning: response.reasoning || "AI-generated sequence"
+      };
+    } catch {
+      // Fallback mock sequence
+      return {
+        sequence: {
+          name: "Personalized Nurturing Sequence",
+          description: "AI-generated nurturing sequence for prospect engagement",
+          steps: [
+            {
+              step_number: 1,
+              content_type: "email",
+              delay_days: 0,
+              content_data: {
+                subject: "Introduction and Value Proposition",
+                content: "Personalized introduction email with value proposition",
+                call_to_action: "Schedule a brief call"
+              }
+            },
+            {
+              step_number: 2,
+              content_type: "email",
+              delay_days: 3,
+              content_data: {
+                subject: "Follow-up with Resources",
+                content: "Follow-up email with helpful resources",
+                call_to_action: "Download our guide"
+              }
+            }
+          ]
+        },
+        reasoning: "Fallback sequence due to parsing error"
+      };
+    }
+  }
+);
+
+export const generateStepContent = api(
+  { method: "POST", path: "/generate-step-content", expose: true },
+  async (req: {
+    contentType: string;
+    prospectData: Record<string, any>;
+    stepNumber: number;
+    context?: Record<string, any>;
+  }): Promise<ContentGenerationResponse> => {
+    const prompt = `
+Generate personalized content for step ${req.stepNumber} of a nurturing sequence.
+
+Content Type: ${req.contentType}
+Prospect Data: ${JSON.stringify(req.prospectData, null, 2)}
+Context: ${JSON.stringify(req.context || {}, null, 2)}
+
+Requirements:
+1. Personalize based on prospect information
+2. Appropriate for step ${req.stepNumber} in the sequence
+3. Include clear call-to-action
+4. Professional but engaging tone
+
+${req.contentType === 'email' ? `
+Format as:
+SUBJECT: [subject line]
+CONTENT: [email body]
+REASONING: [explanation]
+` : `
+Format as:
+CONTENT: [${req.contentType} content]
+REASONING: [explanation]
+`}
+`;
+
+    const response = await generateText({
+      prompt,
+      maxTokens: 600,
+      temperature: 0.7
+    });
+
+    return parseContentResponse(response.content, req.contentType);
+  }
+);

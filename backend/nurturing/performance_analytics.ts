@@ -1,5 +1,4 @@
 import { api } from "encore.dev/api";
-import { cron } from "encore.dev/cron";
 import { nurturingDB } from "./db";
 import * as ai from "../ai/openai";
 
@@ -8,7 +7,8 @@ export const getAdvancedAnalytics = api(
   { method: "GET", path: "/analytics/advanced/:client_id", expose: true },
   async ({ client_id }: { client_id: number }) => {
     // Get comprehensive performance metrics
-    const [overallMetrics] = await nurturingDB.query`
+    const overallMetricsResults = [];
+    for await (const row of nurturingDB.query`
       SELECT 
         COUNT(DISTINCT ns.id) as total_sequences,
         COUNT(DISTINCT se.id) as total_enrollments,
@@ -23,10 +23,14 @@ export const getAdvancedAnalytics = api(
       LEFT JOIN sequence_enrollments se ON ns.id = se.sequence_id
       LEFT JOIN nurturing_communications nc ON se.id = nc.enrollment_id
       WHERE ns.client_id = ${client_id}
-    `;
+    `) {
+      overallMetricsResults.push(row);
+    }
+    const overallMetrics = overallMetricsResults[0];
 
     // Sequence performance breakdown
-    const sequenceBreakdown = await nurturingDB.query`
+    const sequenceBreakdown = [];
+    for await (const row of nurturingDB.query`
       SELECT 
         ns.id,
         ns.name,
@@ -48,7 +52,9 @@ export const getAdvancedAnalytics = api(
       GROUP BY ns.id, ns.name, ns.classification_target, ns.stage_target, ns.created_by_ai
       HAVING COUNT(se.id) > 0
       ORDER BY conversion_rate DESC
-    `;
+    `) {
+      sequenceBreakdown.push(row);
+    }
 
     // Time-based performance trends
     const performanceTrends = await nurturingDB.query`
@@ -189,7 +195,8 @@ export const getFunnelAnalysis = api(
   { method: "GET", path: "/analytics/funnel/:sequence_id", expose: true },
   async ({ sequence_id }: { sequence_id: number }) => {
     // Get step performance data
-    const stepPerformance = await nurturingDB.query`
+    const stepPerformance = [];
+    for await (const row of nurturingDB.query`
       SELECT 
         ss.step_number,
         ss.content_type,
@@ -207,7 +214,9 @@ export const getFunnelAnalysis = api(
       WHERE ss.sequence_id = ${sequence_id}
       GROUP BY ss.id, ss.step_number, ss.content_type, ss.delay_days
       ORDER BY ss.step_number
-    `;
+    `) {
+      stepPerformance.push(row);
+    }
 
     // Calculate drop-off rates between steps
     const funnelData = stepPerformance.map((step, index) => {

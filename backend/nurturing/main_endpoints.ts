@@ -50,7 +50,8 @@ export const getNurturingDashboard = api(
   { method: "GET", path: "/dashboard/:client_id", expose: true },
   async ({ client_id }: { client_id: number }) => {
     // Get overall statistics
-    const [stats] = await nurturingDB.query`
+    const statsResults = [];
+    for await (const row of nurturingDB.query`
       SELECT 
         COUNT(DISTINCT ns.id) as total_sequences,
         COUNT(DISTINCT se.id) as total_enrollments,
@@ -63,10 +64,14 @@ export const getNurturingDashboard = api(
       LEFT JOIN sequence_enrollments se ON ns.id = se.sequence_id
       LEFT JOIN nurturing_communications nc ON se.id = nc.enrollment_id
       WHERE ns.client_id = ${client_id}
-    `;
+    `) {
+      statsResults.push(row);
+    }
+    const stats = statsResults[0];
     
     // Get top performing sequences
-    const topSequences = await nurturingDB.query`
+    const topSequences = [];
+    for await (const row of nurturingDB.query`
       SELECT 
         ns.id,
         ns.name,
@@ -85,10 +90,13 @@ export const getNurturingDashboard = api(
       HAVING COUNT(se.id) > 0
       ORDER BY reply_rate DESC
       LIMIT 5
-    `;
+    `) {
+      topSequences.push(row);
+    }
     
     // Get recent activity
-    const recentActivity = await nurturingDB.query`
+    const recentActivity = [];
+    for await (const row of nurturingDB.query`
       SELECT 
         pb.behavior_type,
         pb.engagement_score,
@@ -112,10 +120,13 @@ export const getNurturingDashboard = api(
       
       ORDER BY created_at DESC
       LIMIT 20
-    `;
+    `) {
+      recentActivity.push(row);
+    }
     
     // Get engagement trends
-    const engagementTrends = await nurturingDB.query`
+    const engagementTrends = [];
+    for await (const row of nurturingDB.query`
       SELECT 
         DATE(created_at) as date,
         COUNT(id) as total_behaviors,
@@ -126,7 +137,9 @@ export const getNurturingDashboard = api(
         AND created_at >= CURRENT_DATE - INTERVAL '30 days'
       GROUP BY DATE(created_at)
       ORDER BY date ASC
-    `;
+    `) {
+      engagementTrends.push(row);
+    }
     
     return {
       stats: stats || {},

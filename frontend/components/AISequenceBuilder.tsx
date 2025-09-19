@@ -71,33 +71,9 @@ export function AISequenceBuilder({ onClose, onSave }: AISequenceBuilderProps) {
       // Generate the actual sequence using AI
       const sequence: CreateSequenceRequest = {
         name: `AI-Generated: ${goals.objective}`,
-        description: `Automatically generated sequence targeting ${audience.persona} with ${strategy.approach} approach`,
-        clientId: 'default-client',
-        triggerConditions: {
-          events: ['lead_signup', 'content_download'],
-          behaviors: [
-            {
-              action: 'website_visit',
-              frequency: 1,
-              timeframe: '7d'
-            }
-          ],
-          demographics: [
-            {
-              field: 'industry',
-              operator: 'equals',
-              value: goals.industry
-            }
-          ],
-          engagement: {
-            minScore: 20
-          }
-        },
-        targetAudience: {
-          industries: [goals.industry],
-          roles: [audience.persona],
-          behaviorSegments: ['engaged_visitors']
-        },
+        client_id: 1, // Default client ID
+        classification_target: 'warm' as const,
+        stage_target: 'interest' as const,
         steps: generateSteps()
       };
 
@@ -177,38 +153,13 @@ Best,
 
     stepTemplates.slice(0, strategy.sequenceLength).forEach((template, index) => {
       steps.push({
-        stepOrder: index,
-        stepType: template.type,
-        delayDays: template.delayDays,
-        delayHours: template.delayHours,
-        contentTemplate: {
-          type: template.type,
-          subject: template.subject,
-          body: template.body,
-          variables: ['first_name', 'company_name', 'sender_name'],
-          personalizationRules: [
-            {
-              placeholder: 'first_name',
-              source: 'prospect' as const,
-              field: 'first_name',
-              fallback: 'there'
-            },
-            {
-              placeholder: 'company_name',
-              source: 'company' as const,
-              field: 'name',
-              fallback: 'your company'
-            },
-            {
-              placeholder: 'sender_name',
-              source: 'prospect' as const,
-              field: 'assigned_rep',
-              fallback: 'The Team'
-            }
-          ],
-          dynamicContent: []
-        },
-        isActive: true
+        step_number: index + 1,
+        content_type: template.type,
+        delay_days: template.delayDays,
+        delay_hours: template.delayHours,
+        subject_template: template.subject,
+        content_template: template.body,
+        conditions: {}
       });
     });
 

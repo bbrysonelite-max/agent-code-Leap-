@@ -32,10 +32,14 @@ export const trackBehavior = api(
 export const getEngagementProfile = api(
   { method: "GET", path: "/engagement-profile/:prospect_id", expose: true },
   async ({ prospect_id }: { prospect_id: number }) => {
-    const [profile] = await nurturingDB.query`
+    const profileResults = [];
+    for await (const row of nurturingDB.query`
       SELECT * FROM prospect_engagement_profile 
       WHERE prospect_id = ${prospect_id}
-    `;
+    `) {
+      profileResults.push(row);
+    }
+    const profile = profileResults[0];
     
     return profile || null;
   }
@@ -45,12 +49,15 @@ export const getEngagementProfile = api(
 export const getProspectBehaviors = api(
   { method: "GET", path: "/prospect-behaviors/:prospect_id", expose: true },
   async ({ prospect_id }: { prospect_id: number }) => {
-    const behaviors = await nurturingDB.query`
+    const behaviors = [];
+    for await (const row of nurturingDB.query`
       SELECT * FROM prospect_behavior 
       WHERE prospect_id = ${prospect_id}
       ORDER BY created_at DESC
       LIMIT 50
-    `;
+    `) {
+      behaviors.push(row);
+    }
     
     return behaviors;
   }

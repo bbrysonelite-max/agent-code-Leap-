@@ -1,5 +1,4 @@
 import { api } from "encore.dev/api";
-import { cron } from "encore.dev/cron";
 import { nurturingDB } from "./db";
 import { SequenceABTest } from "./types";
 import * as ai from "../ai/openai";
@@ -19,7 +18,8 @@ export const createABTest = api(
       new Date(Date.now() + req.duration_days * 24 * 60 * 60 * 1000) : 
       null;
     
-    const [test] = await nurturingDB.query`
+    const results = [];
+    for await (const row of nurturingDB.query`
       INSERT INTO sequence_ab_tests (
         sequence_id, test_name, variant_a_data, variant_b_data,
         traffic_split, end_date
@@ -29,7 +29,10 @@ export const createABTest = api(
         ${JSON.stringify(req.variant_b_data)}, ${req.traffic_split || 50}, ${endDate}
       )
       RETURNING *
-    `;
+    `) {
+      results.push(row);
+    }
+    const test = results[0];
     
     return test;
   }
@@ -39,13 +42,16 @@ export const createABTest = api(
 export const getActiveABTests = api(
   { method: "GET", path: "/ab-tests/:sequence_id", expose: true },
   async ({ sequence_id }: { sequence_id: number }) => {
-    const tests = await nurturingDB.query`
+    const tests = [];
+    for await (const row of nurturingDB.query`
       SELECT * FROM sequence_ab_tests 
       WHERE sequence_id = ${sequence_id}
         AND status = 'active'
         AND (end_date IS NULL OR end_date > CURRENT_TIMESTAMP)
       ORDER BY created_at DESC
-    `;
+    `) {
+      tests.push(row);
+    }
     
     return tests;
   }
@@ -93,11 +99,14 @@ export const generateABTestVariants = api(
       SELECT * FROM nurturing_sequences WHERE id = ${req.sequence_id}
     `;
     
-    const steps = await nurturingDB.query`
+    const steps = [];
+    for await (const row of nurturingDB.query`
       SELECT * FROM sequence_steps 
       WHERE sequence_id = ${req.sequence_id}
       ORDER BY step_number ASC
-    `;
+    `) {
+      steps.push(row);
+    }
     
     // Generate AI variants based on test type
     const prompt = createABTestPrompt(req.test_type, sequence, steps, req.hypothesis);
@@ -209,33 +218,8 @@ RECOMMENDATIONS: [future test suggestions]
 );
 
 // Auto-conclude A/B tests that have reached significance
-export const autoConcludeABTests = cron(
-  { title: "Auto-conclude A/B Tests", cron: "0 12 * * *" }, // Daily at noon
-  async () => {
-    const activeTests = await nurturingDB.query`
-      SELECT * FROM sequence_ab_tests 
-      WHERE status = 'active'
-        AND start_date <= CURRENT_TIMESTAMP - INTERVAL '7 days' -- At least 7 days old
-    `;
-    
-    console.log(`Analyzing ${activeTests.length} active A/B tests`);
-    
-    for (const test of activeTests) {
-      try {
-        const results = await analyzeABTestResults({ test_id: test.id });
-        
-        if (results.statistical_significance > 95 && results.winner) {
-          console.log(`A/B test ${test.id} concluded with winner: ${results.winner}`);
-          
-          // Apply winning variant to sequence if appropriate
-          await applyWinningVariant(test.sequence_id, results.winner, test);
-        }
-      } catch (error) {
-        console.error(`Error analyzing A/B test ${test.id}:`, error);
-      }
-    }
-  }
-);
+// TODO: Auto-conclude A/B tests cron job - implement when cron is available
+// Daily at noon: "0 12 * * *"
 
 // Helper functions
 async function getVariantPerformance(
@@ -250,7 +234,8 @@ async function getVariantPerformance(
     `MOD(se.id, 100) < ${trafficSplit}` : 
     `MOD(se.id, 100) >= ${trafficSplit}`;
   
-  const [results] = await nurturingDB.query`
+  const queryResults = [];
+  for await (const row of nurturingDB.query`
     SELECT 
       COUNT(se.id) as enrollments,
       COUNT(nc.opened_at) * 100.0 / NULLIF(COUNT(nc.id), 0) as open_rate,
@@ -263,7 +248,10 @@ async function getVariantPerformance(
       AND se.created_at >= ${startDate}
       AND (${endDate} IS NULL OR se.created_at <= ${endDate})
       AND ${condition}
-  `;
+  `) {
+    queryResults.push(row);
+  }
+  const results = queryResults[0];
   
   return results || {
     enrollments: 0,

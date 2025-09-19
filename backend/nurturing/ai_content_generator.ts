@@ -15,17 +15,24 @@ export const generateAISequence = api(
   { method: "POST", path: "/generate-ai-sequence", expose: true },
   async (req: AISequenceGenerationRequest) => {
     // Get prospect engagement data for context
-    const [engagementProfile] = await nurturingDB.query`
+    const engagementResults = [];
+    for await (const row of nurturingDB.query`
       SELECT * FROM prospect_engagement_profile 
       WHERE prospect_id = ${req.prospect_data.prospect_id}
-    `;
+    `) {
+      engagementResults.push(row);
+    }
+    const engagementProfile = engagementResults[0];
     
-    const recentBehaviors = await nurturingDB.query`
+    const recentBehaviors = [];
+    for await (const row of nurturingDB.query`
       SELECT * FROM prospect_behavior 
       WHERE prospect_id = ${req.prospect_data.prospect_id}
       ORDER BY created_at DESC
       LIMIT 10
-    `;
+    `) {
+      recentBehaviors.push(row);
+    }
     
     // Create AI prompt for sequence generation
     const prompt = createSequenceGenerationPrompt(req, engagementProfile, recentBehaviors);
