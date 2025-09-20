@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bot, Play, Pause, Square, Plus, Settings, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,15 @@ export default function AgentControls() {
   const createAgentMutation = useCreateAgent();
   const controlAgentMutation = useControlAgent();
   
+  // Handle successful agent creation
+  useEffect(() => {
+    if (createAgentMutation.isSuccess) {
+      setShowCreateDialog(false);
+      setNewAgentName('');
+      setSelectedClientId('');
+    }
+  }, [createAgentMutation.isSuccess]);
+  
   // Override onSuccess for create agent to handle UI state
   const handleCreateAgent = () => {
     if (!selectedClientId) {
@@ -39,12 +48,6 @@ export default function AgentControls() {
     createAgentMutation.mutate({ 
       name: newAgentName, 
       client_id: parseInt(selectedClientId)
-    }, {
-      onSuccess: () => {
-        setShowCreateDialog(false);
-        setNewAgentName('');
-        setSelectedClientId('');
-      },
     });
   };
 

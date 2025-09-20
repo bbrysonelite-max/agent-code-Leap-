@@ -220,7 +220,17 @@ export default function ClientManagement() {
       business_type: client.business_type,
       business_description: client.business_description || '',
       enabled_prospect_types: client.enabled_prospect_types,
-      search_config: client.search_config,
+      search_config: {
+        target_industries: client.search_config?.target_industries || [],
+        target_positions: client.search_config?.target_positions || [],
+        company_size_range: { 
+          min: client.search_config?.company_size_range?.min ?? 1, 
+          max: client.search_config?.company_size_range?.max ?? 10000 
+        },
+        location_preferences: client.search_config?.location_preferences || [],
+        exclude_keywords: client.search_config?.exclude_keywords || [],
+        include_keywords: client.search_config?.include_keywords || []
+      },
       messaging_config: client.messaging_config,
       daily_limits: client.daily_limits,
     });

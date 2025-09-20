@@ -234,7 +234,12 @@ export const smartEnrollProspect = api(
       SELECT * FROM prospect_engagement_profile 
       WHERE prospect_id = ${prospect_id}
     `;
-    const profile = profileResults[0];
+    
+    let profile = null;
+    for await (const row of profileResults) {
+      profile = row;
+      break;
+    }
     
     // Get recent behaviors to inform classification
     const behaviors = await nurturingDB.query`

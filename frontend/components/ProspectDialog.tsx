@@ -36,6 +36,13 @@ export default function ProspectDialog({
 
   const createMutation = useCreateProspect();
   const updateMutation = useUpdateProspect();
+  
+  // Handle successful creation/update
+  useEffect(() => {
+    if (createMutation.isSuccess || updateMutation.isSuccess) {
+      onClose();
+    }
+  }, [createMutation.isSuccess, updateMutation.isSuccess, onClose]);
 
   useEffect(() => {
     if (prospect) {
@@ -78,13 +85,9 @@ export default function ProspectDialog({
         id: prospect.id,
         classification: data.classification,
         notes: data.notes,
-      }, {
-        onSuccess: () => onClose(),
       });
     } else {
-      createMutation.mutate(data, {
-        onSuccess: () => onClose(),
-      });
+      createMutation.mutate(data);
     }
   };
 

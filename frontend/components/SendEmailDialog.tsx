@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,16 @@ export default function SendEmailDialog({
   const [agentName, setAgentName] = useState('');
 
   const sendEmailMutation = useSendEmail();
+  
+  // Handle successful email sending
+  useEffect(() => {
+    if (sendEmailMutation.isSuccess) {
+      onOpenChange(false);
+      setProspectId('');
+      setTemplateId('');
+      setAgentName('');
+    }
+  }, [sendEmailMutation.isSuccess, onOpenChange]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,13 +47,6 @@ export default function SendEmailDialog({
       prospect_id: parseInt(prospectId),
       template_id: parseInt(templateId),
       agent_name: agentName || undefined,
-    }, {
-      onSuccess: () => {
-        onOpenChange(false);
-        setProspectId('');
-        setTemplateId('');
-        setAgentName('');
-      },
     });
   };
 

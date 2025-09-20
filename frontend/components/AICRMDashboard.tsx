@@ -23,20 +23,23 @@ import { useToast } from '@/components/ui/use-toast';
 
 export default function AICRMDashboard() {
   const { data: analytics = {
-    leads_by_stage: {},
+    total_leads: 0,
+    qualified_leads: 0,
+    total_contacts: 0,
+    active_deals: 0,
+    total_deal_value: 0,
+    avg_deal_size: 0,
+    win_rate: 0,
+    avg_sales_cycle_days: 0,
     conversion_rates: {},
-    revenue_pipeline: {},
-    average_deal_value: 0,
-    top_leads: [],
-    top_contacts: [], 
-    top_deals: []
+    ai_score_distribution: {}
   }, isLoading: analyticsLoading } = usePipelineAnalytics();
   const { data: insights = [], isLoading: insightsLoading } = useDashboardInsights();
-  const { data: topPerformers, isLoading: performersLoading } = useTopPerformers();
-  const { data: upcomingActivities, isLoading: activitiesLoading } = useUpcomingActivities();
+  const { data: topPerformers = { top_leads: [], top_contacts: [], top_deals: [] }, isLoading: performersLoading } = useTopPerformers();
+  const { data: upcomingActivities = [], isLoading: activitiesLoading } = useUpcomingActivities();
   const { toast } = useToast();
 
-  if (analyticsLoading || insightsLoading) {
+  if (analyticsLoading || insightsLoading || performersLoading || activitiesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -205,7 +208,7 @@ export default function AICRMDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {upcomingActivities && Array.isArray(upcomingActivities) ? upcomingActivities.slice(0, 5).map((activity: any) => (
+              {upcomingActivities.length > 0 ? upcomingActivities.slice(0, 5).map((activity: any) => (
                 <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -231,9 +234,7 @@ export default function AICRMDashboard() {
                     </div>
                   )}
                 </div>
-              )) : null}
-              
-              {(!upcomingActivities || !Array.isArray(upcomingActivities) || upcomingActivities.length === 0) && (
+              )) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No upcoming activities</p>
@@ -260,7 +261,7 @@ export default function AICRMDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topPerformers?.top_leads && Array.isArray(topPerformers.top_leads) ? topPerformers.top_leads.slice(0, 3).map((lead: any, index: number) => (
+                  {topPerformers.top_leads.slice(0, 3).map((lead: any, index: number) => (
                     <div key={lead.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{lead.name}</p>
@@ -271,7 +272,7 @@ export default function AICRMDashboard() {
                         <p className="text-xs text-muted-foreground">{lead.status}</p>
                       </div>
                     </div>
-                  )) : null}
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -282,7 +283,7 @@ export default function AICRMDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topPerformers?.top_contacts && Array.isArray(topPerformers.top_contacts) ? topPerformers.top_contacts.slice(0, 3).map((contact: any) => (
+                  {topPerformers.top_contacts.slice(0, 3).map((contact: any) => (
                     <div key={contact.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{contact.name}</p>
@@ -293,7 +294,7 @@ export default function AICRMDashboard() {
                         <p className="text-xs text-muted-foreground">{contact.deal_count} deals</p>
                       </div>
                     </div>
-                  )) : null}
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -304,7 +305,7 @@ export default function AICRMDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topPerformers?.top_deals && Array.isArray(topPerformers.top_deals) ? topPerformers.top_deals.slice(0, 3).map((deal: any) => (
+                  {topPerformers.top_deals.slice(0, 3).map((deal: any) => (
                     <div key={deal.id} className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{deal.name}</p>
@@ -315,7 +316,7 @@ export default function AICRMDashboard() {
                         <p className="text-xs text-muted-foreground">{deal.ai_win_probability}% win</p>
                       </div>
                     </div>
-                  )) : null}
+                  ))}
                 </div>
               </CardContent>
             </Card>
