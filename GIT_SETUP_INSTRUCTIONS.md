@@ -14,7 +14,7 @@ If you prefer to run commands manually:
 ```bash
 git init
 git config user.name "bbrysonelite-max"
-git config user.email "your-email@example.com"  # Update with your email
+git config user.email "bbrysonelite@gmail.com"
 ```
 
 ### 2. Add files and commit

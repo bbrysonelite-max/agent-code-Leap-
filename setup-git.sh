@@ -8,10 +8,10 @@ if [ ! -d ".git" ]; then
     git init
 fi
 
-# Set up Git configuration (you may need to update these)
+# Set up Git configuration
 echo "⚙️ Setting up Git configuration..."
 git config user.name "bbrysonelite-max"
-git config user.email "your-email@example.com"  # Update this with your actual email
+git config user.email "bbrysonelite@gmail.com"
 
 # Add all files to staging
 echo "📝 Adding files to Git staging..."
