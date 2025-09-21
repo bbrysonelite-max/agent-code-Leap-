@@ -180,8 +180,8 @@ export namespace agent {
  */
 import {
     generateAISequence as api_ai_openai_generateAISequence,
+    generateBasicStepContent as api_ai_openai_generateBasicStepContent,
     generateContent as api_ai_openai_generateContent,
-    generateStepContent as api_ai_openai_generateStepContent,
     generateText as api_ai_openai_generateText
 } from "~backend/ai/openai";
 
@@ -193,8 +193,8 @@ export namespace ai {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.generateAISequence = this.generateAISequence.bind(this)
+            this.generateBasicStepContent = this.generateBasicStepContent.bind(this)
             this.generateContent = this.generateContent.bind(this)
-            this.generateStepContent = this.generateStepContent.bind(this)
             this.generateText = this.generateText.bind(this)
         }
 
@@ -204,16 +204,16 @@ export namespace ai {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateAISequence>
         }
 
+        public async generateBasicStepContent(params: RequestType<typeof api_ai_openai_generateBasicStepContent>): Promise<ResponseType<typeof api_ai_openai_generateBasicStepContent>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/generate-basic-step-content`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateBasicStepContent>
+        }
+
         public async generateContent(params: RequestType<typeof api_ai_openai_generateContent>): Promise<ResponseType<typeof api_ai_openai_generateContent>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/generate-content`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateContent>
-        }
-
-        public async generateStepContent(params: RequestType<typeof api_ai_openai_generateStepContent>): Promise<ResponseType<typeof api_ai_openai_generateStepContent>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/generate-step-content`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_generateStepContent>
         }
 
         public async generateText(params: RequestType<typeof api_ai_openai_generateText>): Promise<ResponseType<typeof api_ai_openai_generateText>> {
