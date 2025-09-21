@@ -302,8 +302,8 @@ Format as JSON:
   }
 );
 
-export const generateStepContent = api(
-  { method: "POST", path: "/generate-step-content", expose: true },
+export const generateBasicStepContent = api(
+  { method: "POST", path: "/generate-basic-step-content", expose: true },
   async (req: {
     contentType: string;
     prospectData: Record<string, any>;

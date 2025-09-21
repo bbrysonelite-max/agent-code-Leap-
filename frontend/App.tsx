@@ -20,7 +20,7 @@ import AgentControls from './components/AgentControls';
 // import LeadsManagement from './components/LeadsManagement';
 // import DealsManagement from './components/DealsManagement';
 // import CRMIntegration from './components/CRMIntegration';
-// import HubSpotIntegration from './components/HubSpotIntegration';
+import HubSpotIntegration from './components/HubSpotIntegration';
 // import RateLimitDashboard from './components/RateLimitDashboard';
 // import RateLimitManagement from './components/RateLimitManagement';
 // import RateLimitingDashboard from './components/RateLimitingDashboard';
@@ -59,7 +59,7 @@ function AppInner() {
                     {/* <Route path="/ai-crm/leads" element={<LeadsManagement />} /> */}
                     {/* <Route path="/ai-crm/deals" element={<DealsManagement />} /> */}
                     {/* <Route path="/ai-crm/integration" element={<CRMIntegration />} /> */}
-                    {/* <Route path="/hubspot" element={<HubSpotIntegration />} /> */}
+                    <Route path="/hubspot" element={<HubSpotIntegration />} />
                     {/* <Route path="/rate-limits" element={<RateLimitDashboard />} /> */}
                     {/* <Route path="/rate-limits/management" element={<RateLimitManagement />} /> */}
                     {/* <Route path="/rate-limits/advanced" element={<RateLimitingDashboard />} /> */}

@@ -364,7 +364,7 @@ TIMING: [optimal first contact timing]
 // Process individual sequence step
 async function processSequenceStep(enrollment: any): Promise<void> {
   // Generate personalized content for this step
-  const content = await ai.generateStepContent({
+  const content = await ai.generateBasicStepContent({
     contentType: enrollment.content_type,
     prospectData: { prospect_id: enrollment.prospect_id },
     stepNumber: enrollment.current_step,
