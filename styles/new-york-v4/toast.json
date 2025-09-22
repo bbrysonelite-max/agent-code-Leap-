@@ -1,0 +1,11 @@
+{
+  "name": "toast",
+  "type": "components:ui",
+  "dependencies": [],
+  "files": [
+    {
+      "name": "toast.tsx",
+      "content": ""
+    }
+  ]
+}
