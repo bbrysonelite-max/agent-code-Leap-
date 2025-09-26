@@ -16,6 +16,21 @@ export interface AIResponse {
   reasoning?: string;
 }
 
+export interface ChatCompletionRequest {
+  model: string;
+  messages: Array<{
+    role: "system" | "user" | "assistant";
+    content: string;
+  }>;
+  max_tokens?: number;
+  temperature?: number;
+}
+
+export interface ChatCompletionResponse {
+  message: string;
+  reasoning?: string;
+}
+
 export interface ContentGenerationRequest {
   type: 'email' | 'sms' | 'social' | 'linkedin_message' | 'phone_call' | 'task';
   classification: 'hot' | 'warm' | 'cold' | 'nurture' | 'unqualified';
@@ -344,3 +359,77 @@ REASONING: [explanation]
     return parseContentResponse(response.content, req.contentType);
   }
 );
+
+export const chatCompletion = api(
+  { method: "POST", path: "/chat-completion", expose: true },
+  async (req: ChatCompletionRequest): Promise<ChatCompletionResponse> => {
+    const apiKey = openAIKey();
+    
+    if (!apiKey) {
+      // Fallback to mock implementation when no key is configured
+      return {
+        message: generateMockChatResponse(req.messages),
+        reasoning: "Generated using mock AI service (OpenAI key not configured)"
+      };
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: req.model || 'gpt-3.5-turbo',
+          messages: req.messages,
+          max_tokens: req.max_tokens || 500,
+          temperature: req.temperature || 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data: any = await response.json();
+      
+      return {
+        message: data.choices[0]?.message?.content || "",
+        reasoning: "Generated using OpenAI"
+      };
+    } catch (error) {
+      console.error('OpenAI API error:', error);
+      
+      // Fallback to mock implementation on error
+      return {
+        message: generateMockChatResponse(req.messages),
+        reasoning: `Fallback response (OpenAI error: ${(error as Error).message})`
+      };
+    }
+  }
+);
+
+function generateMockChatResponse(messages: Array<{ role: string; content: string }>): string {
+  const userMessage = messages.find(m => m.role === 'user')?.content || '';
+  
+  // Simple mock responses based on keywords
+  if (userMessage.toLowerCase().includes('help')) {
+    return "I'm here to help! I can assist you with managing your CRM, analyzing prospects, creating campaigns, and optimizing your sales processes. What specific area would you like help with?";
+  }
+  
+  if (userMessage.toLowerCase().includes('prospect') || userMessage.toLowerCase().includes('lead')) {
+    return "I can help you analyze and manage your prospects. I can provide insights on lead scoring, suggest follow-up strategies, or help you create personalized outreach campaigns. What would you like to know about your prospects?";
+  }
+  
+  if (userMessage.toLowerCase().includes('email') || userMessage.toLowerCase().includes('campaign')) {
+    return "I can help you create effective email campaigns, analyze performance metrics, and suggest improvements to your outreach strategy. Would you like me to help you craft an email or review campaign performance?";
+  }
+  
+  if (userMessage.toLowerCase().includes('analytics') || userMessage.toLowerCase().includes('data')) {
+    return "I can provide insights from your CRM data, including conversion rates, response patterns, and performance trends. What specific metrics or analysis would you like to review?";
+  }
+  
+  // Default response
+  return "Thank you for your message! I'm an AI assistant designed to help with your CRM and sales processes. I can help with prospect analysis, campaign creation, data insights, and optimization strategies. How can I assist you today?";
+}

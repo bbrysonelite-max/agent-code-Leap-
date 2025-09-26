@@ -4,7 +4,7 @@ export interface RealtimeHandshake {
 }
 
 export interface RealtimeMessage {
-  type: "agent_activity" | "prospect_discovery" | "email_progress" | "email_response" | "system_notification";
+  type: "agent_activity" | "prospect_discovery" | "email_progress" | "email_response" | "system_notification" | "chat_message";
   data: any;
   timestamp: string;
   clientId?: string;

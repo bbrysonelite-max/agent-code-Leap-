@@ -1,20 +1,28 @@
-import { Users, Mail, TrendingUp, Target, Activity, Bot } from 'lucide-react';
+import { Users, Mail, TrendingUp, Target, Activity, Bot, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import LoadingSpinner from './LoadingSpinner';
 import StatsCard from './StatsCard';
 import AgentStatusCard from './AgentStatusCard';
 import RealtimeActivityFeed from './RealtimeActivityFeed';
 import RealtimeNotifications from './RealtimeNotifications';
 import RealtimeTestControls from './RealtimeTestControls';
+import AgentChat from './AgentChat';
 import { useAgents } from '../hooks/useAgents';
 import { useMetrics } from '../hooks/useAnalytics';
 import { useRecentProspects } from '../hooks/useProspects';
+import { useState } from 'react';
 
 export default function Dashboard() {
   const { data: agents, isLoading: agentsLoading } = useAgents();
   const { data: metrics, isLoading: metricsLoading } = useMetrics();
   const { data: prospects, isLoading: prospectsLoading } = useRecentProspects(5);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>();
+  
+  // Mock user ID - in a real app this would come from auth
+  const userId = 'user-123';
 
   if (agentsLoading || metricsLoading || prospectsLoading) {
     return <LoadingSpinner />;
@@ -22,6 +30,11 @@ export default function Dashboard() {
 
   const runningAgents = agents?.agents.filter(agent => agent.status === 'running') || [];
   const totalAgents = agents?.agents.length || 0;
+
+  const handleAgentChatClick = (agentId: string) => {
+    setSelectedAgentId(agentId);
+    setChatOpen(true);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -45,7 +58,11 @@ export default function Dashboard() {
       {/* Agent Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {agents?.agents.map((agent) => (
-          <AgentStatusCard key={agent.id} agent={agent} />
+          <AgentStatusCard 
+            key={agent.id} 
+            agent={agent} 
+            onChatClick={handleAgentChatClick}
+          />
         ))}
       </div>
 
@@ -121,6 +138,25 @@ export default function Dashboard() {
 
       <RealtimeTestControls />
       <RealtimeNotifications />
+      
+      {/* Floating Chat Button */}
+      {!chatOpen && (
+        <Button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-40"
+          size="icon"
+        >
+          <MessageCircle className="w-6 h-6" />
+        </Button>
+      )}
+      
+      {/* Agent Chat */}
+      <AgentChat
+        agentId={selectedAgentId}
+        userId={userId}
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
     </div>
   );
 }

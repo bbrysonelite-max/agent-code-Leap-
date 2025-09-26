@@ -1,4 +1,4 @@
-import { Bot, Play, Pause, Square, Activity } from 'lucide-react';
+import { Bot, Play, Pause, Square, Activity, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,10 @@ import backend from '~backend/client';
 
 interface AgentStatusCardProps {
   agent: Agent;
+  onChatClick?: (agentId: string) => void;
 }
 
-export default function AgentStatusCard({ agent }: AgentStatusCardProps) {
+export default function AgentStatusCard({ agent, onChatClick }: AgentStatusCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -149,6 +150,17 @@ export default function AgentStatusCard({ agent }: AgentStatusCardProps) {
             </>
           )}
         </div>
+
+        {/* Chat Button */}
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          onClick={() => onChatClick?.(agent.id.toString())}
+        >
+          <MessageCircle className="h-3 w-3 mr-1" />
+          Chat with Agent
+        </Button>
 
         {agent.last_activity_at && (
           <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
