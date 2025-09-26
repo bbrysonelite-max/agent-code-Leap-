@@ -128,6 +128,12 @@ export interface ClientOptions {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
+import { bootstrap as api_agent_bootstrap_bootstrap } from "~backend/agent/bootstrap";
+import {
+    chat as api_agent_chat_chat,
+    getActiveChats as api_agent_chat_getActiveChats,
+    sendMessage as api_agent_chat_sendMessage
+} from "~backend/agent/chat";
 import { updateStatus as api_agent_control_updateStatus } from "~backend/agent/control";
 import { list as api_agent_list_list } from "~backend/agent/list";
 
@@ -138,9 +144,35 @@ export namespace agent {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.bootstrap = this.bootstrap.bind(this)
+            this.chat = this.chat.bind(this)
             this.create = this.create.bind(this)
+            this.getActiveChats = this.getActiveChats.bind(this)
             this.list = this.list.bind(this)
+            this.sendMessage = this.sendMessage.bind(this)
             this.updateStatus = this.updateStatus.bind(this)
+        }
+
+        /**
+         * Bootstrap sample data for testing
+         */
+        public async bootstrap(): Promise<ResponseType<typeof api_agent_bootstrap_bootstrap>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/agents/bootstrap`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_agent_bootstrap_bootstrap>
+        }
+
+        /**
+         * Real-time chat with AI agents
+         */
+        public async chat(params: RequestType<typeof api_agent_chat_chat>): Promise<StreamInOut<StreamRequest<typeof api_agent_chat_chat>, StreamResponse<typeof api_agent_chat_chat>>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                agentId: params.agentId,
+                userId:  params.userId,
+            })
+
+            return await this.baseClient.createStreamInOut(`/agents/chat`, {query})
         }
 
         /**
@@ -151,12 +183,27 @@ export namespace agent {
         }
 
         /**
+         * Get active chat sessions
+         */
+        public async getActiveChats(): Promise<ResponseType<typeof api_agent_chat_getActiveChats>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/agents/chat/active`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_agent_chat_getActiveChats>
+        }
+
+        /**
          * Retrieves all Nu Skin prospecting agents.
          */
         public async list(): Promise<ResponseType<typeof api_agent_list_list>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/agents`, {method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_agent_list_list>
+        }
+
+        public async sendMessage(params: RequestType<typeof api_agent_chat_sendMessage>): Promise<ResponseType<typeof api_agent_chat_sendMessage>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/agents/chat/send`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_agent_chat_sendMessage>
         }
 
         /**
@@ -179,6 +226,7 @@ export namespace agent {
  * Import the endpoint handlers to derive the types for the client.
  */
 import {
+    chatCompletion as api_ai_openai_chatCompletion,
     generateAISequence as api_ai_openai_generateAISequence,
     generateBasicStepContent as api_ai_openai_generateBasicStepContent,
     generateContent as api_ai_openai_generateContent,
@@ -192,10 +240,17 @@ export namespace ai {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.chatCompletion = this.chatCompletion.bind(this)
             this.generateAISequence = this.generateAISequence.bind(this)
             this.generateBasicStepContent = this.generateBasicStepContent.bind(this)
             this.generateContent = this.generateContent.bind(this)
             this.generateText = this.generateText.bind(this)
+        }
+
+        public async chatCompletion(params: RequestType<typeof api_ai_openai_chatCompletion>): Promise<ResponseType<typeof api_ai_openai_chatCompletion>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/chat-completion`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_ai_openai_chatCompletion>
         }
 
         public async generateAISequence(params: RequestType<typeof api_ai_openai_generateAISequence>): Promise<ResponseType<typeof api_ai_openai_generateAISequence>> {

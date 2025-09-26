@@ -21,7 +21,7 @@
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/query-sync-storage-persister": "^5.82.0",
     "@tanstack/react-query": "^5.89.0",
-    "@tanstack/react-query-devtools": "^5.89.0",
+    "@tanstack/react-query-devtools": "^5.90.2",
     "@tanstack/react-query-persist-client": "^5.85.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
