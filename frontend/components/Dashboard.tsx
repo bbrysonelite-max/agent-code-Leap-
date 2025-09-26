@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import LoadingSpinner from './LoadingSpinner';
 import StatsCard from './StatsCard';
 import AgentStatusCard from './AgentStatusCard';
+import AgentSetup from './AgentSetup';
 import RealtimeActivityFeed from './RealtimeActivityFeed';
 import RealtimeNotifications from './RealtimeNotifications';
 import RealtimeTestControls from './RealtimeTestControls';
@@ -55,16 +56,26 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Agent Setup or Status Overview */}
+      <AgentSetup 
+        agentCount={totalAgents}
+        onSetupComplete={() => {
+          // Refresh data after setup
+        }}
+      />
+
       {/* Agent Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {agents?.agents.map((agent) => (
-          <AgentStatusCard 
-            key={agent.id} 
-            agent={agent} 
-            onChatClick={handleAgentChatClick}
-          />
-        ))}
-      </div>
+      {totalAgents > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {agents?.agents.map((agent) => (
+            <AgentStatusCard 
+              key={agent.id} 
+              agent={agent} 
+              onChatClick={handleAgentChatClick}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
