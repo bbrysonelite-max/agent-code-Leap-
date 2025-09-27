@@ -2,7 +2,7 @@ import { api } from "encore.dev/api";
 import { clientDB } from "./db";
 import type { ClientConfiguration, UpdateClientRequest } from "./types";
 import { validateField, Rules } from "../shared/validation";
-import { wrapDatabaseQuery } from "../shared/database";
+import { executeQuery } from "../shared/database";
 import { wrapAsync, NotFoundError } from "../shared/errors";
 
 const validBusinessTypes = [
@@ -142,14 +142,13 @@ export const update = api<UpdateClientRequest, ClientConfiguration>(
     // Add the ID parameter for WHERE clause
     params.push(req.id);
     
-    const result = await wrapDatabaseQuery(
-      () => clientDB.rawQueryRow<ClientConfiguration>(
-        `UPDATE client_configurations 
+    const result = await executeQuery(
+      () => clientDB.queryRow<ClientConfiguration>`
+        UPDATE client_configurations 
         SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
         WHERE id = $${params.length}
-        RETURNING *`,
-        ...params
-      ),
+        RETURNING *
+      `,
       "update client"
     );
     

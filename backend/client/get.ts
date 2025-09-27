@@ -2,7 +2,7 @@ import { api } from "encore.dev/api";
 import { clientDB } from "./db";
 import type { ClientConfiguration } from "./types";
 import { validateField, Rules } from "../shared/validation";
-import { wrapDatabaseQuery } from "../shared/database";
+import { executeQuery } from "../shared/database";
 import { wrapAsync, NotFoundError } from "../shared/errors";
 
 export interface GetClientRequest {
@@ -14,11 +14,12 @@ export const get = api<GetClientRequest, ClientConfiguration>(
   wrapAsync(async (req) => {
     validateField(req.id, "id", [Rules.required(), Rules.positive(), Rules.integer()]);
     
-    const client = await wrapDatabaseQuery(
-      () => clientDB.rawQueryRow<ClientConfiguration>(
-        'SELECT * FROM client_configurations WHERE id = $1',
-        req.id
-      ),
+    const client = await executeQuery(
+      () => clientDB.queryRow<ClientConfiguration>`
+        SELECT * 
+        FROM client_configurations 
+        WHERE id = ${req.id}
+      `,
       "get client"
     );
     

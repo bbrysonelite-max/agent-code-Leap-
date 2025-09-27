@@ -117,7 +117,7 @@ export default function ClientManagement() {
 
   const loadClients = async () => {
     try {
-      const response = await backend.client.list({});
+      const response = await (backend as any).client.list({});
       setClients(response.clients);
     } catch (error) {
       console.error('Failed to load clients:', error);
@@ -133,7 +133,7 @@ export default function ClientManagement() {
 
   const handleCreateClient = async () => {
     try {
-      const newClient = await backend.client.create(formData as CreateClientRequest);
+      const newClient = await (backend as any).client.create(formData as CreateClientRequest);
       setClients([newClient, ...clients]);
       setIsCreateDialogOpen(false);
       resetForm();
@@ -166,7 +166,7 @@ export default function ClientManagement() {
         daily_limits: formData.daily_limits,
       };
       
-      const updatedClient = await backend.client.update(updateData);
+      const updatedClient = await (backend as any).client.update(updateData);
       
       setClients(clients.map(c => c.id === selectedClient.id ? updatedClient : c));
       setIsEditDialogOpen(false);
