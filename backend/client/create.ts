@@ -2,7 +2,7 @@ import { api } from "encore.dev/api";
 import { clientDB } from "./db";
 import type { ClientConfiguration, CreateClientRequest } from "./types";
 import { validateField, Rules } from "../shared/validation";
-import { insertRow } from "../shared/database";
+import { wrapDatabaseQuery } from "../shared/database";
 import { wrapAsync } from "../shared/errors";
 
 const validBusinessTypes = [
@@ -90,26 +90,31 @@ export const create = api<CreateClientRequest, ClientConfiguration>(
       max_emails_per_day: req.daily_limits?.max_emails_per_day || 100
     };
     
-    const result = await insertRow(
-      () => clientDB.queryRow<ClientConfiguration>`
-        INSERT INTO client_configurations (
+    const result = await wrapDatabaseQuery(
+      () => clientDB.rawQueryRow<ClientConfiguration>(
+        `INSERT INTO client_configurations (
           client_name, business_type, business_description, 
           enabled_prospect_types, custom_prospect_types, 
           search_config, messaging_config, daily_limits
         ) VALUES (
-          ${req.client_name}, 
-          ${req.business_type}, 
-          ${req.business_description || null},
-          ${JSON.stringify(req.enabled_prospect_types)},
-          ${req.custom_prospect_types ? JSON.stringify(req.custom_prospect_types) : null},
-          ${JSON.stringify(req.search_config)},
-          ${JSON.stringify(req.messaging_config)},
-          ${JSON.stringify(dailyLimits)}
+          $1, $2, $3, $4, $5, $6, $7, $8
         )
-        RETURNING *
-      `,
+        RETURNING *`,
+        req.client_name,
+        req.business_type,
+        req.business_description || null,
+        JSON.stringify(req.enabled_prospect_types),
+        req.custom_prospect_types ? JSON.stringify(req.custom_prospect_types) : null,
+        JSON.stringify(req.search_config),
+        JSON.stringify(req.messaging_config),
+        JSON.stringify(dailyLimits)
+      ),
       "client configuration"
     );
+    
+    if (!result) {
+      throw new Error("Failed to create client configuration");
+    }
     
     return result;
   })

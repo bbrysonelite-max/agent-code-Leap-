@@ -77,3 +77,14 @@ export async function insertRow<T>(
     handleDatabaseError(error, `insert ${resourceName}`);
   }
 }
+
+export async function wrapDatabaseQuery<T>(
+  queryFn: () => Promise<T>,
+  operation: string
+): Promise<T> {
+  try {
+    return await queryFn();
+  } catch (error) {
+    handleDatabaseError(error, operation);
+  }
+}
