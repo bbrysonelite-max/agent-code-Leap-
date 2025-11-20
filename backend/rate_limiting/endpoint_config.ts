@@ -271,55 +271,105 @@ class EndpointConfigManager {
    * Bulk update endpoint configurations
    */
   async bulkUpdateConfigs(update: BulkConfigUpdate): Promise<{ updated: number }> {
-    let whereClause = 'WHERE 1=1';
-    const values: any[] = [];
+    // First, get IDs of records that match the filter
+    let matchingIds: number[];
 
-    if (update.filter.serviceName) {
-      whereClause += ` AND service_name = $${values.length + 1}`;
-      values.push(update.filter.serviceName);
+    if (update.filter.serviceName && update.filter.category && update.filter.endpoint) {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+        WHERE service_name = ${update.filter.serviceName}
+          AND category = ${update.filter.category}
+          AND endpoint LIKE ${'%' + update.filter.endpoint + '%'}
+      `;
+      matchingIds = result.map((r: any) => r.id);
+    } else if (update.filter.serviceName && update.filter.category) {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+        WHERE service_name = ${update.filter.serviceName}
+          AND category = ${update.filter.category}
+      `;
+      matchingIds = result.map((r: any) => r.id);
+    } else if (update.filter.serviceName && update.filter.endpoint) {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+        WHERE service_name = ${update.filter.serviceName}
+          AND endpoint LIKE ${'%' + update.filter.endpoint + '%'}
+      `;
+      matchingIds = result.map((r: any) => r.id);
+    } else if (update.filter.category && update.filter.endpoint) {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+        WHERE category = ${update.filter.category}
+          AND endpoint LIKE ${'%' + update.filter.endpoint + '%'}
+      `;
+      matchingIds = result.map((r: any) => r.id);
+    } else if (update.filter.serviceName) {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+        WHERE service_name = ${update.filter.serviceName}
+      `;
+      matchingIds = result.map((r: any) => r.id);
+    } else if (update.filter.category) {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+        WHERE category = ${update.filter.category}
+      `;
+      matchingIds = result.map((r: any) => r.id);
+    } else if (update.filter.endpoint) {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+        WHERE endpoint LIKE ${'%' + update.filter.endpoint + '%'}
+      `;
+      matchingIds = result.map((r: any) => r.id);
+    } else {
+      const result = await db.queryAll`
+        SELECT id FROM endpoint_rate_limits
+      `;
+      matchingIds = result.map((r: any) => r.id);
     }
 
-    if (update.filter.category) {
-      whereClause += ` AND category = $${values.length + 1}`;
-      values.push(update.filter.category);
+    if (matchingIds.length === 0) {
+      return { updated: 0 };
     }
 
-    if (update.filter.endpoint) {
-      whereClause += ` AND endpoint LIKE $${values.length + 1}`;
-      values.push(`%${update.filter.endpoint}%`);
+    // Update each field separately for the matching IDs
+    for (const id of matchingIds) {
+      if (update.updates.enabled !== undefined) {
+        await db.exec`
+          UPDATE endpoint_rate_limits
+          SET enabled = ${update.updates.enabled}
+          WHERE id = ${id}
+        `;
+      }
+
+      if (update.updates.priority !== undefined) {
+        await db.exec`
+          UPDATE endpoint_rate_limits
+          SET priority = ${update.updates.priority}
+          WHERE id = ${id}
+        `;
+      }
+
+      if (update.updates.category !== undefined) {
+        await db.exec`
+          UPDATE endpoint_rate_limits
+          SET category = ${update.updates.category}
+          WHERE id = ${id}
+        `;
+      }
+
+      // Always update timestamp
+      await db.exec`
+        UPDATE endpoint_rate_limits
+        SET updated_at = NOW()
+        WHERE id = ${id}
+      `;
     }
-
-    // Build update clause
-    const updateParts: string[] = [];
-    if (update.updates.enabled !== undefined) {
-      updateParts.push(`enabled = $${values.length + 1}`);
-      values.push(update.updates.enabled);
-    }
-
-    if (update.updates.priority !== undefined) {
-      updateParts.push(`priority = $${values.length + 1}`);
-      values.push(update.updates.priority);
-    }
-
-    if (update.updates.category !== undefined) {
-      updateParts.push(`category = $${values.length + 1}`);
-      values.push(update.updates.category);
-    }
-
-    updateParts.push(`updated_at = NOW()`);
-    
-    const updateClause = updateParts.join(', ');
-
-    const result = await db.queryAll`
-      UPDATE endpoint_rate_limits 
-      SET ${updateClause}
-      ${whereClause}
-    `;
 
     // Log the bulk update
-    await this.logBulkUpdate(update, result.length);
+    await this.logBulkUpdate(update, matchingIds.length);
 
-    return { updated: result.length };
+    return { updated: matchingIds.length };
   }
 
   /**

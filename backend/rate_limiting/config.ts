@@ -166,18 +166,47 @@ export const updateRule = api(
       throw new ValidationError("No updates provided", "validation");
     }
 
-    setParts.push(`updated_at = NOW()`);
-    values.push(id);
+    // Update each field separately
+    if (updates.windowSeconds !== undefined) {
+      await db.exec`
+        UPDATE rate_limit_rules
+        SET window_seconds = ${updates.windowSeconds}
+        WHERE id = ${id}
+      `;
+    }
 
-    const setClause = setParts.join(', ');
-    
+    if (updates.maxRequests !== undefined) {
+      await db.exec`
+        UPDATE rate_limit_rules
+        SET max_requests = ${updates.maxRequests}
+        WHERE id = ${id}
+      `;
+    }
+
+    if (updates.burstLimit !== undefined) {
+      await db.exec`
+        UPDATE rate_limit_rules
+        SET burst_limit = ${updates.burstLimit}
+        WHERE id = ${id}
+      `;
+    }
+
+    if (updates.enabled !== undefined) {
+      await db.exec`
+        UPDATE rate_limit_rules
+        SET enabled = ${updates.enabled}
+        WHERE id = ${id}
+      `;
+    }
+
+    // Update timestamp and get result
     const result = await db.queryAll`
-      UPDATE rate_limit_rules 
-      SET ${setClause}
-      WHERE id = $${values.length}
+      UPDATE rate_limit_rules
+      SET updated_at = NOW()
+      WHERE id = ${id}
       RETURNING id, endpoint, method, tier,
                 window_seconds as "windowSeconds",
-                max_requests as "maxRequests", 
+                max_requests as "maxRequests",
                 burst_limit as "burstLimit",
                 enabled
     `;
@@ -301,15 +330,36 @@ export const updateUserQuota = api(
       throw new ValidationError("No updates provided", "validation");
     }
 
-    setParts.push(`updated_at = NOW()`);
-    values.push(userId);
+    // Update each field separately
+    if (updates.tier !== undefined) {
+      await db.exec`
+        UPDATE user_quotas
+        SET tier = ${updates.tier}
+        WHERE user_id = ${userId}
+      `;
+    }
 
-    const setClause = setParts.join(', ');
-    
+    if (updates.dailyQuota !== undefined) {
+      await db.exec`
+        UPDATE user_quotas
+        SET daily_quota = ${updates.dailyQuota}
+        WHERE user_id = ${userId}
+      `;
+    }
+
+    if (updates.monthlyQuota !== undefined) {
+      await db.exec`
+        UPDATE user_quotas
+        SET monthly_quota = ${updates.monthlyQuota}
+        WHERE user_id = ${userId}
+      `;
+    }
+
+    // Update timestamp and get result
     const result = await db.queryAll`
-      UPDATE user_quotas 
-      SET ${setClause}
-      WHERE user_id = $${values.length}
+      UPDATE user_quotas
+      SET updated_at = NOW()
+      WHERE user_id = ${userId}
       RETURNING id, user_id as "userId", tier,
                 daily_quota as "dailyQuota",
                 monthly_quota as "monthlyQuota"
@@ -374,16 +424,31 @@ export const bulkUpdateQuotasByTier = api(
       throw new ValidationError("No updates provided", "validation");
     }
 
-    setParts.push(`updated_at = NOW()`);
-    values.push(tier);
-
-    const setClause = setParts.join(', ');
-    
-    const result = await db.queryAll`
-      UPDATE user_quotas 
-      SET ${setClause}
-      WHERE tier = $${values.length}
-    `;
+    // Update based on which fields are provided
+    let result: any[] = [];
+    if (dailyQuota !== undefined && monthlyQuota !== undefined) {
+      result = await db.queryAll`
+        UPDATE user_quotas
+        SET daily_quota = ${dailyQuota},
+            monthly_quota = ${monthlyQuota},
+            updated_at = NOW()
+        WHERE tier = ${tier}
+      `;
+    } else if (dailyQuota !== undefined) {
+      result = await db.queryAll`
+        UPDATE user_quotas
+        SET daily_quota = ${dailyQuota},
+            updated_at = NOW()
+        WHERE tier = ${tier}
+      `;
+    } else if (monthlyQuota !== undefined) {
+      result = await db.queryAll`
+        UPDATE user_quotas
+        SET monthly_quota = ${monthlyQuota},
+            updated_at = NOW()
+        WHERE tier = ${tier}
+      `;
+    }
 
     return { updated: result.length };
   }

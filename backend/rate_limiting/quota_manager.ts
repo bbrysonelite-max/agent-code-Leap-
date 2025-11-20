@@ -460,29 +460,30 @@ class QuotaManager {
   }
 
   private async applyQuotaAdjustment(request: QuotaAdjustmentRequest): Promise<void> {
-    const updates: string[] = [];
-    const values: any[] = [];
-
-    if (request.dailyQuotaChange) {
-      updates.push(`daily_quota = daily_quota + $${values.length + 1}`);
-      values.push(request.dailyQuotaChange);
+    // Update based on which fields are provided
+    if (request.dailyQuotaChange && request.monthlyQuotaChange) {
+      await db.exec`
+        UPDATE user_quotas
+        SET daily_quota = daily_quota + ${request.dailyQuotaChange},
+            monthly_quota = monthly_quota + ${request.monthlyQuotaChange},
+            updated_at = NOW()
+        WHERE user_id = ${request.userId}
+      `;
+    } else if (request.dailyQuotaChange) {
+      await db.exec`
+        UPDATE user_quotas
+        SET daily_quota = daily_quota + ${request.dailyQuotaChange},
+            updated_at = NOW()
+        WHERE user_id = ${request.userId}
+      `;
+    } else if (request.monthlyQuotaChange) {
+      await db.exec`
+        UPDATE user_quotas
+        SET monthly_quota = monthly_quota + ${request.monthlyQuotaChange},
+            updated_at = NOW()
+        WHERE user_id = ${request.userId}
+      `;
     }
-
-    if (request.monthlyQuotaChange) {
-      updates.push(`monthly_quota = monthly_quota + $${values.length + 1}`);
-      values.push(request.monthlyQuotaChange);
-    }
-
-    updates.push(`updated_at = NOW()`);
-    values.push(request.userId);
-
-    const updateClause = updates.join(', ');
-    
-    await db.queryAll`
-      UPDATE user_quotas 
-      SET ${updateClause}
-      WHERE user_id = $${values.length}
-    `;
   }
 
   private async createAdjustmentRequest(request: QuotaAdjustmentRequest): Promise<string> {

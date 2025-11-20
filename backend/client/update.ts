@@ -138,24 +138,79 @@ export const update = api<UpdateClientRequest, ClientConfiguration>(
     if (updates.length === 0) {
       throw new NotFoundError("No fields to update");
     }
-    
-    // Add the ID parameter for WHERE clause
-    params.push(req.id);
-    
+
+    // Update each field in separate queries
+    if (req.business_description !== undefined) {
+      await clientDB.exec`
+        UPDATE client_configurations
+        SET business_description = ${req.business_description || null}
+        WHERE id = ${req.id}
+      `;
+    }
+
+    if (req.enabled_prospect_types !== undefined) {
+      await clientDB.exec`
+        UPDATE client_configurations
+        SET enabled_prospect_types = ${JSON.stringify(req.enabled_prospect_types)}
+        WHERE id = ${req.id}
+      `;
+    }
+
+    if (req.custom_prospect_types !== undefined) {
+      await clientDB.exec`
+        UPDATE client_configurations
+        SET custom_prospect_types = ${req.custom_prospect_types ? JSON.stringify(req.custom_prospect_types) : null}
+        WHERE id = ${req.id}
+      `;
+    }
+
+    if (req.search_config !== undefined) {
+      await clientDB.exec`
+        UPDATE client_configurations
+        SET search_config = ${JSON.stringify(req.search_config)}
+        WHERE id = ${req.id}
+      `;
+    }
+
+    if (req.messaging_config !== undefined) {
+      await clientDB.exec`
+        UPDATE client_configurations
+        SET messaging_config = ${JSON.stringify(req.messaging_config)}
+        WHERE id = ${req.id}
+      `;
+    }
+
+    if (req.daily_limits !== undefined) {
+      await clientDB.exec`
+        UPDATE client_configurations
+        SET daily_limits = ${JSON.stringify(req.daily_limits)}
+        WHERE id = ${req.id}
+      `;
+    }
+
+    if (req.is_active !== undefined) {
+      await clientDB.exec`
+        UPDATE client_configurations
+        SET is_active = ${req.is_active}
+        WHERE id = ${req.id}
+      `;
+    }
+
+    // Update timestamp and return result
     const result = await executeQuery(
       () => clientDB.queryRow<ClientConfiguration>`
-        UPDATE client_configurations 
-        SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $${params.length}
+        UPDATE client_configurations
+        SET updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${req.id}
         RETURNING *
       `,
       "update client"
     );
-    
+
     if (!result) {
       throw new NotFoundError("Client configuration not found");
     }
-    
+
     return result;
   })
 );
