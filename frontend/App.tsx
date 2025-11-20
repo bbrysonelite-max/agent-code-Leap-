@@ -15,12 +15,13 @@ import EmailCampaigns from './components/EmailCampaigns';
 import Analytics from './components/Analytics';
 import AgentControls from './components/AgentControls';
 
-// Temporarily commented out problematic components
-// import AICRMDashboard from './components/AICRMDashboard';
-// import LeadsManagement from './components/LeadsManagement';
-// import DealsManagement from './components/DealsManagement';
-// import CRMIntegration from './components/CRMIntegration';
+// Restored functional components
+import AICRMDashboard from './components/AICRMDashboard';
+import LeadsManagement from './components/LeadsManagement';
+import DealsManagement from './components/DealsManagement';
+import CRMIntegration from './components/CRMIntegration';
 import HubSpotIntegration from './components/HubSpotIntegration';
+import PaymentDashboard from './components/PaymentDashboard';
 // import RateLimitDashboard from './components/RateLimitDashboard';
 // import RateLimitManagement from './components/RateLimitManagement';
 // import RateLimitingDashboard from './components/RateLimitingDashboard';
@@ -54,12 +55,14 @@ function AppInner() {
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/agent" element={<AgentControls />} />
 
-                    {/* Temporarily disabled problematic routes */}
-                    {/* <Route path="/ai-crm" element={<AICRMDashboard />} /> */}
-                    {/* <Route path="/ai-crm/leads" element={<LeadsManagement />} /> */}
-                    {/* <Route path="/ai-crm/deals" element={<DealsManagement />} /> */}
-                    {/* <Route path="/ai-crm/integration" element={<CRMIntegration />} /> */}
+                    {/* AI CRM Features */}
+                    <Route path="/ai-crm" element={<AICRMDashboard />} />
+                    <Route path="/ai-crm/leads" element={<LeadsManagement />} />
+                    <Route path="/ai-crm/deals" element={<DealsManagement />} />
+                    <Route path="/ai-crm/integration" element={<CRMIntegration />} />
                     <Route path="/hubspot" element={<HubSpotIntegration />} />
+                    <Route path="/payments" element={<PaymentDashboard />} />
+                    {/* Advanced features - to be restored in future updates */}
                     {/* <Route path="/rate-limits" element={<RateLimitDashboard />} /> */}
                     {/* <Route path="/rate-limits/management" element={<RateLimitManagement />} /> */}
                     {/* <Route path="/rate-limits/advanced" element={<RateLimitingDashboard />} /> */}
@@ -69,7 +72,6 @@ function AppInner() {
                     {/* <Route path="/intelligent-nurturing" element={<IntelligentNurturingDashboard />} /> */}
                     {/* <Route path="/ai-sequence-builder" element={<AISequenceBuilder onClose={() => {}} onSave={() => Promise.resolve()} />} /> */}
                     {/* <Route path="/engagement-tracker" element={<RealTimeEngagementTracker />} /> */}
-                    {/* <Route path="/payments" element={<PaymentDashboard />} /> */}
                   </Routes>
                 </ErrorBoundary>
               </main>
