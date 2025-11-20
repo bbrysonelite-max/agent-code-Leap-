@@ -1,0 +1,474 @@
+================================================================================
+AI PROSPECTING AGENT - STEP-BY-STEP SETUP GUIDE
+================================================================================
+
+Follow these steps to get your AI prospecting agent running.
+Estimated time: 30-45 minutes
+
+================================================================================
+STEP 1: INSTALL REQUIRED SOFTWARE
+================================================================================
+
+1.1 Install Encore CLI (REQUIRED - backend won't work without this)
+
+    Choose your operating system:
+
+    macOS:
+    ------
+    Open Terminal and run:
+    brew install encoredev/tap/encore
+
+    Linux:
+    ------
+    Open Terminal and run:
+    curl -L https://encore.dev/install.sh | bash
+
+    Windows:
+    --------
+    Open PowerShell as Administrator and run:
+    iwr https://encore.dev/install.ps1 | iex
+
+
+1.2 Install Bun (Package Manager - Recommended)
+
+    All Operating Systems:
+    ---------------------
+    npm install -g bun
+
+    (If you don't have npm, install Node.js from https://nodejs.org first)
+
+
+1.3 Verify Installations
+
+    Run these commands to check everything installed:
+
+    encore version
+    (Should show version number like "encore v1.x.x")
+
+    bun --version
+    (Should show version number like "1.x.x")
+
+
+================================================================================
+STEP 2: GET API KEYS
+================================================================================
+
+You need these API keys for the platform to work:
+
+2.1 OpenAI API Key (CRITICAL - Required for AI features)
+
+    a) Go to: https://platform.openai.com/signup
+    b) Create an account (or sign in)
+    c) Click your profile icon → "View API Keys"
+    d) Click "Create new secret key"
+    e) Copy the key (starts with "sk-proj-" or "sk-")
+    f) SAVE THIS KEY - you'll need it in Step 3
+
+    Cost: ~$5-20 for initial testing (very affordable)
+
+
+2.2 Gmail App Password (Required for sending emails)
+
+    a) Go to: https://myaccount.google.com
+    b) Enable 2-Factor Authentication if not already enabled
+    c) Go to: https://myaccount.google.com/apppasswords
+    d) Select "Mail" and your device
+    e) Click "Generate"
+    f) Copy the 16-character password (no spaces)
+    g) SAVE THIS PASSWORD - you'll need it in Step 3
+
+
+2.3 Clerk Authentication (Optional - has test key built-in)
+
+    For now, you can skip this. The app has a test key built-in.
+    For production, get keys from: https://dashboard.clerk.com
+
+
+================================================================================
+STEP 3: CONFIGURE THE APPLICATION
+================================================================================
+
+3.1 Navigate to the Project Folder
+
+    Open Terminal/Command Prompt and navigate to where you cloned the repo:
+    cd /path/to/agent-code-Leap-
+
+
+3.2 Create Environment File
+
+    Copy the example file:
+    cp .env.example .env
+
+    (On Windows, use: copy .env.example .env)
+
+
+3.3 Edit the .env File
+
+    Open .env in any text editor (Notepad, VS Code, etc.)
+
+    Find and update these lines:
+
+    OpenAIKey=your_openai_api_key_starting_with_sk
+    Replace with: OpenAIKey=sk-proj-YOUR_ACTUAL_KEY_HERE
+
+    SMTP_USER=your_email@gmail.com
+    Replace with: SMTP_USER=youremail@gmail.com
+
+    SMTP_PASS=your_gmail_app_password
+    Replace with: SMTP_PASS=your16characterpassword
+
+    Save the file and close it.
+
+
+================================================================================
+STEP 4: VALIDATE YOUR SETUP
+================================================================================
+
+4.1 Run the Setup Checker
+
+    Make sure you're in the project root folder, then run:
+
+    ./check-setup.sh
+
+    (On Windows, you might need Git Bash or WSL to run this)
+
+
+4.2 Review the Results
+
+    The script will check:
+    - ✓ Encore CLI installed
+    - ✓ Dependencies ready
+    - ✓ API keys configured
+    - ✓ Ports available
+
+    If you see any RED errors marked with ✗, fix them before continuing.
+    YELLOW warnings are OK for now.
+
+
+================================================================================
+STEP 5: START THE BACKEND
+================================================================================
+
+5.1 Open a Terminal Window
+
+    Keep this terminal open - the backend will run here.
+
+
+5.2 Navigate to Backend Folder
+
+    cd backend
+
+
+5.3 Start Encore Backend
+
+    encore run
+
+    Wait for:
+    "✔ Running..." message
+    "Your API is running at: http://localhost:4000"
+
+    This might take 1-2 minutes on first run while it:
+    - Downloads dependencies
+    - Starts PostgreSQL database
+    - Runs database migrations
+    - Starts all 22 microservices
+
+
+5.4 Verify Backend is Running
+
+    You should see:
+    - "✔ Running..." message
+    - List of services (agent, prospect, scoring, etc.)
+    - No red error messages
+
+    Leave this terminal window open and running!
+
+
+================================================================================
+STEP 6: START THE FRONTEND
+================================================================================
+
+6.1 Open a NEW Terminal Window
+
+    Don't close the backend terminal - open a second one.
+
+
+6.2 Navigate to Frontend Folder
+
+    cd /path/to/agent-code-Leap-/frontend
+
+
+6.3 Install Dependencies (First Time Only)
+
+    bun install
+
+    This will take 1-2 minutes.
+
+
+6.4 Start Frontend Development Server
+
+    bun run dev
+
+    Wait for:
+    "VITE v6.x ready in XXX ms"
+    "Local: http://localhost:5173/"
+
+
+6.5 Verify Frontend is Running
+
+    You should see:
+    - "Local: http://localhost:5173/" message
+    - No red error messages
+
+    Leave this terminal window open and running too!
+
+
+================================================================================
+STEP 7: ACCESS THE APPLICATION
+================================================================================
+
+7.1 Open Your Web Browser
+
+    Go to: http://localhost:5173
+
+
+7.2 Sign In
+
+    You'll see a "Welcome to AI CRM Platform" page with a "Sign in" button.
+
+    Click "Sign in"
+
+    Create a new account:
+    - Enter your email
+    - Create a password
+    - OR sign in with Google/GitHub
+
+    This uses Clerk authentication (secure and free).
+
+
+7.3 You're In!
+
+    After signing in, you'll see the Dashboard with:
+    - Sidebar navigation on the left
+    - Main dashboard in the center
+    - Metrics and charts (will be empty at first)
+
+
+================================================================================
+STEP 8: CREATE YOUR FIRST PROSPECTING AGENT
+================================================================================
+
+8.1 Navigate to Agent Controls
+
+    Click "Agent Controls" in the left sidebar
+
+
+8.2 Create New Agent
+
+    Click "Create New Agent" button
+
+    Fill in:
+    - Agent Name: "My First Agent"
+    - Description: "Testing the prospecting system"
+    - Target Industry: "Technology"
+    - Company Size: "10-500 employees"
+
+
+8.3 Start the Agent
+
+    Click "Save" then click "Start Agent"
+
+    The agent will:
+    - Simulate prospect discovery
+    - Score prospects using AI
+    - Classify leads automatically
+    - Show up in your prospects list
+
+
+8.4 View Prospects
+
+    Click "Prospects" in the left sidebar
+
+    You'll see:
+    - List of discovered prospects
+    - AI-generated scores (0-100)
+    - Classification badges
+    - Contact information
+
+
+================================================================================
+STEP 9: CREATE AN EMAIL CAMPAIGN
+================================================================================
+
+9.1 Navigate to Campaigns
+
+    Click "Campaigns" in the left sidebar
+
+
+9.2 Create New Campaign
+
+    Click "New Campaign"
+
+    Fill in:
+    - Campaign Name: "First Outreach"
+    - Email Subject: "Quick question about {{company}}"
+    - Email Body: Use the template or let AI generate content
+
+
+9.3 Add Prospects
+
+    Select prospects to include in the campaign
+    Filter by score (e.g., score > 70)
+
+
+9.4 Launch Campaign
+
+    Click "Launch Campaign"
+
+    Emails will be queued and sent
+    Track opens, clicks, and replies in real-time
+
+
+================================================================================
+STEP 10: EXPLORE THE PLATFORM
+================================================================================
+
+Check out these sections in the sidebar:
+
+- Dashboard: Overview of all activity and metrics
+- Prospects: Full prospect database with search/filter
+- Priority Leads: Highest-scored prospects
+- Campaigns: Email campaign management
+- Analytics: Performance charts and reports
+- AI CRM: Additional CRM features
+  - Leads: Lead management
+  - Deals: Sales pipeline
+  - Integration: CRM settings
+- HubSpot: Sync with HubSpot CRM (if configured)
+- Payments: Billing management (if configured)
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: Backend won't start
+Solution:
+  1. Check Encore is installed: encore version
+  2. Update Encore: brew upgrade encore (macOS)
+  3. Check logs: encore logs
+  4. Make sure port 4000 is free
+
+
+Problem: Frontend shows "Cannot connect to backend"
+Solution:
+  1. Make sure backend is running (Step 5)
+  2. Check backend URL: http://localhost:4000
+  3. Look for CORS errors in browser console (F12)
+
+
+Problem: AI features not working
+Solution:
+  1. Verify OpenAI key in .env file
+  2. Make sure key starts with "sk-"
+  3. Check backend logs: encore logs | grep ai
+  4. Ensure you have OpenAI credits
+
+
+Problem: Emails not sending
+Solution:
+  1. Verify Gmail app password in .env
+  2. Check 2FA is enabled on Gmail
+  3. Look for SMTP errors in backend logs
+
+
+Problem: Authentication fails
+Solution:
+  1. Clear browser cookies/cache
+  2. Try incognito/private browsing
+  3. Check Clerk is working: https://status.clerk.com
+
+
+Problem: Port already in use
+Solution:
+  Backend (4000): lsof -ti:4000 | xargs kill -9
+  Frontend (5173): lsof -ti:5173 | xargs kill -9
+
+
+================================================================================
+WHAT TO DO NEXT
+================================================================================
+
+Now that you're up and running:
+
+1. Create multiple prospecting agents for different segments
+2. Build email nurturing sequences
+3. Connect HubSpot if you use it (optional)
+4. Analyze which email templates perform best
+5. Fine-tune lead scoring criteria
+6. Export high-value prospects to your CRM
+
+
+================================================================================
+SHUTTING DOWN
+================================================================================
+
+When you're done for the day:
+
+1. Stop Frontend: Go to frontend terminal, press Ctrl+C
+2. Stop Backend: Go to backend terminal, press Ctrl+C
+
+To start again later, just repeat Steps 5 and 6.
+
+
+================================================================================
+GETTING HELP
+================================================================================
+
+Documentation:
+- Full guide: QUICKSTART.md
+- Deployment: DEPLOYMENT_CHECKLIST.md
+- Architecture: README.md
+- Component status: COMPONENT_DISABILITY_REPORT.md
+
+Encore Documentation: https://encore.dev/docs
+Clerk Documentation: https://clerk.com/docs
+
+
+================================================================================
+COST BREAKDOWN
+================================================================================
+
+Monthly costs for moderate usage (1000 prospects/month):
+
+OpenAI API:        $10-20/month
+Email sending:     $15/month (or free with Gmail)
+Clerk Auth:        Free (up to 5,000 users)
+Database:          Free (local) or $15/month (hosted)
+Hosting:           Free (local) or $29/month (Encore Cloud)
+
+Total Local:       $10-35/month
+Total Hosted:      $69-94/month
+
+
+================================================================================
+PRODUCTION DEPLOYMENT
+================================================================================
+
+Once you've tested locally and are ready to deploy for real use:
+
+See DEPLOYMENT_CHECKLIST.md for:
+- Deploying to Encore Cloud (easiest)
+- Deploying with Docker (self-hosted)
+- Security hardening
+- Backup configuration
+- Monitoring setup
+
+
+================================================================================
+
+You're all set! Start prospecting with AI! 🚀
+
+Questions? Check the documentation files or create a GitHub issue.
+
+================================================================================
