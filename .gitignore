@@ -4,3 +4,8 @@ encore.gen.cue
 /.encore
 node_modules
 /encore.gen
+
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.*.local
