@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Bot, User, MessageCircle, X } from 'lucide-react';
+import { Send, Bot, User, MessageCircle, X, Trash2 } from 'lucide-react';
 import backend from '~backend/client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -28,9 +28,30 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
   const [inputMessage, setInputMessage] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<any>(null);
   const { toast } = useToast();
+
+  // Load sessionId and messages from localStorage on mount
+  useEffect(() => {
+    const storageKey = `chat-session-${userId}-${agentId || 'general'}`;
+    const storedSessionId = localStorage.getItem(storageKey);
+    const storedMessages = localStorage.getItem(`${storageKey}-messages`);
+
+    if (storedSessionId) {
+      setSessionId(storedSessionId);
+    }
+
+    if (storedMessages) {
+      try {
+        const parsed = JSON.parse(storedMessages);
+        setMessages(parsed);
+      } catch (error) {
+        console.error('Failed to parse stored messages:', error);
+      }
+    }
+  }, [userId, agentId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,10 +76,21 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
   const connectToAgent = async () => {
     try {
       setIsLoading(true);
-      
+
+      // Generate or use existing sessionId
+      const storageKey = `chat-session-${userId}-${agentId || 'general'}`;
+      let currentSessionId = sessionId;
+
+      if (!currentSessionId) {
+        currentSessionId = `session-${userId}-${agentId || 'general'}-${Date.now()}`;
+        setSessionId(currentSessionId);
+        localStorage.setItem(storageKey, currentSessionId);
+      }
+
       const handshake = {
         agentId,
-        userId
+        userId,
+        sessionId: currentSessionId
       };
 
       streamRef.current = await backend.agent.chat(handshake);
@@ -67,7 +99,12 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
 
       // Listen for incoming messages
       for await (const message of streamRef.current) {
-        setMessages(prev => [...prev, message]);
+        setMessages(prev => {
+          const updated = [...prev, message];
+          // Save to localStorage for offline access
+          localStorage.setItem(`${storageKey}-messages`, JSON.stringify(updated));
+          return updated;
+        });
       }
     } catch (error) {
       console.error('Error connecting to agent chat:', error);
@@ -90,7 +127,7 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
       streamRef.current = null;
     }
     setIsConnected(false);
-    setMessages([]);
+    // Don't clear messages - they're persisted!
   };
 
   const sendMessage = async () => {
@@ -107,7 +144,13 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
 
     try {
       // Add user message to UI immediately
-      setMessages(prev => [...prev, userMessage]);
+      setMessages(prev => {
+        const updated = [...prev, userMessage];
+        // Save to localStorage
+        const storageKey = `chat-session-${userId}-${agentId || 'general'}`;
+        localStorage.setItem(`${storageKey}-messages`, JSON.stringify(updated));
+        return updated;
+      });
       setInputMessage('');
 
       // Send message through stream
@@ -122,6 +165,18 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
         variant: "destructive"
       });
     }
+  };
+
+  const clearHistory = () => {
+    const storageKey = `chat-session-${userId}-${agentId || 'general'}`;
+    localStorage.removeItem(storageKey);
+    localStorage.removeItem(`${storageKey}-messages`);
+    setMessages([]);
+    setSessionId(null);
+    toast({
+      title: "History Cleared",
+      description: "Starting a new conversation"
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -174,6 +229,15 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
             <Badge variant={isConnected ? 'default' : 'secondary'}>
               {isConnected ? 'Connected' : 'Disconnected'}
             </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearHistory}
+              className="h-6 w-6 p-0"
+              title="Clear chat history"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
