@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Bot, User, MessageCircle, X } from 'lucide-react';
+import { Send, Bot, User, MessageCircle, X, RefreshCw } from 'lucide-react';
 import backend from '~backend/client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -41,40 +41,52 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && !isConnected) {
+    if (isOpen && !isConnected && !isLoading) {
       connectToAgent();
-    } else if (!isOpen && isConnected) {
+    } else if (!isOpen) {
       disconnectFromAgent();
     }
 
     return () => {
-      disconnectFromAgent();
+      if (!isOpen) {
+        disconnectFromAgent();
+      }
     };
-  }, [isOpen, userId, agentId]);
+  }, [isOpen]);
 
   const connectToAgent = async () => {
     try {
       setIsLoading(true);
-      
+      setIsConnected(false);
+
       const handshake = {
         agentId,
         userId
       };
 
       streamRef.current = await backend.agent.chat(handshake);
+
+      // Set connected state before starting message loop
       setIsConnected(true);
       setIsLoading(false);
 
       // Listen for incoming messages
-      for await (const message of streamRef.current) {
-        setMessages(prev => [...prev, message]);
+      try {
+        for await (const message of streamRef.current) {
+          setMessages(prev => [...prev, message]);
+        }
+      } catch (streamError) {
+        console.error('Stream error:', streamError);
+        // Stream ended or errored, but connection was established
+        setIsConnected(false);
       }
     } catch (error) {
       console.error('Error connecting to agent chat:', error);
       setIsLoading(false);
+      setIsConnected(false);
       toast({
         title: "Connection Error",
-        description: "Failed to connect to agent chat",
+        description: "Failed to connect to agent chat. Click to retry.",
         variant: "destructive"
       });
     }
@@ -94,7 +106,7 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !isConnected) return;
+    if (!inputMessage.trim() || !isConnected || !streamRef.current) return;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -111,14 +123,13 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
       setInputMessage('');
 
       // Send message through stream
-      if (streamRef.current) {
-        await streamRef.current.send(userMessage);
-      }
+      await streamRef.current.send(userMessage);
     } catch (error) {
       console.error('Error sending message:', error);
+      setIsConnected(false);
       toast({
         title: "Send Error",
-        description: "Failed to send message",
+        description: "Failed to send message. Connection lost.",
         variant: "destructive"
       });
     }
@@ -230,11 +241,28 @@ export default function AgentChat({ agentId, userId, isOpen, onClose }: AgentCha
 
           {/* Input Area */}
           <div className="flex gap-2">
+            {!isConnected && !isLoading && (
+              <Button
+                onClick={connectToAgent}
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Retry
+              </Button>
+            )}
             <Input
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isConnected ? "Type your message..." : "Connecting..."}
+              placeholder={
+                isLoading
+                  ? "Connecting..."
+                  : isConnected
+                    ? "Type your message..."
+                    : "Connection failed - Click retry"
+              }
               disabled={!isConnected || isLoading}
               className="flex-1"
             />
