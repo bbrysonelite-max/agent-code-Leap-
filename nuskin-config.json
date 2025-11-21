@@ -1,0 +1,125 @@
+{
+  "client_name": "Nu Skin - AI Powered Freedom Business",
+  "business_type": "network_marketing",
+  "business_description": "Premium skincare and nutritional products with a proven business opportunity. We sell time and money freedom through health and vitality. 35 years of network marketing experience + cutting-edge AI automation.",
+
+  "enabled_prospect_types": [
+    "business_builder",
+    "distributor",
+    "customer"
+  ],
+
+  "search_config": {
+    "target_industries": [
+      "Health & Wellness",
+      "Beauty & Skincare",
+      "Fitness & Nutrition",
+      "Network Marketing",
+      "Direct Sales",
+      "Sales & Marketing",
+      "Entrepreneurship",
+      "Coaching & Consulting",
+      "Real Estate",
+      "E-commerce"
+    ],
+
+    "target_positions": [
+      "Entrepreneur",
+      "Business Owner",
+      "Independent Consultant",
+      "Sales Professional",
+      "Marketing Professional",
+      "Health Coach",
+      "Wellness Consultant",
+      "Beauty Consultant",
+      "Lifestyle Coach",
+      "Network Marketer",
+      "Direct Sales Representative",
+      "Independent Distributor",
+      "Brand Partner",
+      "Business Development",
+      "Sales Manager",
+      "Self-Employed",
+      "Freelancer"
+    ],
+
+    "company_size_range": {
+      "min": 1,
+      "max": 500
+    },
+
+    "location_preferences": [
+      "United States",
+      "Canada",
+      "United Kingdom",
+      "Australia"
+    ],
+
+    "include_keywords": [
+      "laid off",
+      "between jobs",
+      "career transition",
+      "job loss",
+      "starting over",
+      "fresh start",
+      "rebuild",
+      "government layoff",
+      "DOGE",
+      "tech layoffs",
+      "restructuring",
+      "downsizing",
+      "severance",
+      "looking for opportunity",
+      "open to options",
+      "business opportunity",
+      "financial freedom",
+      "time freedom",
+      "passive income",
+      "residual income",
+      "side hustle",
+      "entrepreneur",
+      "work from home",
+      "location independent",
+      "no overhead",
+      "low risk",
+      "bootstrap",
+      "start with nothing",
+      "scalable business",
+      "home business",
+      "network marketing",
+      "direct sales",
+      "MLM",
+      "leverage",
+      "multiple income streams",
+      "divorce",
+      "life change",
+      "career change",
+      "second act",
+      "reinvent"
+    ],
+
+    "exclude_keywords": [
+      "MLM scam",
+      "pyramid scheme",
+      "hate MLM",
+      "anti-MLM",
+      "MLM victim",
+      "got burned",
+      "never again",
+      "against network marketing",
+      "no thanks"
+    ]
+  },
+
+  "messaging_config": {
+    "brand_name": "Nu Skin",
+    "value_proposition": "Start a real business that can scale to millions - from your back room, with zero overhead, no employees, no leases, no debt. Perfect for people in transition who need income without risk. 35 years of proven network marketing + cutting-edge AI automation.",
+    "tone": "professional",
+    "primary_goal": "find people in career/life transition ready to build income without traditional business risks"
+  },
+
+  "daily_limits": {
+    "max_prospects_per_day": 50,
+    "max_emails_per_day": 100
+  }
+}
