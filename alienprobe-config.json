@@ -1,0 +1,150 @@
+{
+  "client_name": "Alien Probe - The Automated Network Marketing Formula",
+  "business_type": "network_marketing",
+  "business_description": "Like aliens building the pyramids with superior intelligence, we've been given the formula to fully automate direct selling and network marketing. Powered by Nu Skin's premium products and 40-year track record. 35 years of network marketing mastery + 8 months of AI automation = the first fully automated MLM system. For people who want to make real money through real work, not get rich quick. Seeking the QUALITY TRIANGLE: Time + Financial Stability + Intact Credibility.",
+
+  "enabled_prospect_types": [
+    "business_builder",
+    "distributor",
+    "customer"
+  ],
+
+  "search_config": {
+    "target_industries": [
+      "Health & Wellness",
+      "Beauty & Skincare",
+      "Fitness & Nutrition",
+      "Sales & Marketing",
+      "Entrepreneurship",
+      "Coaching & Consulting",
+      "Real Estate",
+      "E-commerce",
+      "Technology",
+      "Professional Services",
+      "Finance",
+      "Corporate (exiting)"
+    ],
+
+    "target_positions": [
+      "Business Owner",
+      "Entrepreneur",
+      "Sales Professional",
+      "Marketing Professional",
+      "Consultant",
+      "Coach",
+      "Advisor",
+      "Manager",
+      "Director",
+      "Executive",
+      "Professional",
+      "Self-Employed",
+      "Freelancer",
+      "Independent Consultant",
+      "Sales Manager",
+      "Business Development",
+      "Account Manager",
+      "Regional Manager"
+    ],
+
+    "company_size_range": {
+      "min": 10,
+      "max": 5000
+    },
+
+    "location_preferences": [
+      "United States",
+      "Canada",
+      "United Kingdom",
+      "Australia"
+    ],
+
+    "include_keywords": [
+      "career transition",
+      "between jobs",
+      "looking for next opportunity",
+      "open to options",
+      "career change",
+      "fresh start",
+      "second act",
+      "reinvent",
+      "DOGE",
+      "laid off",
+      "severance",
+      "work smart",
+      "systems thinker",
+      "automation",
+      "leverage",
+      "scalable",
+      "business minded",
+      "entrepreneurial",
+      "willing to work",
+      "build something",
+      "long term vision",
+      "sustainable income",
+      "proven systems",
+      "legitimate opportunity",
+      "serious about business",
+      "professional background",
+      "corporate experience",
+      "sales experience",
+      "business development",
+      "revenue generation",
+      "credible",
+      "reputation matters",
+      "integrity",
+      "network marketing done right",
+      "MLM but legitimate",
+      "open minded"
+    ],
+
+    "exclude_keywords": [
+      "get rich quick",
+      "easy money",
+      "overnight success",
+      "no work required",
+      "push button wealth",
+      "lottery",
+      "gambling",
+      "desperate",
+      "broke",
+      "need money now",
+      "financial emergency",
+      "can't pay rent",
+      "eviction",
+      "bankruptcy filing",
+      "credit destroyed",
+      "burned bridges",
+      "scammed people",
+      "pyramid scheme promoter",
+      "serial MLM hopper",
+      "join and quit",
+      "lawsuit",
+      "fraud",
+      "deceptive",
+      "misleading",
+      "hype machine",
+      "fake it til you make it",
+      "rent a lambo"
+    ]
+  },
+
+  "messaging_config": {
+    "brand_name": "Alien Probe",
+    "value_proposition": "Like aliens building pyramids with superior intelligence - we've cracked the code on automated network marketing. Real business. Real work. Real money. Not get-rich-quick. We're looking for the QUALITY TRIANGLE: 1) Time to invest 2) Financial stability (not desperate) 3) Intact personal credibility. Powered by Nu Skin (40-year proven company) + 35 years experience + AI automation. For serious people only.",
+    "tone": "professional",
+    "primary_goal": "find quality people with the triangle: time to invest, financial stability, and intact credibility who want to build real wealth through systems"
+  },
+
+  "daily_limits": {
+    "max_prospects_per_day": 50,
+    "max_emails_per_day": 100
+  },
+
+  "custom_prospect_types": [
+    {
+      "type_name": "Quality Triangle",
+      "description": "Has time to invest + money for basics + intact personal credibility",
+      "priority": "high"
+    }
+  ]
+}
