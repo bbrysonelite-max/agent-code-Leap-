@@ -477,12 +477,14 @@ class QuotaManager {
     values.push(request.userId);
 
     const updateClause = updates.join(', ');
-    
-    await db.queryAll`
-      UPDATE user_quotas 
+
+    // Use raw SQL for dynamic queries
+    const sql = `
+      UPDATE user_quotas
       SET ${updateClause}
       WHERE user_id = $${values.length}
     `;
+    await db.queryAll(sql, ...values);
   }
 
   private async createAdjustmentRequest(request: QuotaAdjustmentRequest): Promise<string> {

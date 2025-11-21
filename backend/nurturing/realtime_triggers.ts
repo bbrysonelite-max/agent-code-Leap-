@@ -33,12 +33,15 @@ export const trackEmailInteraction = api(
   }) => {
     // Update the communication record
     const updateField = `${req.interaction_type}ed_at`;
-    await nurturingDB.exec`
-      UPDATE nurturing_communications 
+    const score = getInteractionScore(req.interaction_type);
+    // Use raw SQL for dynamic column names
+    const sql = `
+      UPDATE nurturing_communications
       SET ${updateField} = CURRENT_TIMESTAMP,
-          engagement_score = engagement_score + ${getInteractionScore(req.interaction_type)}
-      WHERE id = ${req.communication_id}
+          engagement_score = engagement_score + $1
+      WHERE id = $2
     `;
+    await nurturingDB.exec(sql, score, req.communication_id);
     
     // Track as behavior
     await behaviorAnalysis.trackBehavior({

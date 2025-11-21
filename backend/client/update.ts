@@ -141,14 +141,18 @@ export const update = api<UpdateClientRequest, ClientConfiguration>(
     
     // Add the ID parameter for WHERE clause
     params.push(req.id);
-    
+
     const result = await executeQuery(
-      () => clientDB.queryRow<ClientConfiguration>`
-        UPDATE client_configurations 
-        SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $${params.length}
-        RETURNING *
-      `,
+      () => {
+        // Use raw SQL for dynamic queries
+        const sql = `
+          UPDATE client_configurations
+          SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $${params.length}
+          RETURNING *
+        `;
+        return clientDB.queryRow<ClientConfiguration>(sql, ...params);
+      },
       "update client"
     );
     

@@ -307,14 +307,16 @@ class EndpointConfigManager {
     }
 
     updateParts.push(`updated_at = NOW()`);
-    
+
     const updateClause = updateParts.join(', ');
 
-    const result = await db.queryAll`
-      UPDATE endpoint_rate_limits 
+    // Use raw SQL for dynamic queries
+    const sql = `
+      UPDATE endpoint_rate_limits
       SET ${updateClause}
       ${whereClause}
     `;
+    const result = await db.queryAll(sql, ...values);
 
     // Log the bulk update
     await this.logBulkUpdate(update, result.length);

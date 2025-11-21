@@ -37,24 +37,28 @@ export const list = api<ListClientsRequest, ListClientsResponse>(
     
     // Get total count
     const countResult = await executeQuery(
-      () => clientDB.queryRow<{ count: number }>`
-        SELECT COUNT(*) as count 
-        FROM client_configurations 
-        ${whereClause}
-      `,
+      () => {
+        const sql = `
+          SELECT COUNT(*) as count
+          FROM client_configurations
+          ${whereClause}
+        `;
+        return clientDB.queryRow<{ count: number }>(sql, ...params);
+      },
       "count clients"
     );
-    
-    // Get clients with pagination  
+
+    // Get clients with pagination
     const clients: ClientConfiguration[] = [];
     try {
-      const clientsResult = clientDB.query<ClientConfiguration>`
-        SELECT * 
-        FROM client_configurations 
+      const sql = `
+        SELECT *
+        FROM client_configurations
         ${whereClause}
         ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `;
+      const clientsResult = clientDB.query<ClientConfiguration>(sql, ...params, limit, offset);
       
       // Convert async generator to array
       for await (const client of clientsResult) {

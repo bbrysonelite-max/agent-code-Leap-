@@ -170,17 +170,19 @@ export const updateRule = api(
     values.push(id);
 
     const setClause = setParts.join(', ');
-    
-    const result = await db.queryAll`
-      UPDATE rate_limit_rules 
+
+    // Use raw SQL for dynamic queries
+    const sql = `
+      UPDATE rate_limit_rules
       SET ${setClause}
       WHERE id = $${values.length}
       RETURNING id, endpoint, method, tier,
                 window_seconds as "windowSeconds",
-                max_requests as "maxRequests", 
+                max_requests as "maxRequests",
                 burst_limit as "burstLimit",
                 enabled
     `;
+    const result = await db.queryAll(sql, ...values);
 
     if (result.length === 0) {
       throw new ValidationError("Rate limit rule not found", "not_found");
@@ -305,15 +307,17 @@ export const updateUserQuota = api(
     values.push(userId);
 
     const setClause = setParts.join(', ');
-    
-    const result = await db.queryAll`
-      UPDATE user_quotas 
+
+    // Use raw SQL for dynamic queries
+    const sql = `
+      UPDATE user_quotas
       SET ${setClause}
       WHERE user_id = $${values.length}
       RETURNING id, user_id as "userId", tier,
                 daily_quota as "dailyQuota",
                 monthly_quota as "monthlyQuota"
     `;
+    const result = await db.queryAll(sql, ...values);
 
     if (result.length === 0) {
       throw new ValidationError("User quota not found", "not_found");
@@ -378,12 +382,14 @@ export const bulkUpdateQuotasByTier = api(
     values.push(tier);
 
     const setClause = setParts.join(', ');
-    
-    const result = await db.queryAll`
-      UPDATE user_quotas 
+
+    // Use raw SQL for dynamic queries
+    const sql = `
+      UPDATE user_quotas
       SET ${setClause}
       WHERE tier = $${values.length}
     `;
+    const result = await db.queryAll(sql, ...values);
 
     return { updated: result.length };
   }
