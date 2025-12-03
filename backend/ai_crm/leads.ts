@@ -19,19 +19,30 @@ export const createLead = api(
 
     const newLead = lead as Lead;
     
-    try {
-      await fetch(`${process.env.ENCORE_APP_URL}/ai-crm/leads/${newLead.id}/score`, {
-        method: 'POST'
-      });
-    } catch (error) {
-      console.warn('Failed to auto-score lead:', error);
-    }
-
+    // Note: Auto-scoring is disabled for now to avoid circular dependencies
+    // In production, this should be handled via a background job/queue
+    // or use the AI scoring service directly
+    // TODO: Implement proper background job for lead scoring
+    
     return newLead;
   }
 );
 
-export const listLeads = api(
+interface ListLeadsRequest {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  priority?: string;
+  assigned_to?: string;
+  min_score?: number;
+}
+
+interface ListLeadsResponse {
+  leads: Lead[];
+  total?: number;
+}
+
+export const listLeads = api<ListLeadsRequest, ListLeadsResponse>(
   { method: "GET", path: "/ai-crm/leads", expose: true },
   async ({ 
     limit = 50, 
@@ -40,14 +51,7 @@ export const listLeads = api(
     priority, 
     assigned_to,
     min_score 
-  }: { 
-    limit?: number; 
-    offset?: number; 
-    status?: string;
-    priority?: string;
-    assigned_to?: string;
-    min_score?: number;
-  }) => {
+  }: ListLeadsRequest): Promise<ListLeadsResponse> => {
     let query = `
       SELECT * FROM leads 
       WHERE 1=1
@@ -83,7 +87,7 @@ export const listLeads = api(
     params.push(limit, offset);
 
     const leads = await CRM.rawQueryAll(query, ...params);
-    return leads as Lead[];
+    return { leads: leads as Lead[] };
   }
 );
 

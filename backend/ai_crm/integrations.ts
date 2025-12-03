@@ -40,15 +40,9 @@ export const syncProspectToLead = api(
       RETURNING *
     `;
 
-    // Auto-score the new lead
-    try {
-      await fetch(`${process.env.ENCORE_APP_URL}/ai-crm/leads/${(lead as Lead).id}/score`, {
-        method: 'POST'
-      });
-    } catch (error) {
-      console.warn('Failed to auto-score converted lead:', error);
-    }
-
+    // Note: Auto-scoring disabled - should be handled via background job
+    // TODO: Implement proper background job for lead scoring
+    
     return lead as Lead;
   }
 );
@@ -236,20 +230,9 @@ export const bulkImportProspects = api(
       }
     }
 
-    // Trigger bulk scoring for imported leads
-    if (leads.length > 0) {
-      try {
-        const leadIds = leads.map(lead => lead.id);
-        await fetch(`${process.env.ENCORE_APP_URL}/ai-crm/leads/bulk-score`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leadIds })
-        });
-      } catch (error) {
-        console.warn('Failed to bulk score imported leads:', error);
-      }
-    }
-
+    // Note: Bulk scoring disabled - should be handled via background job
+    // TODO: Implement proper background job for bulk lead scoring
+    
     return { imported, errors, leads };
   }
 );

@@ -13,8 +13,8 @@ import {
 import * as ai from "../ai/openai";
 
 // Create a new nurturing sequence
-export const createSequence = api(
-  { method: "POST", path: "/sequences", expose: true },
+export const createNurturingSequence = api(
+  { method: "POST", path: "/nurturing/sequences", expose: true },
   async (req: CreateSequenceRequest) => {
     // Insert sequence
     const sequenceQuery = await nurturingDB.query`
@@ -56,8 +56,8 @@ export const createSequence = api(
 );
 
 // Get all sequences for a client
-export const listSequences = api(
-  { method: "GET", path: "/sequences/:client_id", expose: true },
+export const listNurturingSequences = api(
+  { method: "GET", path: "/nurturing/sequences/:client_id", expose: true },
   async ({ client_id }: { client_id: number }) => {
     const sequences = await nurturingDB.query`
       SELECT 
@@ -77,8 +77,8 @@ export const listSequences = api(
 );
 
 // Get sequence details with steps
-export const getSequence = api(
-  { method: "GET", path: "/sequence/:sequence_id", expose: true },
+export const getNurturingSequence = api(
+  { method: "GET", path: "/nurturing/sequence/:sequence_id", expose: true },
   async ({ sequence_id }: { sequence_id: number }) => {
     const sequenceQuery = await nurturingDB.query`
       SELECT * FROM nurturing_sequences WHERE id = ${sequence_id}
@@ -109,7 +109,7 @@ export const getSequence = api(
 
 // Enroll a prospect in a sequence
 export const enrollProspect = api(
-  { method: "POST", path: "/enroll", expose: true },
+  { method: "POST", path: "/nurturing/enroll", expose: true },
   async (req: EnrollProspectRequest) => {
     // Check if prospect is already enrolled in this sequence
     const existingQuery = await nurturingDB.query`
@@ -191,7 +191,7 @@ export const enrollProspect = api(
 
 // Get prospect enrollments
 export const getProspectEnrollments = api(
-  { method: "GET", path: "/enrollments/:prospect_id", expose: true },
+  { method: "GET", path: "/nurturing/enrollments/:prospect_id", expose: true },
   async ({ prospect_id }: { prospect_id: number }) => {
     const enrollments = await nurturingDB.query`
       SELECT 
@@ -211,7 +211,7 @@ export const getProspectEnrollments = api(
 
 // Update enrollment status
 export const updateEnrollmentStatus = api(
-  { method: "PUT", path: "/enrollment/:enrollment_id/status", expose: true },
+  { method: "PUT", path: "/nurturing/enrollment/:enrollment_id/status", expose: true },
   async ({ enrollment_id, status, reason }: { enrollment_id: number; status: SequenceStatus; reason?: string }) => {
     await nurturingDB.exec`
       UPDATE sequence_enrollments 
@@ -227,7 +227,7 @@ export const updateEnrollmentStatus = api(
 
 // Smart enrollment based on prospect classification and behavior
 export const smartEnrollProspect = api(
-  { method: "POST", path: "/smart-enroll", expose: true },
+  { method: "POST", path: "/nurturing/smart-enroll", expose: true },
   async ({ prospect_id, client_id }: { prospect_id: number; client_id: number }) => {
     // Get prospect engagement profile
     const profileResults = await nurturingDB.query`
@@ -328,7 +328,7 @@ TIMING: [optimal first contact timing]
       });
       
       // Create sequence from AI response
-      const createdSequence = await createSequence({
+      const createdSequence = await createNurturingSequence({
         client_id,
         name: sequenceResponse.sequence.name,
         classification_target: recommendation.classification,

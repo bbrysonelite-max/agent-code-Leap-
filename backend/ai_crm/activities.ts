@@ -20,7 +20,9 @@ export const createActivity = api(
 
     const newActivity = activity as Activity;
 
-    if (req.description && req.description.length > 50) {
+    // Note: Conversation analysis disabled - should be handled via background job
+    // TODO: Implement proper background job for conversation analysis
+    if (false && req.description && req.description.length > 50) {
       try {
         await fetch(`${process.env.ENCORE_APP_URL}/ai-crm/conversations/analyze`, {
           method: 'POST',

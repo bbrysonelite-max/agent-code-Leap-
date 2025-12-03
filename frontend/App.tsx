@@ -7,6 +7,8 @@ import { queryClient } from './lib/react-query';
 import ErrorBoundary from './components/ErrorBoundary';
 import NetworkStatus from './components/NetworkStatus';
 import Sidebar from './components/Sidebar';
+
+// Core pages
 import Dashboard from './components/Dashboard';
 import ClientManagement from './components/ClientManagement';
 import ProspectManagement from './components/ProspectManagement';
@@ -15,22 +17,25 @@ import EmailCampaigns from './components/EmailCampaigns';
 import Analytics from './components/Analytics';
 import AgentControls from './components/AgentControls';
 
-// Temporarily commented out problematic components
-// import AICRMDashboard from './components/AICRMDashboard';
-// import LeadsManagement from './components/LeadsManagement';
-// import DealsManagement from './components/DealsManagement';
-// import CRMIntegration from './components/CRMIntegration';
+// AI CRM pages
+import AICRMDashboard from './components/AICRMDashboard';
+import LeadsManagement from './components/LeadsManagement';
+import DealsManagement from './components/DealsManagement';
+
+// Integrations
 import HubSpotIntegration from './components/HubSpotIntegration';
-// import RateLimitDashboard from './components/RateLimitDashboard';
-// import RateLimitManagement from './components/RateLimitManagement';
-// import RateLimitingDashboard from './components/RateLimitingDashboard';
-// import ReportingDashboard from './components/ReportingDashboard';
-// import ComplianceDashboard from './components/ComplianceDashboard';
-// import NurturingDashboard from './components/NurturingDashboard';
-// import IntelligentNurturingDashboard from './components/IntelligentNurturingDashboard';
-// import AISequenceBuilder from './components/AISequenceBuilder';
-// import RealTimeEngagementTracker from './components/RealTimeEngagementTracker';
-// import PaymentDashboard from './components/PaymentDashboard';
+
+// Nurturing
+import NurturingDashboard from './components/NurturingDashboard';
+
+// Compliance & Audit
+import ComplianceDashboard from './components/ComplianceDashboard';
+
+// Payments
+import PaymentDashboard from './components/PaymentDashboard';
+
+// Performance
+import DatabasePerformanceDashboard from './components/DatabasePerformanceDashboard';
 
 const PUBLISHABLE_KEY = "pk_test_Y2xlYXItZmluY2gtMS5jbGVyay5hY2NvdW50cy5kZXYk";
 
@@ -45,6 +50,7 @@ function AppInner() {
               <main className="flex-1 overflow-auto">
                 <ErrorBoundary>
                   <Routes>
+                    {/* Core Routes */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/clients" element={<ClientManagement />} />
@@ -54,22 +60,36 @@ function AppInner() {
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/agent" element={<AgentControls />} />
 
-                    {/* Temporarily disabled problematic routes */}
-                    {/* <Route path="/ai-crm" element={<AICRMDashboard />} /> */}
-                    {/* <Route path="/ai-crm/leads" element={<LeadsManagement />} /> */}
-                    {/* <Route path="/ai-crm/deals" element={<DealsManagement />} /> */}
-                    {/* <Route path="/ai-crm/integration" element={<CRMIntegration />} /> */}
+                    {/* AI CRM Routes */}
+                    <Route path="/ai-crm" element={<AICRMDashboard />} />
+                    <Route path="/ai-crm/leads" element={<LeadsManagement />} />
+                    <Route path="/ai-crm/deals" element={<DealsManagement />} />
+
+                    {/* Integration Routes */}
                     <Route path="/hubspot" element={<HubSpotIntegration />} />
-                    {/* <Route path="/rate-limits" element={<RateLimitDashboard />} /> */}
-                    {/* <Route path="/rate-limits/management" element={<RateLimitManagement />} /> */}
-                    {/* <Route path="/rate-limits/advanced" element={<RateLimitingDashboard />} /> */}
-                    {/* <Route path="/reporting" element={<ReportingDashboard />} /> */}
-                    {/* <Route path="/compliance" element={<ComplianceDashboard />} /> */}
-                    {/* <Route path="/nurturing" element={<NurturingDashboard />} /> */}
-                    {/* <Route path="/intelligent-nurturing" element={<IntelligentNurturingDashboard />} /> */}
-                    {/* <Route path="/ai-sequence-builder" element={<AISequenceBuilder onClose={() => {}} onSave={() => Promise.resolve()} />} /> */}
-                    {/* <Route path="/engagement-tracker" element={<RealTimeEngagementTracker />} /> */}
-                    {/* <Route path="/payments" element={<PaymentDashboard />} /> */}
+
+                    {/* Nurturing Routes */}
+                    <Route path="/nurturing" element={<NurturingDashboard />} />
+                    <Route path="/intelligent-nurturing" element={<NurturingDashboard />} />
+
+                    {/* Compliance Routes */}
+                    <Route path="/compliance" element={<ComplianceDashboard />} />
+
+                    {/* Payment Routes */}
+                    <Route path="/payments" element={<PaymentDashboard />} />
+
+                    {/* Performance Routes */}
+                    <Route path="/db-performance" element={<DatabasePerformanceDashboard />} />
+
+                    {/* Catch-all for unimplemented routes */}
+                    <Route path="*" element={
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <h1 className="text-2xl font-bold mb-2">Coming Soon</h1>
+                          <p className="text-muted-foreground">This feature is under development.</p>
+                        </div>
+                      </div>
+                    } />
                   </Routes>
                 </ErrorBoundary>
               </main>

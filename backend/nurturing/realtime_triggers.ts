@@ -31,14 +31,31 @@ export const trackEmailInteraction = api(
     interaction_type: 'open' | 'click' | 'reply';
     interaction_data?: Record<string, any>;
   }) => {
-    // Update the communication record
-    const updateField = `${req.interaction_type}ed_at`;
-    await nurturingDB.exec`
-      UPDATE nurturing_communications 
-      SET ${updateField} = CURRENT_TIMESTAMP,
-          engagement_score = engagement_score + ${getInteractionScore(req.interaction_type)}
-      WHERE id = ${req.communication_id}
-    `;
+    // Update the communication record based on interaction type
+    const scoreIncrease = getInteractionScore(req.interaction_type);
+    
+    if (req.interaction_type === 'open') {
+      await nurturingDB.exec`
+        UPDATE nurturing_communications 
+        SET opened_at = CURRENT_TIMESTAMP,
+            engagement_score = engagement_score + ${scoreIncrease}
+        WHERE id = ${req.communication_id}
+      `;
+    } else if (req.interaction_type === 'click') {
+      await nurturingDB.exec`
+        UPDATE nurturing_communications 
+        SET clicked_at = CURRENT_TIMESTAMP,
+            engagement_score = engagement_score + ${scoreIncrease}
+        WHERE id = ${req.communication_id}
+      `;
+    } else if (req.interaction_type === 'reply') {
+      await nurturingDB.exec`
+        UPDATE nurturing_communications 
+        SET replied_at = CURRENT_TIMESTAMP,
+            engagement_score = engagement_score + ${scoreIncrease}
+        WHERE id = ${req.communication_id}
+      `;
+    }
     
     // Track as behavior
     await behaviorAnalysis.trackBehavior({

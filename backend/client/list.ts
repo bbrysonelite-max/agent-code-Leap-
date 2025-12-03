@@ -22,46 +22,108 @@ export const list = api<ListClientsRequest, ListClientsResponse>(
     const limit = req.limit || 50;
     const offset = req.offset || 0;
     
-    let whereClause = "WHERE 1=1";
-    const params: any[] = [];
-    
-    if (req.is_active !== undefined) {
-      whereClause += ` AND is_active = $${params.length + 1}`;
-      params.push(req.is_active);
-    }
-    
-    if (req.business_type) {
-      whereClause += ` AND business_type = $${params.length + 1}`;
-      params.push(req.business_type);
-    }
-    
-    // Get total count
-    const countResult = await executeQuery(
-      () => clientDB.queryRow<{ count: number }>`
-        SELECT COUNT(*) as count 
-        FROM client_configurations 
-        ${whereClause}
-      `,
-      "count clients"
-    );
-    
-    // Get clients with pagination  
+    let countResult: { count: number } | null = null;
     const clients: ClientConfiguration[] = [];
-    try {
-      const clientsResult = clientDB.query<ClientConfiguration>`
-        SELECT * 
-        FROM client_configurations 
-        ${whereClause}
-        ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `;
+    
+    // Handle different filter combinations with static SQL
+    if (req.is_active !== undefined && req.business_type) {
+      // Both filters
+      countResult = await executeQuery(
+        () => clientDB.queryRow<{ count: number }>`
+          SELECT COUNT(*) as count 
+          FROM client_configurations 
+          WHERE is_active = ${req.is_active} AND business_type = ${req.business_type}
+        `,
+        "count clients"
+      );
       
-      // Convert async generator to array
-      for await (const client of clientsResult) {
-        clients.push(client);
+      try {
+        const clientsResult = clientDB.query<ClientConfiguration>`
+          SELECT * 
+          FROM client_configurations 
+          WHERE is_active = ${req.is_active} AND business_type = ${req.business_type}
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+        for await (const client of clientsResult) {
+          clients.push(client);
+        }
+      } catch (error) {
+        handleDatabaseError(error, "list clients");
       }
-    } catch (error) {
-      handleDatabaseError(error, "list clients");
+    } else if (req.is_active !== undefined) {
+      // Only is_active filter
+      countResult = await executeQuery(
+        () => clientDB.queryRow<{ count: number }>`
+          SELECT COUNT(*) as count 
+          FROM client_configurations 
+          WHERE is_active = ${req.is_active}
+        `,
+        "count clients"
+      );
+      
+      try {
+        const clientsResult = clientDB.query<ClientConfiguration>`
+          SELECT * 
+          FROM client_configurations 
+          WHERE is_active = ${req.is_active}
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+        for await (const client of clientsResult) {
+          clients.push(client);
+        }
+      } catch (error) {
+        handleDatabaseError(error, "list clients");
+      }
+    } else if (req.business_type) {
+      // Only business_type filter
+      countResult = await executeQuery(
+        () => clientDB.queryRow<{ count: number }>`
+          SELECT COUNT(*) as count 
+          FROM client_configurations 
+          WHERE business_type = ${req.business_type}
+        `,
+        "count clients"
+      );
+      
+      try {
+        const clientsResult = clientDB.query<ClientConfiguration>`
+          SELECT * 
+          FROM client_configurations 
+          WHERE business_type = ${req.business_type}
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+        for await (const client of clientsResult) {
+          clients.push(client);
+        }
+      } catch (error) {
+        handleDatabaseError(error, "list clients");
+      }
+    } else {
+      // No filters
+      countResult = await executeQuery(
+        () => clientDB.queryRow<{ count: number }>`
+          SELECT COUNT(*) as count 
+          FROM client_configurations
+        `,
+        "count clients"
+      );
+      
+      try {
+        const clientsResult = clientDB.query<ClientConfiguration>`
+          SELECT * 
+          FROM client_configurations 
+          ORDER BY created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+        for await (const client of clientsResult) {
+          clients.push(client);
+        }
+      } catch (error) {
+        handleDatabaseError(error, "list clients");
+      }
     }
     
     return {

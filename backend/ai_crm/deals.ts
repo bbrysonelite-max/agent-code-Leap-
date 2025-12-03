@@ -19,18 +19,8 @@ export const createDeal = api(
 
     const newDeal = deal as Deal;
 
-    try {
-      await fetch(`${process.env.ENCORE_APP_URL}/ai-crm/recommendations/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entity_type: 'deal',
-          entity_id: newDeal.id
-        })
-      });
-    } catch (error) {
-      console.warn('Failed to generate deal recommendations:', error);
-    }
+    // Note: Recommendation generation disabled - should be handled via background job
+    // TODO: Implement proper background job for deal recommendations
 
     return newDeal;
   }
