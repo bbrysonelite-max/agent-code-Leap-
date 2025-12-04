@@ -42,9 +42,9 @@ export class ApolloClient {
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache",
+        "X-Api-Key": this.apiKey,
       },
       body: JSON.stringify({
-        api_key: this.apiKey,
         ...filters,
         page: filters.page || 1,
         per_page: filters.per_page || 25,
@@ -60,18 +60,30 @@ export class ApolloClient {
   }
 
   /**
-   * Enrich a single person by email
+   * Enrich a single person by email OR by name+company+linkedin
+   * This is how we "reveal" emails from Apollo search results
    */
-  async enrichPerson(email: string): Promise<ApolloEnrichResponse | null> {
+  async enrichPerson(params: {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    organization_name?: string;
+    linkedin_url?: string;
+  }): Promise<ApolloEnrichResponse | null> {
     const response = await fetch(`${this.baseUrl}/people/match`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache",
+        "X-Api-Key": this.apiKey,
       },
       body: JSON.stringify({
-        api_key: this.apiKey,
-        email: email,
+        email: params.email,
+        first_name: params.first_name,
+        last_name: params.last_name,
+        organization_name: params.organization_name,
+        linkedin_url: params.linkedin_url,
+        reveal_personal_emails: true, // Request email reveal
       }),
     });
 
@@ -93,9 +105,9 @@ export class ApolloClient {
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache",
+        "X-Api-Key": this.apiKey,
       },
       body: JSON.stringify({
-        api_key: this.apiKey,
         details: emails.map(email => ({ email })),
       }),
     });
@@ -113,26 +125,23 @@ export class ApolloClient {
    * Get organization details
    */
   async getOrganization(domain: string): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/organizations/enrich`, {
+    const url = new URL(`${this.baseUrl}/organizations/enrich`);
+    url.searchParams.set("domain", domain);
+
+    const response = await fetch(url.toString(), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache",
+        "X-Api-Key": this.apiKey,
       },
     });
-
-    // Apollo uses query params for this endpoint
-    const url = new URL(`${this.baseUrl}/organizations/enrich`);
-    url.searchParams.set("api_key", this.apiKey);
-    url.searchParams.set("domain", domain);
-
-    const orgResponse = await fetch(url.toString());
     
-    if (!orgResponse.ok) {
+    if (!response.ok) {
       return null;
     }
 
-    return orgResponse.json();
+    return response.json();
   }
 }
 

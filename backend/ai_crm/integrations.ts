@@ -42,7 +42,7 @@ export const syncProspectToLead = api(
 
     // Note: Auto-scoring disabled - should be handled via background job
     // TODO: Implement proper background job for lead scoring
-    
+
     return lead as Lead;
   }
 );
@@ -232,7 +232,7 @@ export const bulkImportProspects = api(
 
     // Note: Bulk scoring disabled - should be handled via background job
     // TODO: Implement proper background job for bulk lead scoring
-    
+
     return { imported, errors, leads };
   }
 );

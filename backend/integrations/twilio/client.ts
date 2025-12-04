@@ -82,7 +82,7 @@ export class TwilioClient {
     formData.append("To", this.formatPhoneNumber(req.to));
     formData.append("From", req.from || this.fromNumber);
     formData.append("Body", req.body);
-    
+
     if (req.statusCallback) {
       formData.append("StatusCallback", req.statusCallback);
     }
@@ -165,9 +165,9 @@ export class TwilioClient {
     const url = `${this.baseUrl}/Accounts/${this.accountSid}/Messages.json?PageSize=${limit}`;
 
     const response = await fetch(url, {
-      headers: {
+        headers: {
         "Authorization": `Basic ${Buffer.from(`${this.accountSid}:${this.authToken}`).toString("base64")}`,
-      },
+        },
     });
 
     if (!response.ok) {

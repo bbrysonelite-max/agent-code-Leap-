@@ -81,49 +81,115 @@ export const runProspectPipeline = api<ProspectSearchRequest, ProspectSearchResu
       log.warn("Apollo search failed, continuing with empty results:", error);
     }
 
-    // STEP 2: ABSORB - Import to CRM
-    log.info("💾 ABSORB: Importing to CRM...");
+    // STEP 2: ABSORB - Enrich & Import to CRM
+    log.info("💾 ABSORB: Enriching prospects and importing to CRM...");
     
     const importedLeads: any[] = [];
+    let enrichAttempts = 0;
+    const maxEnrichAttempts = req.limit || 25; // Limit credits used
     
     for (const person of apolloPeople) {
-      if (!person.email) continue; // Skip without email
+      if (enrichAttempts >= maxEnrichAttempts) break;
       
       try {
+        // Enrich to reveal actual email
+        let realEmail = person.email;
+        
+        if (!realEmail || realEmail === "email_not_unlocked@domain.com") {
+          log.info(`Enriching: ${person.first_name} ${person.last_name} at ${person.organization?.name || 'Unknown'}`);
+          enrichAttempts++;
+          
+          const enriched = await apolloClient.enrichPerson({
+            first_name: person.first_name,
+            last_name: person.last_name,
+            organization_name: person.organization?.name,
+            linkedin_url: person.linkedin_url,
+          });
+          
+          if (enriched?.person?.email && enriched.person.email !== "email_not_unlocked@domain.com") {
+            realEmail = enriched.person.email;
+            log.info(`✅ Email revealed: ${realEmail}`);
+          } else {
+            log.info(`❌ Could not reveal email for ${person.first_name} ${person.last_name}`);
+            continue;
+          }
+        }
+        
+        if (!realEmail || realEmail === "email_not_unlocked@domain.com") {
+          continue; // Skip if still no email
+        }
+        
         // Check if lead already exists
         const existing = await CRM.queryRow<{ id: string }>`
-          SELECT id FROM leads WHERE email = ${person.email}
+          SELECT id FROM leads WHERE email = ${realEmail}
         `;
         
         if (existing) {
-          importedLeads.push({ id: existing.id, existing: true });
+          importedLeads.push({ id: existing.id, existing: true, email: realEmail, name: `${person.first_name} ${person.last_name}` });
           continue;
         }
 
-        // Create new lead
-        const lead = await CRM.queryRow<{ id: string; name: string; email: string }>`
-          INSERT INTO leads (name, email, phone, company, position, source, linkedin_profile, notes)
+        // Extract all business data from Apollo
+        const org = person.organization || {};
+        const companyWebsite = org.website_url || org.primary_domain || (org.domain ? `https://${org.domain}` : null);
+        const industry = org.industry || org.industry_tag_id || null;
+        const employeeCount = org.estimated_num_employees || org.employee_count || null;
+        const revenue = org.annual_revenue_printed || org.annual_revenue || null;
+        const city = person.city || org.city || null;
+        const state = person.state || org.state || null;
+        const phoneNumber = person.phone_numbers?.[0]?.sanitized_number || person.phone_numbers?.[0]?.number || null;
+        
+        // Create new lead with ALL business data in proper fields
+        const lead = await CRM.queryRow<{ 
+          id: string; 
+          name: string; 
+          email: string; 
+          company: string; 
+          website: string;
+          industry: string;
+          employee_count: number;
+          revenue: string;
+        }>`
+          INSERT INTO leads (
+            name, email, phone, company, position, source, 
+            linkedin_profile, website, industry, employee_count, revenue, city, state, notes
+          )
           VALUES (
             ${`${person.first_name} ${person.last_name}`},
-            ${person.email},
-            ${person.phone_numbers?.[0]?.number || null},
-            ${person.company?.name || null},
+            ${realEmail},
+            ${phoneNumber},
+            ${org.name || null},
             ${person.title || null},
-            'apollo',
+            'api',
             ${person.linkedin_url || null},
-            ${`Industry: ${person.company?.industry || 'N/A'}, Size: ${person.company?.employee_range || 'N/A'}`}
+            ${companyWebsite},
+            ${industry},
+            ${typeof employeeCount === 'number' ? employeeCount : null},
+            ${revenue},
+            ${city},
+            ${state},
+            ${'Imported from Apollo.io'}
           )
-          RETURNING id, name, email
+          RETURNING id, name, email, company, website, industry, employee_count, revenue
         `;
         
         if (lead) {
-          importedLeads.push({ ...lead, existing: false });
+          importedLeads.push({ 
+            ...lead, 
+            existing: false,
+            industry: industry,
+            employees: employeeCount,
+            location: location,
+          });
           result.imported++;
+          log.info(`📥 Imported: ${lead.name} | ${lead.company} | ${lead.website || 'no website'}`);
         }
       } catch (error) {
-        log.warn(`Failed to import ${person.email}:`, error);
+        log.warn(`Failed to enrich/import ${person.first_name} ${person.last_name}:`, error);
       }
     }
+    
+    log.info(`Enrichment complete: ${enrichAttempts} attempts, ${result.imported} imported`);
 
     // STEP 3: BRAIN - Qualify leads
     if (req.autoQualify !== false) {

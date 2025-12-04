@@ -29,7 +29,7 @@ export const bootstrap = api<void, BootstrapResponse>(
       }
       
       const firstClient = clients.clients[0];
-      
+
       // Create sample agents for this client
       const agents = [];
       

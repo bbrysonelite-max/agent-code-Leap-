@@ -44,8 +44,8 @@ export class BrevoClient {
     this._apiKey = apiKey;
     this.baseUrl = BREVO_BASE_URL;
     this.defaultSender = {
-      email: "outreach@yourdomain.com", // Configure this
-      name: "AI Lead OS"
+      email: "help@botcraftwrks.ai",
+      name: "Brent Bryson"
     };
   }
 

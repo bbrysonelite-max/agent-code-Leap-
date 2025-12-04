@@ -68,11 +68,11 @@ export const getMetrics = api<GetMetricsRequest, DashboardMetrics>(
     // Note: Daily stats query disabled - depends on prospects table from different service
     // TODO: Implement proper cross-service data aggregation
     const dailyStats: Array<{
-      date: string;
-      prospects_found: number;
-      emails_sent: number;
-      emails_opened: number;
-      responses_received: number;
+        date: string;
+        prospects_found: number;
+        emails_sent: number;
+        emails_opened: number;
+        responses_received: number;
     }> = [];
 
     const totals = totalsRow || {

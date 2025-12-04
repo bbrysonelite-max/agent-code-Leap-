@@ -182,7 +182,7 @@ export const getBookingLink = api<{}, { link: string }>(
       return { link: calendlyLink() };
     } catch {
       // Fallback if secret not set
-      return { link: "https://calendly.com/your-link" };
+      return { link: "https://calendly.com/bbrysonelite/30min" };
     }
   }
 );

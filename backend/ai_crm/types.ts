@@ -22,6 +22,13 @@ export interface Lead {
   assigned_to?: string;
   linkedin_profile?: string;
   website?: string;
+  // Business data for Alien Probe Reports
+  industry?: string;
+  employee_count?: number;
+  revenue?: string;
+  city?: string;
+  state?: string;
+  country?: string;
   notes?: string;
   created_at: Date;
   updated_at: Date;
@@ -128,6 +135,13 @@ export interface CreateLeadRequest {
   source: LeadSource;
   linkedin_profile?: string;
   website?: string;
+  // Business data for Alien Probe Reports
+  industry?: string;
+  employee_count?: number;
+  revenue?: string;
+  city?: string;
+  state?: string;
+  country?: string;
   notes?: string;
 }
 

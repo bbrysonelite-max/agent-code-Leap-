@@ -8,11 +8,25 @@ export const createLead = api(
     const lead = await CRM.queryRow`
       INSERT INTO leads (
         name, email, phone, company, position, source, 
-        linkedin_profile, website, notes
+        linkedin_profile, website, 
+        industry, employee_count, revenue, city, state, country,
+        notes
       ) VALUES (
-        ${req.name}, ${req.email}, ${req.phone || null}, 
-        ${req.company || null}, ${req.position || null}, ${req.source},
-        ${req.linkedin_profile || null}, ${req.website || null}, ${req.notes || null}
+        ${req.name}, 
+        ${req.email}, 
+        ${req.phone || null}, 
+        ${req.company || null}, 
+        ${req.position || null}, 
+        ${req.source},
+        ${req.linkedin_profile || null}, 
+        ${req.website || null},
+        ${req.industry || null},
+        ${req.employee_count || null},
+        ${req.revenue || null},
+        ${req.city || null},
+        ${req.state || null},
+        ${req.country || 'United States'},
+        ${req.notes || null}
       )
       RETURNING *
     `;
@@ -23,7 +37,7 @@ export const createLead = api(
     // In production, this should be handled via a background job/queue
     // or use the AI scoring service directly
     // TODO: Implement proper background job for lead scoring
-    
+
     return newLead;
   }
 );
