@@ -1,12 +1,14 @@
 import { api } from "encore.dev/api";
 import { db } from "./db";
 import * as mcpStripe from "./mcp_stripe";
-import { secret } from "encore.dev/config";
-
-const stripeWebhookSecret = secret("StripeWebhookSecret");
+// Stripe webhook secret - set via Encore secrets when ready
+// import { secret } from "encore.dev/config";
+// const stripeWebhookSecret = secret("StripeWebhookSecret");
 
 export function getWebhookSecret(): string {
-  return stripeWebhookSecret();
+  // TODO: Enable when Stripe webhook secret is configured
+  // return stripeWebhookSecret();
+  return process.env.STRIPE_WEBHOOK_SECRET || "";
 }
 
 interface WebhookPayload {

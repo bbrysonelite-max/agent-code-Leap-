@@ -1,7 +1,8 @@
-import { secret } from "encore.dev/config";
-import { HubSpotContact, HubSpotDeal, HubSpotCompany } from "./types";
+// HubSpot API Key - set via Encore secrets when ready
+// import { secret } from "encore.dev/config";
+// const hubspotApiKey = secret("HUBSPOT_API_KEY");
 
-const hubspotApiKey = secret("HUBSPOT_API_KEY");
+import { HubSpotContact, HubSpotDeal, HubSpotCompany } from "./types";
 
 export class HubSpotClient {
   private baseUrl = "https://api.hubapi.com";
