@@ -158,20 +158,25 @@ export const updateRule = api(
       throw new ValidationError("Max requests must be positive", "validation");
     }
     
-    const result = await db.queryAll`
-      UPDATE rate_limit_rules 
-      SET window_seconds = ${windowSeconds},
-          max_requests = ${maxRequests},
-          burst_limit = ${burstLimit},
-          enabled = ${enabled},
+    const result = await db.rawQueryAll(
+      `UPDATE rate_limit_rules 
+      SET window_seconds = $1,
+          max_requests = $2,
+          burst_limit = $3,
+          enabled = $4,
           updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = $5
       RETURNING id, endpoint, method, tier,
                 window_seconds as "windowSeconds",
                 max_requests as "maxRequests", 
                 burst_limit as "burstLimit",
-                enabled
-    `;
+                enabled`,
+      windowSeconds,
+      maxRequests,
+      burstLimit,
+      enabled,
+      id
+    );
 
     if (result.length === 0) {
       throw new ValidationError("Rate limit rule not found", "not_found");

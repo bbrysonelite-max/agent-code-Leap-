@@ -22,52 +22,18 @@ export const update = api<UpdateClientRequest, ClientConfiguration>(
   wrapAsync(async (req) => {
     validateField(req.id, "id", [Rules.required(), Rules.positive(), Rules.integer()]);
     
-    // First, fetch the current record
-    const current = await executeQuery(
-      () => clientDB.queryRow<ClientConfiguration>`
-        SELECT * FROM client_configurations WHERE id = ${req.id}
-      `,
-      "fetch client for update"
-    );
+    // Build dynamic update query
+    const updates: string[] = [];
+    const params: any[] = [];
     
-    if (!current) {
-      throw new NotFoundError("Client configuration not found");
-    }
-    
-    // Validate and merge updates
-    const client_name = req.client_name !== undefined ? req.client_name : current.client_name;
-    const business_type = req.business_type !== undefined ? req.business_type : current.business_type;
-    const business_description = req.business_description !== undefined ? req.business_description : current.business_description;
-    const is_active = req.is_active !== undefined ? req.is_active : current.is_active;
-    
-    // Handle JSON fields
-    const enabled_prospect_types = req.enabled_prospect_types !== undefined 
-      ? JSON.stringify(req.enabled_prospect_types) 
-      : (typeof current.enabled_prospect_types === 'string' ? current.enabled_prospect_types : JSON.stringify(current.enabled_prospect_types));
-    
-    const custom_prospect_types = req.custom_prospect_types !== undefined 
-      ? (req.custom_prospect_types ? JSON.stringify(req.custom_prospect_types) : null)
-      : (current.custom_prospect_types ? (typeof current.custom_prospect_types === 'string' ? current.custom_prospect_types : JSON.stringify(current.custom_prospect_types)) : null);
-    
-    const search_config = req.search_config !== undefined 
-      ? JSON.stringify(req.search_config) 
-      : (typeof current.search_config === 'string' ? current.search_config : JSON.stringify(current.search_config));
-    
-    const messaging_config = req.messaging_config !== undefined 
-      ? JSON.stringify(req.messaging_config) 
-      : (typeof current.messaging_config === 'string' ? current.messaging_config : JSON.stringify(current.messaging_config));
-    
-    const daily_limits = req.daily_limits !== undefined 
-      ? JSON.stringify(req.daily_limits) 
-      : (typeof current.daily_limits === 'string' ? current.daily_limits : JSON.stringify(current.daily_limits));
-    
-    // Validate provided fields
     if (req.client_name !== undefined) {
       validateField(req.client_name, "client_name", [
         Rules.required(), 
         Rules.minLength(2), 
         Rules.maxLength(255)
       ]);
+      updates.push(`client_name = $${params.length + 1}`);
+      params.push(req.client_name);
     }
     
     if (req.business_type !== undefined) {
@@ -75,12 +41,18 @@ export const update = api<UpdateClientRequest, ClientConfiguration>(
         Rules.required(), 
         Rules.oneOf(validBusinessTypes)
       ]);
+      updates.push(`business_type = $${params.length + 1}`);
+      params.push(req.business_type);
     }
     
-    if (req.business_description !== undefined && req.business_description) {
-      validateField(req.business_description, "business_description", [
-        Rules.maxLength(1000)
-      ]);
+    if (req.business_description !== undefined) {
+      if (req.business_description) {
+        validateField(req.business_description, "business_description", [
+          Rules.maxLength(1000)
+        ]);
+      }
+      updates.push(`business_description = $${params.length + 1}`);
+      params.push(req.business_description || null);
     }
     
     if (req.enabled_prospect_types !== undefined) {
@@ -88,9 +60,39 @@ export const update = api<UpdateClientRequest, ClientConfiguration>(
         Rules.required(),
         Rules.minLength(1)
       ]);
+      
       for (const type of req.enabled_prospect_types) {
         validateField(type, "prospect_type", [Rules.oneOf(validProspectTypes)]);
       }
+      
+      updates.push(`enabled_prospect_types = $${params.length + 1}`);
+      params.push(JSON.stringify(req.enabled_prospect_types));
+    }
+    
+    if (req.custom_prospect_types !== undefined) {
+      if (req.custom_prospect_types) {
+        for (const customType of req.custom_prospect_types) {
+          validateField(customType.type_name, "custom_type_name", [
+            Rules.required(),
+            Rules.maxLength(100)
+          ]);
+          validateField(customType.description, "custom_type_description", [
+            Rules.required(),
+            Rules.maxLength(500)
+          ]);
+          validateField(customType.priority, "custom_type_priority", [
+            Rules.required(),
+            Rules.oneOf(['high', 'medium', 'low'])
+          ]);
+        }
+      }
+      updates.push(`custom_prospect_types = $${params.length + 1}`);
+      params.push(req.custom_prospect_types ? JSON.stringify(req.custom_prospect_types) : null);
+    }
+    
+    if (req.search_config !== undefined) {
+      updates.push(`search_config = $${params.length + 1}`);
+      params.push(JSON.stringify(req.search_config));
     }
     
     if (req.messaging_config !== undefined) {
@@ -118,23 +120,33 @@ export const update = api<UpdateClientRequest, ClientConfiguration>(
           Rules.maxLength(200)
         ]);
       }
+      
+      updates.push(`messaging_config = $${params.length + 1}`);
+      params.push(JSON.stringify(req.messaging_config));
     }
     
-    // Update with all fields
+    if (req.daily_limits !== undefined) {
+      updates.push(`daily_limits = $${params.length + 1}`);
+      params.push(JSON.stringify(req.daily_limits));
+    }
+    
+    if (req.is_active !== undefined) {
+      updates.push(`is_active = $${params.length + 1}`);
+      params.push(req.is_active);
+    }
+    
+    if (updates.length === 0) {
+      throw new NotFoundError("No fields to update");
+    }
+    
+    // Add the ID parameter for WHERE clause
+    params.push(req.id);
+    
     const result = await executeQuery(
       () => clientDB.queryRow<ClientConfiguration>`
         UPDATE client_configurations 
-        SET client_name = ${client_name},
-            business_type = ${business_type},
-            business_description = ${business_description},
-            enabled_prospect_types = ${enabled_prospect_types},
-            custom_prospect_types = ${custom_prospect_types},
-            search_config = ${search_config},
-            messaging_config = ${messaging_config},
-            daily_limits = ${daily_limits},
-            is_active = ${is_active},
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${req.id}
+        SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $${params.length}
         RETURNING *
       `,
       "update client"
