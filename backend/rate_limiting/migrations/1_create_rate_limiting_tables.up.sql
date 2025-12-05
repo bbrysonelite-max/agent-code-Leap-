@@ -135,11 +135,6 @@ INSERT INTO rate_limit_rules (endpoint, method, tier, window_seconds, max_reques
 ('/scoring/bulk', 'POST', 'premium', 300, 20, 30),
 ('/scoring/bulk', 'POST', 'enterprise', 300, 100, 150),
 
--- Salesforce sync endpoints
-('/salesforce/sync', 'POST', 'basic', 300, 10, 15),
-('/salesforce/sync', 'POST', 'premium', 300, 50, 75),
-('/salesforce/sync', 'POST', 'enterprise', 300, 200, 300),
-
 -- Analytics endpoints
 ('/analytics/metrics', 'GET', 'basic', 60, 60, 90),
 ('/analytics/metrics', 'GET', 'premium', 60, 300, 450),

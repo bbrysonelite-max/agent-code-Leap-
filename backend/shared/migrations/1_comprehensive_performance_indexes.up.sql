@@ -98,16 +98,6 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rate_limits_ip_window ON rate_limit_
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rate_limit_violations_key_timestamp ON rate_limit_violations(rate_limit_key, timestamp DESC);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rate_limit_violations_ip_timestamp ON rate_limit_violations(ip_address, timestamp DESC);
 
--- ===== SALESFORCE INTEGRATION INDEXES =====
--- Sync logs
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sync_logs_connection_timestamp ON sync_logs(connection_id, timestamp DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sync_logs_status_timestamp ON sync_logs(status, timestamp DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sync_logs_object_timestamp ON sync_logs(object_type, timestamp DESC);
-
--- Field mappings
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_field_mappings_connection_source ON field_mappings(connection_id, source_field);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_field_mappings_connection_target ON field_mappings(connection_id, target_field);
-
 -- ===== GDPR COMPLIANCE INDEXES =====
 -- GDPR requests
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_gdpr_requests_user_created ON gdpr_requests(user_id, created_at DESC);
