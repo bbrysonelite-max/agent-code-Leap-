@@ -15,5 +15,13 @@ export default defineConfig({
   mode: "development",
   build: {
     minify: false,
+  },
+  server: {
+    proxy: {
+      '/ai-crm': 'http://localhost:4000',
+      '/integrations': 'http://localhost:4000',
+      '/prospects': 'http://localhost:4000',
+      '/clients': 'http://localhost:4000',
+    }
   }
 })

@@ -1169,11 +1169,8 @@
         
         <script>
         // AI Lead OS Configuration
-        // For production: Update to your deployed Encore URL
-        // For local development: http://localhost:4000
-        const API_BASE_URL = window.location.hostname === 'localhost' 
-          ? 'http://localhost:4000' 
-          : 'https://staging-agent-code-refactoring-ehii.encr.app';
+        // Served from same origin as backend - no CORS issues
+        const API_BASE_URL = '';
         
         document.getElementById('alienprobe-form').addEventListener('submit', async function(e) {
             e.preventDefault();
