@@ -463,12 +463,13 @@ class EndpointConfigManager {
     // Store time-based limits
     if (rules.timeBasedLimits) {
       for (const rule of rules.timeBasedLimits) {
+        const daysOfWeekJson = JSON.stringify(rule.schedule.daysOfWeek);
         await db.queryAll`
           INSERT INTO endpoint_time_limits (
             config_id, name, days_of_week, start_time, end_time, 
             timezone, multiplier, enabled
           ) VALUES (
-            ${configId}, ${rule.name}, ${rule.schedule.daysOfWeek}, 
+            ${configId}, ${rule.name}, ${daysOfWeekJson}, 
             ${rule.schedule.startTime}, ${rule.schedule.endTime},
             ${rule.schedule.timezone}, ${rule.multiplier}, ${rule.enabled}
           )
