@@ -76,11 +76,22 @@ export class TwilioClient {
    * Send a single SMS
    */
   async sendSMS(req: SendSMSRequest): Promise<SendSMSResponse> {
+    const toNumber = this.formatPhoneNumber(req.to);
+    const fromNumber = req.from || this.fromNumber;
+    
+    // Prevent sending to the same number as from
+    if (this.normalizeNumber(toNumber) === this.normalizeNumber(fromNumber)) {
+      throw new Error(
+        `Cannot send SMS: 'To' number (${toNumber}) is the same as your Twilio 'From' number. ` +
+        `Please send to a different phone number.`
+      );
+    }
+    
     const url = `${this.baseUrl}/Accounts/${this.accountSid}/Messages.json`;
     
     const formData = new URLSearchParams();
-    formData.append("To", this.formatPhoneNumber(req.to));
-    formData.append("From", req.from || this.fromNumber);
+    formData.append("To", toNumber);
+    formData.append("From", fromNumber);
     formData.append("Body", req.body);
 
     if (req.statusCallback) {
@@ -176,6 +187,13 @@ export class TwilioClient {
 
     const data = await response.json();
     return data.messages || [];
+  }
+
+  /**
+   * Normalize phone number for comparison (digits only)
+   */
+  private normalizeNumber(phone: string): string {
+    return phone.replace(/\D/g, "");
   }
 
   /**
