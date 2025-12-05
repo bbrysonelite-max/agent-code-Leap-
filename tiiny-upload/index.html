@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlienProbe — AI Business Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --accent-green: #00ff88;
+            --accent-green-glow: rgba(0, 255, 136, 0.3);
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --gradient-alien: linear-gradient(135deg, #00ff88 0%, #00cc6a 50%, #00aa55 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ===== SECTION 1: HERO / ABOVE THE FOLD ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 1.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 100px;
+        }
+
+        .eyebrow::before {
+            content: '◈';
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        h1 .highlight {
+            background: var(--gradient-alien);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subheadline {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.6;
+        }
+
+        .cta-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.25rem 2.5rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--bg-primary);
+            background: var(--gradient-alien);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 30px var(--accent-green-glow);
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 50px var(--accent-green-glow);
+        }
+
+        .cta-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cta-primary svg {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .cta-primary:hover svg {
+            transform: translateX(4px);
+        }
+
+        .trust-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .trust-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .trust-badge svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-green);
+        }
+
+        /* ===== SECTION 2: PAIN VALIDATION ===== */
+        .section {
+            padding: 5rem 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .section-eyebrow {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .pain-section {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .pain-intro {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .pain-list {
+            list-style: none;
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .pain-item {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            padding: 1.25rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            transition: border-color 0.3s ease;
+        }
+
+        .pain-item:hover {
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+
+        .pain-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            color: #ff6b6b;
+        }
+
+        .pain-text {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+        }
+
+        .identity-statement {
+            margin-top: 2.5rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .identity-statement p {
+            font-size: 1.15rem;
+            color: var(--text-primary);
+            font-style: italic;
+        }
+
+        /* ===== SECTION 3: SOLUTION ===== */
+        .solution-section {
+            text-align: center;
+        }
+
+        .pattern-interrupt {
+            display: inline-block;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-purple);
+            padding: 0.5rem 1rem;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 4px;
+            margin-bottom: 2rem;
+        }
+
+        .solution-description {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2rem;
+        }
+
+        .authority-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            margin-top: 1rem;
+        }
+
+        .authority-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--gradient-alien);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--bg-primary);
+        }
+
+        .authority-text {
+            text-align: left;
+        }
+
+        .authority-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .authority-cred {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== SECTION 4: HOW IT WORKS ===== */
+        .steps-section {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .step-card {
+            position: relative;
+            padding: 2rem;
+            background: var(--bg-primary);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-4px);
+        }
+
+        .step-number {
+            position: absolute;
+            top: -1rem;
+            left: 2rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gradient-alien);
+            color: var(--bg-primary);
+            font-weight: 700;
+            border-radius: 50%;
+            font-size: 1rem;
+        }
+
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 1rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .step-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .step-time {
+            display: inline-block;
+            margin-top: 1rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-green);
+            padding: 0.25rem 0.75rem;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 100px;
+        }
+
+        /* ===== SECTION 5: WHAT'S INCLUDED ===== */
+        .deliverables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2.5rem;
+        }
+
+        .deliverable-card {
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .deliverable-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 10px;
+            color: var(--accent-green);
+        }
+
+        .deliverable-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .deliverable-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* ===== SECTION 6: WHO IT'S FOR ===== */
+        .for-section {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .for-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 2.5rem;
+        }
+
+        .for-column h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .for-column.yes h3 {
+            color: var(--accent-green);
+        }
+
+        .for-column.no h3 {
+            color: #ff6b6b;
+        }
+
+        .for-list {
+            list-style: none;
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .for-list li {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .for-list li svg {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+        }
+
+        .for-column.yes .for-list li svg {
+            color: var(--accent-green);
+        }
+
+        .for-column.no .for-list li svg {
+            color: #ff6b6b;
+        }
+
+        /* ===== SECTION 7: SOCIAL PROOF ===== */
+        .testimonial-card {
+            padding: 2.5rem;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+            margin-top: 2.5rem;
+            position: relative;
+        }
+
+        .testimonial-card::before {
+            content: '"';
+            position: absolute;
+            top: 1rem;
+            left: 1.5rem;
+            font-size: 5rem;
+            color: var(--accent-green);
+            opacity: 0.2;
+            line-height: 1;
+        }
+
+        .testimonial-quote {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .testimonial-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .testimonial-info .name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .testimonial-info .title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+            padding-top: 3rem;
+            border-top: 1px solid var(--border-subtle);
+            text-align: center;
+        }
+
+        .stat-item .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-alien);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-item .label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* ===== SECTION 8: FINAL CTA ===== */
+        .final-cta {
+            text-align: center;
+            padding: 6rem 2rem;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            position: relative;
+        }
+
+        .final-cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+        }
+
+        .final-cta h2 {
+            max-width: 700px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .final-cta .subheadline {
+            margin-bottom: 2rem;
+        }
+
+        .scarcity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            color: #ff6b6b;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+        }
+
+        .scarcity-badge svg {
+            width: 16px;
+            height: 16px;
+            animation: pulse-icon 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-green);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 1.5rem;
+                min-height: auto;
+                padding-top: 4rem;
+                padding-bottom: 4rem;
+            }
+
+            .section {
+                padding: 3rem 1.5rem;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .for-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .cta-primary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Smooth scroll offset for any anchor links */
+        [id] {
+            scroll-margin-top: 2rem;
+        }
+
+        /* ===== FORM STYLES ===== */
+        .lead-form {
+            max-width: 500px;
+            margin: 2rem auto 0;
+            text-align: left;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .lead-form input,
+        .lead-form textarea {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .lead-form input:focus,
+        .lead-form textarea:focus {
+            outline: none;
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        .lead-form input::placeholder,
+        .lead-form textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .lead-form textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .lead-form button.cta-primary {
+            width: 100%;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        .lead-form button.cta-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Form status message */
+        .form-status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+
+        .form-status.success {
+            display: block;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: var(--accent-green);
+        }
+
+        .form-status.error {
+            display: block;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== SECTION 1: HERO / ABOVE THE FOLD ===== -->
+    <section class="hero">
+        <div class="hero-content">
+            <span class="eyebrow">Free AI Business Analysis</span>
+            
+            <h1>What Would an <span class="highlight">Alien</span> See in Your Business That You're Missing?</h1>
+            
+            <p class="subheadline">Get a custom 3-5 page AI opportunity report for YOUR specific business — delivered in 48 hours — that shows you exactly which AI tools will move the needle (and which are just noise).</p>
+            
+            <a href="#get-report" class="cta-primary">
+                Get My Free Analysis
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                </svg>
+            </a>
+            
+            <div class="trust-badges">
+                <span class="trust-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Free — No Credit Card
+                </span>
+                <span class="trust-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    10 Minutes to Complete
+                </span>
+                <span class="trust-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path>
+                    </svg>
+                    48-Hour Delivery
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 2: PAIN VALIDATION ===== -->
+    <section class="pain-section section">
+        <span class="section-eyebrow">Sound Familiar?</span>
+        <h2>The AI Overwhelm Is Real</h2>
+        
+        <p class="pain-intro">If you're like most business owners, you're drowning in AI noise while your competitors quietly pull ahead...</p>
+        
+        <ul class="pain-list">
+            <li class="pain-item">
+                <svg class="pain-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path>
+                </svg>
+                <span class="pain-text">You've tried ChatGPT a few times, but you're not sure how to actually integrate AI into your daily operations in a way that makes money.</span>
+            </li>
+            <li class="pain-item">
+                <svg class="pain-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path>
+                </svg>
+                <span class="pain-text">Every week there's a new "must-have" AI tool, and you've wasted hours (and dollars) on ones that didn't deliver.</span>
+            </li>
+            <li class="pain-item">
+                <svg class="pain-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path>
+                </svg>
+                <span class="pain-text">You know AI is important, but between running your business and putting out daily fires, who has time to figure this out?</span>
+            </li>
+            <li class="pain-item">
+                <svg class="pain-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path>
+                </svg>
+                <span class="pain-text">You've heard about competitors using AI to automate, cut costs, and move faster — and you're worried you're falling behind.</span>
+            </li>
+        </ul>
+        
+        <div class="identity-statement">
+            <p>"You're not behind because you're dumb. You're behind because you're busy building a business while everyone else is selling AI snake oil."</p>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 3: SOLUTION INTRODUCTION ===== -->
+    <section class="solution-section section">
+        <span class="pattern-interrupt">⚡ This isn't a webinar. This isn't a course. It's a map.</span>
+        
+        <h2>Introducing the <span class="highlight">AlienProbe</span> Analysis</h2>
+        
+        <p class="solution-description">A fresh-eyes assessment of YOUR business through the lens of AI opportunity — delivered as a custom report that tells you exactly what to do next, in what order, and why it matters for YOUR specific situation.</p>
+        
+        <div class="authority-box">
+            <div class="authority-avatar">BB</div>
+            <div class="authority-text">
+                <div class="authority-name">Built by Brent Bryson</div>
+                <div class="authority-cred">35 years building businesses • Tested 300+ AI tools • Runs multiple AI-powered companies</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 4: HOW IT WORKS ===== -->
+    <section class="steps-section section">
+        <span class="section-eyebrow">Simple Process</span>
+        <h2>How It Works</h2>
+        
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h3 class="step-title">Answer a Few Questions</h3>
+                <p class="step-desc">Fill out a brief intake form about your business, your goals, and your current tech stack. No technical knowledge required.</p>
+                <span class="step-time">~10 minutes</span>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h3 class="step-title">We Analyze Everything</h3>
+                <p class="step-desc">Our AI systems + human expertise scan your business for hidden opportunities, automation possibilities, and competitive advantages.</p>
+                <span class="step-time">24-48 hours</span>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h3 class="step-title">Get Your Custom Report</h3>
+                <p class="step-desc">Receive a prioritized 3-5 page analysis with specific recommendations, tool suggestions, and a clear action roadmap.</p>
+                <span class="step-time">Delivered to inbox</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 5: WHAT'S INCLUDED ===== -->
+    <section class="section">
+        <span class="section-eyebrow">What You Get</span>
+        <h2>Inside Your AlienProbe Report</h2>
+        
+        <div class="deliverables-grid">
+            <div class="deliverable-card">
+                <div class="deliverable-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="deliverable-title">AI Opportunity Scan</div>
+                    <div class="deliverable-desc">Identification of 5-10 specific areas in your business where AI can save time, cut costs, or increase revenue.</div>
+                </div>
+            </div>
+            
+            <div class="deliverable-card">
+                <div class="deliverable-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="deliverable-title">Tool Recommendations</div>
+                    <div class="deliverable-desc">Specific AI tools matched to YOUR business needs — not generic lists, but curated selections with clear "why" explanations.</div>
+                </div>
+            </div>
+            
+            <div class="deliverable-card">
+                <div class="deliverable-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="deliverable-title">Priority Roadmap</div>
+                    <div class="deliverable-desc">A ranked list of what to implement first, second, third — based on impact vs. effort for YOUR situation.</div>
+                </div>
+            </div>
+            
+            <div class="deliverable-card">
+                <div class="deliverable-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="deliverable-title">Risk Assessment</div>
+                    <div class="deliverable-desc">Where competitors might be pulling ahead, and what happens if you wait another 6-12 months to act.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 6: WHO IT'S FOR ===== -->
+    <section class="for-section section">
+        <span class="section-eyebrow">Is This Right For You?</span>
+        <h2>The AlienProbe Analysis Is Perfect For...</h2>
+        
+        <div class="for-grid">
+            <div class="for-column yes">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    This IS for you if...
+                </h3>
+                <ul class="for-list">
+                    <li>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path>
+                        </svg>
+                        You run a real business (not a side hustle) and want AI to help you scale
+                    </li>
+                    <li>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path>
+                        </svg>
+                        You're overwhelmed by AI options and want someone to just tell you what to do
+                    </li>
+                    <li>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path>
+                        </svg>
+                        You want a customized plan, not generic advice that works for "everyone"
+                    </li>
+                    <li>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path>
+                        </svg>
+                        You're ready to take action once you have a clear direction
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="for-column no">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    This is NOT for you if...
+                </h3>
+                <ul class="for-list">
+                    <li>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        You're looking for a "get rich quick" scheme or magic button
+                    </li>
+                    <li>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        You just want to "dabble" in AI without any real commitment
+                    </li>
+                    <li>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        You think AI is just hype and aren't open to implementing changes
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 7: SOCIAL PROOF ===== -->
+    <section class="section">
+        <span class="section-eyebrow">What Others Are Saying</span>
+        <h2>Real Results From Real Businesses</h2>
+        
+        <div class="testimonial-card">
+            <p class="testimonial-quote">"I was skeptical — another AI consultant promising the moon. But Brent's analysis was different. He identified THREE opportunities I hadn't considered, including an automation that's now saving us 12 hours per week. The ROI was immediate."</p>
+            <div class="testimonial-author">
+                <div class="testimonial-avatar">PS</div>
+                <div class="testimonial-info">
+                    <div class="name">Pat Sullivan</div>
+                    <div class="title">Founder, Contata Solutions</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="number">300+</div>
+                <div class="label">AI Tools Tested</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">35</div>
+                <div class="label">Years Building Businesses</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">48hr</div>
+                <div class="label">Average Delivery Time</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">100%</div>
+                <div class="label">Custom Analysis</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 8: FINAL CTA WITH FORM ===== -->
+    <section class="final-cta" id="get-report">
+        <div class="scarcity-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Limited to 10 Deep Probes Per Week
+        </div>
+        
+        <h2>Stop Guessing. Start Knowing.</h2>
+        
+        <p class="subheadline">While your competitors automate and accelerate, don't get left behind analyzing which AI tool to try next. Get a clear map — in 48 hours — for FREE.</p>
+        
+        <!-- FORM WITH BACKEND INTEGRATION -->
+        <form id="alienprobe-form" class="lead-form">
+            <p class="hidden" style="display:none;">
+                <label>Don't fill this out if you're human: <input name="bot-field"></label>
+            </p>
+            
+            <div class="form-group">
+                <input type="text" id="name" name="name" placeholder="Your Name" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="email" id="email" name="email" placeholder="Your Best Email" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="tel" id="phone" name="phone" placeholder="Phone Number" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="text" id="business" name="business" placeholder="Business Name" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="text" id="website" name="website" placeholder="Website URL">
+            </div>
+            
+            <div class="form-group">
+                <textarea id="challenge" name="challenge" placeholder="What's your biggest challenge with AI right now? (1-2 sentences)" rows="3"></textarea>
+            </div>
+            
+            <button type="submit" class="cta-primary" id="submit-btn">
+                <span id="btn-text">Get My Free AlienProbe Analysis</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                </svg>
+            </button>
+            
+            <div id="form-status" class="form-status"></div>
+        </form>
+        
+        <div class="trust-badges" style="margin-top: 1.5rem;">
+            <span class="trust-badge">🔒 Your info stays private</span>
+            <span class="trust-badge">📧 Delivered to your inbox</span>
+            <span class="trust-badge">💯 Actionable or we'll redo it</span>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+        <p>© 2025 AlienProbe.ai — Built by <a href="https://aiosman.ai">The AI OS Man</a></p>
+        <p style="margin-top: 0.5rem;"><a href="#">Privacy Policy</a> • <a href="#">Terms</a></p>
+    </footer>
+
+    <!-- ===== EXTERNAL JAVASCRIPT FILE ===== -->
+    <script src="script.js"></script>
+
+</body>
+</html>
+
