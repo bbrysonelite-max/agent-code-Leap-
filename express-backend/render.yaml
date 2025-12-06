@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: ai-lead-os-backend
+    env: node
+    buildCommand: bun install
+    startCommand: bun run server.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-lead-os-db
+          property: connectionString
+      - key: APOLLO_API_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: CALENDLY_API_KEY
+        sync: false
+      - key: CALENDLY_LINK
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+databases:
+  - name: ai-lead-os-db
+    databaseName: ai_lead_os
+    user: ai_lead_os

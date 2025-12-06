@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS leads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    phone TEXT,
+    company TEXT,
+    website TEXT,
+    notes TEXT,
+    source TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new',
+    priority TEXT NOT NULL DEFAULT 'medium',
+    ai_score INTEGER NOT NULL DEFAULT 0,
+    linkedin_profile TEXT,
+    position TEXT,
+    assigned_to TEXT,
+    ai_qualification TEXT,
+    next_best_action TEXT,
+    last_activity_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
