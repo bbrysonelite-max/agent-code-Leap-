@@ -42,27 +42,26 @@ app.get('/health', (req, res) => {
 });
 
 // ==================== LEADS API ====================
-// Proxy to Encore backend for now (already has database)
 app.post('/ai-crm/leads', async (req, res) => {
   try {
-    const response = await fetch('http://localhost:4000/ai-crm/leads', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(req.body),
-    });
-
-    const data = await response.json();
+    const { name, email, phone, company, website, notes, source } = req.body;
     
-    if (!response.ok) {
-      res.status(response.status).json(data);
-    } else {
-      res.json(data);
-    }
+    const result = await db.query(
+      `INSERT INTO leads (name, email, phone, company, website, notes, source, status, priority, ai_score, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+       RETURNING *`,
+      [name, email, phone || null, company || null, website || null, notes || null, source, 'new', 'medium', 0]
+    );
+    
+    res.json(result.rows[0]);
   } catch (error: any) {
     console.error('Create lead error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    
+    if (error.code === '23505') { // Unique constraint violation
+      res.status(409).json({ error: 'A lead with this email already exists' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
 });
 
