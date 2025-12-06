@@ -16,8 +16,39 @@ const db = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
 });
 
-// In-memory fallback for leads if DB not available
-const memoryLeads: any[] = [];
+// Auto-create database table on startup
+async function initDatabase() {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS leads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        phone TEXT,
+        company TEXT,
+        website TEXT,
+        notes TEXT,
+        source TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'new',
+        priority TEXT NOT NULL DEFAULT 'medium',
+        ai_score INTEGER NOT NULL DEFAULT 0,
+        linkedin_profile TEXT,
+        position TEXT,
+        assigned_to TEXT,
+        ai_qualification TEXT,
+        next_best_action TEXT,
+        last_activity_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Database table ready');
+  } catch (error) {
+    console.error('Database init error:', error);
+  }
+}
+
+initDatabase();
 
 // Initialize clients
 const apollo = new ApolloClient(process.env.APOLLO_API_KEY!);
