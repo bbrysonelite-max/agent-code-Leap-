@@ -1,13 +1,13 @@
-FROM oven/bun:1
+FROM node:20-slim
 
 WORKDIR /app
 
-COPY package.json bun.lockb ./
-RUN bun install --production
+COPY package*.json ./
+RUN npm ci --only=production
 
 COPY . .
 
 EXPOSE 4000
 
-CMD ["bun", "run", "server.ts"]
+CMD ["npm", "start"]
 
